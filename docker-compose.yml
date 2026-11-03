@@ -1,0 +1,23 @@
+# Environnement de DÉVELOPPEMENT uniquement : PostgreSQL local.
+# Le mot de passe est lu dans `.env` (POSTGRES_PASSWORD) — voir .env.example.
+# Port exposé sur 127.0.0.1 uniquement (jamais sur le réseau).
+services:
+  postgres:
+    image: postgres:17-alpine
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: nuera
+      POSTGRES_DB: nuera_os
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:?Définir POSTGRES_PASSWORD dans .env}
+    ports:
+      - "127.0.0.1:5432:5432"
+    volumes:
+      - postgres-data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U nuera -d nuera_os"]
+      interval: 5s
+      timeout: 3s
+      retries: 10
+
+volumes:
+  postgres-data:

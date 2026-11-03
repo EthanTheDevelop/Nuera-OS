@@ -1,0 +1,32 @@
+# Dépendances
+node_modules/
+
+# Build Next.js
+.next/
+out/
+build/
+next-env.d.ts
+*.tsbuildinfo
+
+# Tests
+coverage/
+
+# Environnement — ne jamais committer de secrets
+.env
+.env.*
+!.env.example
+
+# Données locales
+.data/
+
+# Logs & OS
+*.log
+npm-debug.log*
+.DS_Store
+Thumbs.db
+
+# Éditeurs
+.idea/
+.vscode/*
+!.vscode/extensions.json
+!.vscode/settings.json

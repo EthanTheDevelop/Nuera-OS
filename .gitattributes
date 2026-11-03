@@ -1,0 +1,6 @@
+# Fins de ligne normalisées (dépôt édité sous Windows et exécuté sous Linux)
+* text=auto eol=lf
+*.png binary
+*.jpg binary
+*.ico binary
+*.woff2 binary
