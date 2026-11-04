@@ -33,6 +33,30 @@ const envSchema = z.object({
   TWENTY_API_URL: optional(z.url({ protocol: /^https?$/ })),
   TWENTY_API_KEY: optional(z.string()),
   TWENTY_WEBHOOK_SECRET: optional(z.string().min(32)),
+
+  // Coolify et Uptime Kuma : facultatifs, les sites affichent « connexion requise » si absents.
+  COOLIFY_API_URL: optional(z.url({ protocol: /^https?$/ })),
+  COOLIFY_API_TOKEN: optional(z.string()),
+  COOLIFY_WEBHOOK_SECRET: optional(z.string().min(32)),
+  UPTIME_KUMA_URL: optional(z.url({ protocol: /^https?$/ })),
+  UPTIME_KUMA_STATUS_SLUG: optional(z.string()),
+  UPTIME_KUMA_WEBHOOK_SECRET: optional(z.string().min(32)),
+
+  // Signature DocuSeal : facultatif, l'écran Devis signale « connexion requise » si absent.
+  DOCUSEAL_API_URL: optional(z.url({ protocol: /^https?$/ })),
+  DOCUSEAL_API_KEY: optional(z.string()),
+  DOCUSEAL_WEBHOOK_SECRET: optional(z.string().min(16)),
+
+  // Stockage des documents : facultatif, « connexion requise » si absent.
+  STORAGE_DIR: optional(z.string()),
+  STORAGE_MAX_UPLOAD_MB: optional(z.coerce.number().int().min(1).max(2048)),
+
+  // Réponses suggérées (OpenAI) : facultatif, le panneau signale « connexion requise » si absent.
+  OPENAI_API_KEY: optional(z.string()),
+  OPENAI_MODEL: optional(z.string()),
+  OPENAI_BASE_URL: optional(z.url({ protocol: /^https?$/ })),
+  // Webhook Cal.diy / Cal.com : la route ne répond que si ce secret est défini.
+  CAL_WEBHOOK_SECRET: optional(z.string().min(16)),
 });
 
 export type Env = Readonly<z.infer<typeof envSchema>>;
