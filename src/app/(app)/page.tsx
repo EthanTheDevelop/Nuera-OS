@@ -1,18 +1,29 @@
 import type { Metadata } from "next";
-import { requireActor } from "@/server/auth/session";
+import { PageHeader } from "@/components/layout/page-header";
+import { EmptyState } from "@/components/states/states";
+import { Tile } from "@/components/ui/tile";
+import { formatDateLong } from "@/lib/format";
+import { requireInternalActor } from "@/server/auth/session";
 
-export const metadata: Metadata = { title: "Accueil" };
+export const metadata: Metadata = { title: "Tableau de bord" };
 
-/** Page d'accueil provisoire : aucun module métier n'est encore développé. */
+/** Point de départ du lot Pilotage, qui en reprendra le contenu (écrans 01, 06, M1). */
 export default async function HomePage() {
-  const actor = await requireActor();
+  const actor = await requireInternalActor();
+  const firstName = actor.name.trim().split(/\s+/)[0] ?? actor.name;
+  const date = formatDateLong(new Date());
+  const today = date.charAt(0).toLocaleUpperCase("fr-FR") + date.slice(1);
+
   return (
-    <div className="space-y-2">
-      <h1 className="text-xl font-semibold">Nuera OS</h1>
-      <p className="text-ink-muted">
-        Connecté en tant que {actor.name}. Les fondations sont en place ; aucun module métier
-        n&apos;est encore développé.
-      </p>
-    </div>
+    <>
+      <PageHeader title={`Bonjour ${firstName}`} subtitle={`${today} · l’agence aujourd’hui`} />
+      <Tile className="rounded-lg">
+        <EmptyState
+          icon="dashboard"
+          title="Le tableau de bord arrive"
+          description="Les tuiles de pilotage s’afficheront ici dès que les modules métier seront en service."
+        />
+      </Tile>
+    </>
   );
 }

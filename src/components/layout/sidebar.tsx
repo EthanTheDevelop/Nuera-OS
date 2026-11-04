@@ -1,30 +1,54 @@
-import { visibleNavigation } from "@/config/navigation";
-import { can, type Actor } from "@/server/auth/permissions";
-import { ROLE_LABELS } from "@/server/auth/roles";
+import type { ReactNode } from "react";
+import { staggerIndex } from "@/components/motion/stagger";
+import type { NavKey, NavSection } from "@/config/navigation";
+import { Logo } from "./logo";
 import { NavLink } from "./nav-link";
-import { SignOutButton } from "./sign-out-button";
+import { SidebarSearchTrigger } from "./shell-context";
 
-/** Sidebar rendue côté serveur : n'affiche que les entrées autorisées pour l'utilisateur. */
-export function Sidebar({ actor }: { actor: Actor }) {
-  const sections = visibleNavigation((permission) => can(actor, permission));
-
+/**
+ * Barre latérale (Figma 57:578), 248 de large, fond `--near-black`. Compatible serveur.
+ *
+ * - `sections` : déjà filtrées par permission (`visibleNavigation`).
+ * - `counters` : compteurs à droite des entrées (Messages, Support), fournis par le layout.
+ * - `userBlock` : bloc du bas, ouvre le menu du profil (écran 13).
+ */
+export function Sidebar({
+  sections,
+  counters = {},
+  userBlock,
+}: {
+  sections: readonly NavSection[];
+  counters?: Partial<Record<NavKey, number>>;
+  userBlock: ReactNode;
+}) {
+  let itemIndex = 0;
   return (
-    <div className="flex h-full flex-col">
-      <div className="px-4 py-4 font-semibold">Nuera OS</div>
-
-      <nav aria-label="Navigation principale" className="flex-1 space-y-4 overflow-y-auto px-2">
+    <div className="flex h-full w-(--sidebar-w) flex-col gap-4 bg-near-black px-4 pt-5 pb-4">
+      <div className="anim-frame shrink-0 pl-2" style={staggerIndex(0)}>
+        <Logo />
+      </div>
+      <div className="anim-frame shrink-0" style={staggerIndex(1)}>
+        <SidebarSearchTrigger />
+      </div>
+      <nav
+        aria-label="Navigation principale"
+        className="-mx-1 flex min-h-0 flex-1 [scrollbar-width:none] flex-col gap-4 overflow-y-auto px-1"
+      >
         {sections.map((section) => (
           <div key={section.key}>
-            {section.label ? (
-              <p className="mb-1 px-2 text-xs text-ink-subtle uppercase">{section.label}</p>
-            ) : null}
-            <ul className="space-y-0.5">
+            <p className="pb-2 pl-3 font-mono text-nav-group text-accent-on-dark uppercase opacity-60">
+              {section.label}
+            </p>
+            <ul>
               {section.items.map((item) => (
                 <li key={item.key}>
                   <NavLink
                     href={item.href}
+                    icon={item.icon}
                     label={item.label}
-                    icon={<item.icon aria-hidden="true" />}
+                    counter={counters[item.key]}
+                    activePrefix={item.activePrefix}
+                    index={itemIndex++}
                   />
                 </li>
               ))}
@@ -32,13 +56,8 @@ export function Sidebar({ actor }: { actor: Actor }) {
           </div>
         ))}
       </nav>
-
-      <div className="flex items-center gap-2 border-t border-line px-4 py-3">
-        <div className="min-w-0 flex-1">
-          <p className="truncate font-medium">{actor.name}</p>
-          <p className="truncate text-xs text-ink-muted">{ROLE_LABELS[actor.role]}</p>
-        </div>
-        <SignOutButton />
+      <div className="anim-frame shrink-0" style={staggerIndex(itemIndex)}>
+        {userBlock}
       </div>
     </div>
   );

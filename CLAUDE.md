@@ -32,7 +32,10 @@ Node 24 obligatoire (`engine-strict`). Docker pour PostgreSQL et Twenty en local
 ## Enseignements
 
 - `next build` n'a besoin d'aucun secret : ne pas lire l'environnement à l'import.
-- La CSP à nonce bloque les attributs `style` rendus côté serveur : vérifier toute animation au premier rendu.
+- CSP : seul `style-src-attr 'unsafe-inline'` est relâché ; les balises `<style>` et les scripts restent à nonce. La racine lit `headers()`, donc toutes les pages sont dynamiques.
+- Next.js 16.4 : documentation exacte de la version dans `node_modules/next/dist/docs/`.
+- Interface : composer depuis `src/components/{ui,charts,states,motion,layout}`, visibles sur `/dev/ui` en développement. Les graphiques reçoivent des unités d'affichage : convertir les centimes avant.
+- Base de développement : `npm run db:seed` imprime les mots de passe une seule fois.
 - Twenty : introspection GraphQL désactivée, se fier à `/rest/open-api/*`. Détails vérifiés dans `docs/integrations/twenty.md`.
 - Twenty : les webhooks sont livrés au plus une fois et perdus au-delà de 60 par minute. La réconciliation par curseur est obligatoire, le webhook n'est qu'un accélérateur.
 - Twenty : une fiche archivée garde son domaine ou son e-mail réservé. Sur `CrmDuplicateError`, proposer la restauration ou la fusion, jamais une recréation.

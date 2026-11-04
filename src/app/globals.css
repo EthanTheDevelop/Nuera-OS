@@ -1,41 +1,907 @@
 @import "tailwindcss";
 
 /*
- * Tokens de design — PROVISOIRES ET NEUTRES.
- * L'identité visuelle de Nuera OS n'est pas encore définie (pas de maquettes) :
- * ces valeurs ne servent qu'à rendre la structure lisible. Quand les maquettes
- * existeront, seules ces variables seront à remplacer ; les composants utilisent
- * exclusivement les noms sémantiques (`bg-surface`, `text-ink-muted`, `border-line`…).
+ * Tokens de design de Nuera OS. Source : docs/design/tokens.md (Figma « Nuera Design »).
+ *
+ * Trois étages :
+ * 1. `:root` : les noms de tokens.md (`--accent`, `--muted`…), seuls surchargés par les thèmes.
+ * 2. `@theme inline` : leur exposition en classes Tailwind (`bg-accent`, `text-muted`…).
+ * 3. Aucune teinte en dur ailleurs : la palette par défaut de Tailwind est retirée.
+ *
+ * Écart volontaire avec Figma : `--surface-raised` vaut #ECEEF3 au lieu de #FFFFFF.
+ * Blanc sur blanc, le badge Neutre et le rail des jauges étaient invisibles (tokens.md §1).
+ * #ECEEF3 se détache du papier et garde `--muted` à 5,3:1 (AA).
+ * `--surface` s'ajoute aux tokens : le fond des tuiles, égal à `--bg` en clair, se distingue
+ * de la page en sombre, où l'ombre ne suffit plus.
  */
-@theme {
-  --font-sans: ui-sans-serif, system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+:root {
+  color-scheme: light;
 
-  --color-canvas: #fafafa;
-  --color-surface: #ffffff;
-  --color-subtle: #f4f4f5;
-  --color-line: #e4e4e7;
+  /* Teintes de marque */
+  --ink: #233353;
+  --paper: #ffffff;
+  --accent-on-light: #4368b1;
+  --accent-on-dark: #a6b9dd;
+  --accent-pale: #dee5f2;
+  --near-black: #141830;
+  --muted-on-light: #645e78;
+  --border-on-light: #d9dade;
 
-  --color-ink: #18181b;
-  --color-ink-muted: #52525b;
-  --color-ink-subtle: #a1a1aa;
+  /* Rôles */
+  --text: #233353;
+  --accent: #4368b1;
+  --on-accent: #ffffff;
+  --muted: #645e78;
+  --border: #d9dade;
+  --bg: #ffffff;
+  --surface: #ffffff;
+  --surface-raised: #eceef3;
+  --btn-edge: #141830;
+  --focus: #4368b1;
 
-  --color-primary: #18181b;
-  --color-primary-foreground: #fafafa;
-  --color-accent: #2563eb;
+  /* Variantes sur fond sombre */
+  --surface-raised-dark: #ffffff0d;
+  --hairline-on-dark: #ffffff1a;
+  --border-on-dark: #ffffff24;
+  --muted-on-dark: #ffffff9e;
 
-  --color-danger: #b91c1c;
-  --color-danger-soft: #fef2f2;
+  /* App · statuts */
+  --success: #2f6f4f;
+  --success-pale: #e4f1ea;
+  --success-on-dark: #5fc48b;
+  --warn: #8a6516;
+  --warn-pale: #fbf1dc;
+  --warn-on-dark: #f2c14e;
+  --danger: #b4451f;
+  --danger-pale: #f8e6de;
+  --chatgpt: #10a37f;
+  --chatgpt-pale: #e3f5ef;
+  --en-cours: #e0a10f;
+
+  /* Voiles : fenêtre (M3, clair, jamais noir) et menu du profil (écran 13) */
+  --veil-window: #ffffff9e;
+  --veil-menu: rgb(20 24 48 / 0.25);
+  --veil-blur: 6px;
+
+  /* Densité (écran 14) */
+  --row-h-sm: 45px;
+  --row-h-md: 49px;
+  --row-h-lg: 66px;
+  --tile-pad: 20px;
+  --tile-gap: 12px;
+  --grid-gap: 24px;
+
+  /* Grille constatée dans l'app */
+  --sidebar-w: 248px;
+  --content-margin: 32px;
+  --tap-min: 44px;
+  --wrap-vast-w: 1560px;
+  --client-capsule-h: 104px;
+
+  /* Ombres */
+  --shadow-soft: 0 14px 34px -22px rgb(20 24 48 / 0.28);
+  --shadow-float: 0 24px 50px -18px rgb(20 24 48 / 0.55);
+  --shadow-menu: 0 16px 40px 0 rgb(20 23 48 / 0.25);
+  --shadow-capsule: 0 12px 32px 0 rgb(20 23 48 / 0.22);
+  --shadow-capsule-tab: 0 6px 16px 0 rgb(0 0 0 / 0.25);
+
+  /* Mouvement : valeurs miroir de src/lib/motion.ts (égalité vérifiée par motion.test.ts) */
+  --ease-out: cubic-bezier(0.22, 1, 0.36, 1);
+  --ease-in-out: cubic-bezier(0.65, 0, 0.35, 1);
+  --ease-emphasis: cubic-bezier(0.32, 0.72, 0, 1);
+  --ease-steady: cubic-bezier(0.4, 0, 0.2, 1);
+  --ease-exit: cubic-bezier(0.4, 0, 1, 1);
+  --dur-instant: 60ms;
+  --dur-fast: 150ms; /* Arbitrage A8 : 150 ms, pas les 180 ms de Figma. */
+  --dur-exit: 200ms;
+  --dur-tab: 250ms;
+  --dur-client: 250ms;
+  --dur-move: 300ms;
+  --dur-base: 350ms;
+  --dur-bar: 500ms;
+  --dur-gauge: 600ms;
+  --dur-reveal: 750ms;
+  --dur-line: 800ms;
+  --dur-slow: 900ms;
+  --dur-reduced: 150ms;
+  --dur-pulse: 1400ms; /* Attente en cours : hors jetons de motion.ts, CSS uniquement. */
+  --stagger-bar: 25ms;
+  --stagger-menu: 30ms;
+  --stagger-card: 60ms;
+  --build-frame: 250ms;
+  --build-content: 600ms;
+  --build-data: 1000ms;
+  --enter-blur: 6px;
+  --enter-y: 6px;
+}
+
+/*
+ * Thème sombre : non dessiné dans Figma (arbitrage A13), dérivé des mêmes tokens.
+ * La barre latérale garde `--near-black` ; page et tuiles s'étagent autour d'elle.
+ * `--danger` est dérivé : Figma n'a pas de `danger-on-dark`.
+ */
+:root[data-theme="dark"] {
+  color-scheme: dark;
+  --ink: #e9edf7;
+  --text: #e9edf7;
+  --accent: #a6b9dd;
+  --on-accent: #141830;
+  --accent-pale: #2a3558;
+  --muted: #a9afc6;
+  --border: #2e3352;
+  --bg: #10132a;
+  --surface: #1a1e3a;
+  --surface-raised: #262b4a;
+  --focus: #a6b9dd;
+  --success: #5fc48b;
+  --success-pale: #1b3a2d;
+  --warn: #f2c14e;
+  --warn-pale: #3d3214;
+  --danger: #f08a66;
+  --danger-pale: #43231a;
+  --chatgpt: #3ccba6;
+  --chatgpt-pale: #123a30;
+  --veil-window: rgb(16 19 42 / 0.62);
+  --veil-menu: rgb(0 0 0 / 0.4);
+  --shadow-soft: 0 14px 34px -22px rgb(0 0 0 / 0.7);
+  --shadow-float: 0 24px 50px -18px rgb(0 0 0 / 0.8);
+  --shadow-menu: 0 16px 40px 0 rgb(0 0 0 / 0.5);
+}
+
+/* Couleur d'accent personnalisable (écran 14) : les 5 pastilles. */
+:root[data-accent="ink"] {
+  --accent: #233353;
+  --accent-pale: #e3e6ec;
+}
+:root[data-accent="chatgpt"] {
+  --accent: #0d8a6b;
+  --accent-pale: #e3f5ef;
+}
+:root[data-accent="warn"] {
+  --accent: #8a6516;
+  --accent-pale: #fbf1dc;
+}
+:root[data-accent="danger"] {
+  --accent: #b4451f;
+  --accent-pale: #f8e6de;
+}
+:root[data-theme="dark"][data-accent="ink"] {
+  --accent: #e9edf7;
+  --accent-pale: #2e3352;
+}
+:root[data-theme="dark"][data-accent="chatgpt"] {
+  --accent: #3ccba6;
+  --accent-pale: #123a30;
+}
+:root[data-theme="dark"][data-accent="warn"] {
+  --accent: #f2c14e;
+  --accent-pale: #3d3214;
+}
+:root[data-theme="dark"][data-accent="danger"] {
+  --accent: #f08a66;
+  --accent-pale: #43231a;
+}
+
+/* Densité (écran 14). « Confortable » = valeurs Figma. */
+:root[data-density="compact"] {
+  --row-h-sm: 38px;
+  --row-h-md: 42px;
+  --row-h-lg: 54px;
+  --tile-pad: 16px;
+  --tile-gap: 8px;
+  --grid-gap: 16px;
+}
+
+/* Section sombre posée sur un thème clair : l'accent bascule seul (Figma 5:4). */
+.surface-dark {
+  --accent: var(--accent-on-dark);
+  --on-accent: var(--near-black);
+  --text: var(--paper);
+  --muted: var(--muted-on-dark);
+  --border: var(--border-on-dark);
+}
+
+@theme static {
+  --color-*: initial;
+
+  --font-sans: var(--font-outfit), ui-sans-serif, system-ui, "Segoe UI", sans-serif;
+  --font-mono: var(--font-jetbrains), ui-monospace, "Cascadia Mono", monospace;
+
+  /* Styles Figma. Plages fluides 390 → 1440 px (tokens.md §2). */
+  --text-*: initial;
+  --text-6xl: clamp(2.375rem, 0.843rem + 6.286vw, 6.5rem);
+  --text-6xl--line-height: 1.06;
+  --text-6xl--letter-spacing: -0.04em;
+  --text-6xl--font-weight: 700;
+  --text-5xl: clamp(2.75rem, 1.914rem + 3.429vw, 5rem);
+  --text-5xl--line-height: 1.06;
+  --text-5xl--letter-spacing: -0.03em;
+  --text-5xl--font-weight: 700;
+  --text-4xl: clamp(2.25rem, 1.786rem + 1.905vw, 3.5rem);
+  --text-4xl--line-height: 1.06;
+  --text-4xl--letter-spacing: -0.03em;
+  --text-4xl--font-weight: 700;
+  --text-3xl: clamp(1.875rem, 1.55rem + 1.333vw, 2.75rem);
+  --text-3xl--line-height: 1.06;
+  --text-3xl--letter-spacing: -0.02em;
+  --text-3xl--font-weight: 700;
+  --text-2xl: clamp(1.5rem, 1.314rem + 0.762vw, 2rem);
+  --text-2xl--line-height: 1.06;
+  --text-2xl--letter-spacing: -0.02em;
+  --text-2xl--font-weight: 700;
+  --text-xl: clamp(1.25rem, 1.157rem + 0.381vw, 1.5rem);
+  --text-xl--line-height: 1.25;
+  --text-lg: clamp(1.0625rem, 0.993rem + 0.286vw, 1.25rem);
+  --text-lg--line-height: 1.25;
+  --text-base: 1rem;
+  --text-base--line-height: 1.6;
+  --text-ui: 0.9375rem;
+  --text-ui--line-height: 1.25;
+  --text-ui--font-weight: 700;
+  --text-sm: 0.875rem;
+  --text-sm--line-height: 1.25;
+  --text-xs: 0.75rem;
+  --text-xs--line-height: 1.6;
+
+  /* Tailles littérales de l'app (tokens.md §2), nommées. */
+  --text-page-title: 1.75rem;
+  --text-page-title--line-height: 1.25;
+  --text-page-title--font-weight: 600;
+  --text-page-subtitle: 0.875rem;
+  --text-page-subtitle--line-height: 1.25;
+  --text-figure-hero: 2.5rem;
+  --text-figure-hero--line-height: 1.25;
+  --text-figure-hero--font-weight: 600;
+  --text-figure: 1.625rem;
+  --text-figure--line-height: 1.25;
+  --text-figure--font-weight: 600;
+  --text-kpi-label: 0.75rem;
+  --text-kpi-label--line-height: 1.25;
+  --text-kpi-label--font-weight: 500;
+  --text-kpi-note: 0.75rem;
+  --text-kpi-note--line-height: 1.25;
+  --text-tile-title: 0.875rem;
+  --text-tile-title--line-height: 1.25;
+  --text-tile-title--font-weight: 600;
+  --text-badge: 0.75rem;
+  --text-badge--line-height: 1.25;
+  --text-badge--font-weight: 500;
+  --text-avatar: 0.8125rem;
+  --text-avatar--line-height: 1.25;
+  --text-avatar--font-weight: 600;
+  --text-table-head: 0.6875rem;
+  --text-table-head--line-height: 1.25;
+  --text-table-head--font-weight: 500;
+  --text-row-primary: 0.875rem;
+  --text-row-primary--line-height: 1.25;
+  --text-row-primary--font-weight: 600;
+  --text-row-secondary: 0.75rem;
+  --text-row-secondary--line-height: 1.25;
+  --text-cell: 0.8125rem;
+  --text-cell--line-height: 1.25;
+  --text-amount-compact: 0.6875rem;
+  --text-amount-compact--line-height: 1.25;
+  --text-counter: 0.8125rem;
+  --text-counter--line-height: 1.25;
+  --text-counter--font-weight: 500;
+  --text-nav: 0.875rem;
+  --text-nav--line-height: 1.25;
+  --text-nav-search: 0.8125rem;
+  --text-nav-search--line-height: 1.25;
+  --text-nav-group: 0.625rem;
+  --text-nav-group--line-height: 1.32;
+  --text-nav-group--font-weight: 500;
+  --text-kbd: 0.6875rem;
+  --text-kbd--line-height: 1.25;
+  --text-kbd--font-weight: 500;
+  --text-nav-counter: 0.6875rem;
+  --text-nav-counter--line-height: 1.25;
+  --text-nav-counter--font-weight: 600;
+  --text-user-title: 0.8125rem;
+  --text-user-title--line-height: 1.25;
+  --text-user-title--font-weight: 600;
+  --text-user-detail: 0.6875rem;
+  --text-user-detail--line-height: 1.25;
+  --text-field-label: 0.8125rem;
+  --text-field-label--line-height: 1.25;
+  --text-field-label--font-weight: 500;
+  --text-field: 0.9375rem;
+  --text-field--line-height: 1.25;
+  --text-window-title: 1.5rem;
+  --text-window-title--line-height: 1.25;
+  --text-window-title--font-weight: 700;
+  --text-tooltip-value: 1.125rem;
+  --text-tooltip-value--line-height: 1.25;
+  --text-tooltip-value--font-weight: 700;
+  --text-compact-button: 0.875rem;
+  --text-compact-button--line-height: 1.25;
+  --text-compact-button--font-weight: 500;
+  --text-logo-os: 0.75rem;
+  --text-logo-os--line-height: 1.25;
+  --text-logo-os--letter-spacing: 0.08em;
+  --text-logo-os--font-weight: 700;
+  --text-eyebrow: 0.75rem;
+  --text-eyebrow--line-height: 1.25;
+  --text-eyebrow--letter-spacing: 0.2em;
+  --text-client-title: clamp(2rem, 1.71rem + 1.19vw, 2.75rem);
+  --text-client-title--line-height: 1.1;
+  --text-client-title--letter-spacing: -0.015em;
+  --text-client-title--font-weight: 700;
+  --text-client-lead: 1.1875rem;
+  --text-client-lead--line-height: 1.45;
+  --text-client-date: clamp(1.75rem, 1.56rem + 0.76vw, 2.25rem);
+  --text-client-date--line-height: 1.1;
+  --text-client-date--letter-spacing: -0.01em;
+  --text-client-date--font-weight: 700;
+  --text-client-card-title: 1.25rem;
+  --text-client-card-title--line-height: 1.25;
+  --text-client-card-title--font-weight: 600;
+  --text-client-card-body: 0.9375rem;
+  --text-client-card-body--line-height: 1.45;
+  --text-client-action-title: 1.0625rem;
+  --text-client-action-title--line-height: 1.25;
+  --text-client-action-title--font-weight: 600;
+  --text-client-action-detail: 0.875rem;
+  --text-client-action-detail--line-height: 1.25;
+
+  /* Espacement : base 4 px, identique à Tailwind (`p-4` = 16 px = --space-4). */
+  --spacing: 0.25rem;
+  --space-1: 4px;
+  --space-2: 8px;
+  --space-3: 12px;
+  --space-4: 16px;
+  --space-5: 20px;
+  --space-6: 24px;
+  --space-7: 28px;
+  --space-8: 32px;
+  --space-10: 40px;
+  --space-12: 48px;
+  --space-16: 64px;
+  --space-20: 80px;
+  --space-24: 96px;
+  --space-32: 128px;
+
+  /* Rayons */
+  --radius-*: initial;
+  --radius-gauge: 2.5px;
+  --radius-tab: 2px;
+  --radius-sm: 8px;
+  --radius-md: 12px;
+  --radius-lg: 20px;
+  --radius-xl: 28px;
+  --radius-full: 999px;
+
+  --breakpoint-*: initial;
+  --breakpoint-sm: 40rem;
+  --breakpoint-md: 48rem;
+  --breakpoint-lg: 64rem;
+  --breakpoint-xl: 80rem;
+}
+
+@theme inline {
+  --color-ink: var(--ink);
+  --color-paper: var(--paper);
+  --color-text: var(--text);
+  --color-accent: var(--accent);
+  --color-on-accent: var(--on-accent);
+  --color-accent-pale: var(--accent-pale);
+  --color-accent-on-light: var(--accent-on-light);
+  --color-accent-on-dark: var(--accent-on-dark);
+  --color-near-black: var(--near-black);
+  --color-muted: var(--muted);
+  --color-muted-on-dark: var(--muted-on-dark);
+  --color-border: var(--border);
+  --color-border-on-dark: var(--border-on-dark);
+  --color-bg: var(--bg);
+  --color-surface: var(--surface);
+  --color-surface-raised: var(--surface-raised);
+  --color-surface-raised-dark: var(--surface-raised-dark);
+  --color-hairline-on-dark: var(--hairline-on-dark);
+  --color-btn-edge: var(--btn-edge);
+  --color-focus: var(--focus);
+  --color-success: var(--success);
+  --color-success-pale: var(--success-pale);
+  --color-success-on-dark: var(--success-on-dark);
+  --color-warn: var(--warn);
+  --color-warn-pale: var(--warn-pale);
+  --color-warn-on-dark: var(--warn-on-dark);
+  --color-danger: var(--danger);
+  --color-danger-pale: var(--danger-pale);
+  --color-chatgpt: var(--chatgpt);
+  --color-chatgpt-pale: var(--chatgpt-pale);
+  --color-en-cours: var(--en-cours);
+
+  --shadow-soft: var(--shadow-soft);
+  --shadow-float: var(--shadow-float);
+  --shadow-menu: var(--shadow-menu);
+  --shadow-capsule: var(--shadow-capsule);
+  --shadow-capsule-tab: var(--shadow-capsule-tab);
+
+  --ease-out: var(--ease-out);
+  --ease-in-out: var(--ease-in-out);
 }
 
 @layer base {
   *,
   ::before,
   ::after {
-    border-color: var(--color-line);
+    border-color: var(--border);
+  }
+
+  html {
+    background-color: var(--bg);
+    color: var(--text);
+    -webkit-text-size-adjust: 100%;
   }
 
   body {
-    background-color: var(--color-canvas);
-    color: var(--color-ink);
+    min-height: 100dvh;
+    font-family: var(--font-sans);
+    font-size: var(--text-sm);
+    line-height: 1.25;
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+  }
+
+  :focus-visible {
+    outline: 2px solid var(--focus);
+    outline-offset: 2px;
+  }
+
+  button:not(:disabled),
+  [role="button"]:not([aria-disabled="true"]),
+  summary,
+  label[for],
+  select:not(:disabled) {
+    cursor: pointer;
+  }
+
+  /* Une fenêtre ouverte fige la page dessous. */
+  html:has(dialog[open]) {
+    overflow: hidden;
+  }
+
+  ::selection {
+    background-color: var(--accent-pale);
+  }
+
+  /* Le popover natif porte son propre fond : les composants le stylent. */
+  [popover] {
+    margin: 0;
+    border: 0;
+    padding: 0;
+    background: transparent;
+    color: inherit;
+    overflow: visible;
+  }
+
+  [popover]::backdrop {
+    background: transparent;
+  }
+
+  [popover][data-veil="menu"]::backdrop {
+    background: var(--veil-menu);
+  }
+
+  dialog::backdrop {
+    background: transparent;
+  }
+
+  /* Les nombres alignés dans les tableaux et les cartes. */
+  .tabular {
+    font-variant-numeric: tabular-nums;
+  }
+}
+
+@layer components {
+  /*
+   * Bouton 3D du Design System (Figma 7:117).
+   * Socle `--btn-edge`, face levée de 3 px, 6 px au survol, 1 px au clic (0,22 / 0,38 / 0,04 em).
+   * Seule la face bouge, par `transform` : la hauteur totale reste 54 px.
+   */
+  .nu-btn {
+    position: relative;
+    display: inline-grid;
+    padding-top: 6px;
+    border-radius: var(--radius-md);
+    font-family: var(--font-sans);
+    font-size: var(--text-ui);
+    font-weight: 700;
+    line-height: 1.25;
+    white-space: nowrap;
+    --lift: 3px;
+    --face: var(--paper);
+    --face-text: var(--btn-edge);
+    text-align: center;
+  }
+
+  .nu-btn[data-variant="accent"] {
+    --face: var(--accent);
+    --face-text: var(--on-accent);
+  }
+
+  .nu-btn[data-variant="on-dark"] {
+    --face: var(--accent-on-dark);
+    --face-text: var(--btn-edge);
+  }
+
+  .nu-btn-edge {
+    position: absolute;
+    inset: 6px 0 0;
+    border-radius: var(--radius-md);
+    background: var(--btn-edge);
+  }
+
+  .nu-btn-face {
+    position: relative;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: var(--space-2);
+    padding: 13px 26px;
+    border: 1.5px solid var(--btn-edge);
+    border-radius: var(--radius-md);
+    background: var(--face);
+    color: var(--face-text);
+    transform: translateY(calc(var(--lift) * -1));
+    transition: transform var(--dur-fast) var(--ease-out);
+  }
+
+  @media (hover: hover) {
+    .nu-btn:hover:not(:disabled, [aria-disabled="true"], [aria-busy="true"]) {
+      --lift: 6px;
+    }
+  }
+
+  .nu-btn:active:not(:disabled, [aria-disabled="true"], [aria-busy="true"]) {
+    --lift: 1px;
+  }
+
+  .nu-btn:active:not(:disabled, [aria-disabled="true"], [aria-busy="true"]) .nu-btn-face {
+    transition-duration: var(--dur-instant);
+  }
+
+  .nu-btn:disabled:not([aria-busy="true"]),
+  .nu-btn[aria-disabled="true"] {
+    opacity: 0.5;
+    cursor: not-allowed;
+  }
+
+  .nu-btn[aria-busy="true"] {
+    cursor: progress;
+  }
+
+  /* Agrandit la zone cliquable à 44 px sans changer le dessin (bouton compact, filtres). */
+  .hit-44 {
+    position: relative;
+  }
+
+  .hit-44::after {
+    content: "";
+    position: absolute;
+    top: 50%;
+    left: 0;
+    right: 0;
+    height: max(100%, var(--tap-min));
+    transform: translateY(-50%);
+  }
+
+  /* Tableau replié en fiches sous 640 px de large (requête de conteneur). */
+  @container data-table (max-width: 640px) {
+    .nu-table,
+    .nu-table tbody,
+    .nu-table tr,
+    .nu-table td {
+      display: block;
+      width: 100%;
+    }
+
+    .nu-table thead {
+      position: absolute;
+      width: 1px;
+      height: 1px;
+      overflow: hidden;
+      clip-path: inset(50%);
+    }
+
+    .nu-table col {
+      width: auto !important;
+    }
+
+    .nu-table tbody tr {
+      height: auto !important;
+      padding: var(--space-3) var(--space-4);
+    }
+
+    .nu-table td {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: var(--space-3);
+      padding: 3px 0;
+      text-align: right;
+    }
+
+    .nu-table td[data-primary] {
+      padding-bottom: var(--space-2);
+      text-align: left;
+    }
+
+    .nu-table td[data-primary] > * {
+      flex: 1;
+      min-width: 0;
+    }
+
+    .nu-table td[data-hide-collapsed] {
+      display: none;
+    }
+
+    .nu-table td[data-label]:not([data-primary])::before {
+      content: attr(data-label);
+      flex: none;
+      font-family: var(--font-mono);
+      font-size: var(--text-table-head);
+      font-weight: 500;
+      color: var(--muted);
+      text-align: left;
+    }
+  }
+}
+
+/*
+ * Mouvement rendu par le serveur (motion.md §2.1 à 2.3).
+ *
+ * Les entrées sont des animations CSS à images de départ : l'état final est dans le HTML,
+ * donc une page reste juste sans JavaScript ni hydratation. Rien à « révéler » depuis le client.
+ *
+ * Marche à suivre, de la plus large à la plus fine :
+ * - `html[data-shell-seen]`, `html[data-page-seen]` : posés avant le premier rendu par le script
+ *   de `src/components/motion/build-script.tsx`. Page déjà vue dans la session : pas de cascade.
+ * - `[data-replay]` : sous-arbre rejoué malgré tout (changement de mesure, fenêtre).
+ * - `[data-motion="client"]` : préréglage sobre du portail client (motion.md §4).
+ * - `prefers-reduced-motion` : tout devient un fondu de 150 ms, sans exception.
+ */
+@keyframes nu-enter {
+  from {
+    opacity: 0;
+    filter: blur(var(--enter-blur));
+    transform: translateY(var(--enter-y));
+  }
+}
+
+@keyframes nu-fade {
+  from {
+    opacity: 0;
+  }
+}
+
+@keyframes nu-enter-8 {
+  from {
+    opacity: 0;
+    transform: translateY(8px);
+  }
+}
+
+@keyframes nu-grow-x {
+  from {
+    transform: scaleX(0);
+  }
+}
+
+@keyframes nu-grow-y {
+  from {
+    transform: scaleY(0);
+  }
+}
+
+@keyframes nu-wipe {
+  from {
+    clip-path: inset(-10% 100% -10% 0);
+  }
+  to {
+    clip-path: inset(-10% -1% -10% 0);
+  }
+}
+
+@keyframes nu-spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+@keyframes nu-pulse {
+  50% {
+    opacity: 0.55;
+  }
+}
+
+@keyframes nu-halo {
+  from {
+    opacity: 0;
+    transform: scale(0.8);
+  }
+}
+
+/* Délais hérités : zéro hors d'une page en construction ou d'une fenêtre. */
+:root {
+  --delay-frame: 0ms;
+  --delay-content: 0ms;
+  --delay-data: 0ms;
+}
+
+[data-shell] {
+  --delay-frame: var(--build-frame);
+}
+
+[data-page-build] {
+  --delay-frame: var(--build-frame);
+  --delay-content: var(--build-content);
+  --delay-data: var(--build-data);
+}
+
+[data-replay] {
+  --delay-frame: 0ms;
+  --delay-content: 0ms;
+  --delay-data: 0ms;
+}
+
+/* Fenêtre : les jauges se remplissent une fois la fenêtre ouverte (motion.md §2.6). */
+[data-window] {
+  --delay-data: var(--dur-tab);
+}
+
+.anim-frame,
+.anim-header {
+  animation: nu-enter var(--dur-base) var(--ease-out) backwards;
+  animation-delay: calc(var(--delay-frame) + var(--i, 0) * var(--stagger-menu));
+}
+
+.anim-content {
+  animation: nu-enter var(--dur-base) var(--ease-out) backwards;
+  animation-delay: calc(var(--delay-content) + var(--i, 0) * var(--stagger-card));
+}
+
+.anim-data {
+  animation: nu-enter var(--dur-base) var(--ease-out) backwards;
+  animation-delay: calc(var(--delay-data) + var(--i, 0) * var(--stagger-bar));
+}
+
+.anim-fade-late {
+  animation: nu-fade var(--dur-base) var(--ease-out) backwards;
+  animation-delay: calc(var(--delay-data) + var(--dur-line));
+}
+
+.anim-grow-x {
+  transform-origin: left center;
+  animation: nu-grow-x var(--dur-gauge) var(--ease-out) backwards;
+  animation-delay: calc(var(--delay-data) + var(--i, 0) * var(--stagger-card));
+}
+
+.anim-grow-y {
+  transform-origin: center bottom;
+  animation: nu-grow-y var(--dur-bar) var(--ease-out) backwards;
+  animation-delay: calc(var(--delay-data) + var(--i, 0) * var(--stagger-bar));
+}
+
+.anim-grow-y-down {
+  transform-origin: center top;
+  animation: nu-grow-y var(--dur-bar) var(--ease-out) backwards;
+  animation-delay: calc(var(--delay-data) + var(--i, 0) * var(--stagger-bar));
+}
+
+.anim-segment {
+  animation: nu-fade var(--dur-fast) var(--ease-out) backwards;
+  animation-delay: calc(var(--delay-data) + var(--i, 0) * var(--stagger-bar));
+}
+
+.anim-wipe {
+  animation: nu-wipe var(--dur-line) var(--ease-steady) backwards;
+  animation-delay: var(--delay-data);
+}
+
+.anim-spin {
+  animation: nu-spin var(--dur-slow) linear infinite;
+}
+
+.anim-pulse {
+  animation: nu-pulse var(--dur-pulse) var(--ease-in-out) infinite;
+}
+
+.anim-halo {
+  animation: nu-halo var(--dur-base) var(--ease-out) backwards;
+  animation-delay: calc(var(--delay-data) + var(--dur-gauge));
+}
+
+.anim-enter-8 {
+  animation: nu-enter-8 var(--dur-tab) var(--ease-out) backwards;
+}
+
+.anim-pop {
+  animation: nu-enter-8 var(--dur-fast) var(--ease-out) backwards;
+}
+
+.anim-reveal {
+  animation: nu-enter var(--dur-reveal) var(--ease-out) backwards paused;
+}
+
+.anim-reveal[data-inview] {
+  animation-play-state: running;
+}
+
+/* Barres et jauges : une valeur qui change roule, même sur une page déjà vue. */
+.value-transition {
+  transition: transform var(--dur-gauge) var(--ease-out);
+}
+
+/* Déjà vu dans la session : le cadre et les données sont en place, seules les valeurs bougent. */
+:root[data-shell-seen] .anim-frame {
+  animation: none;
+}
+
+:root[data-page-seen]
+  :is(
+    .anim-header,
+    .anim-content,
+    .anim-data,
+    .anim-fade-late,
+    .anim-grow-x,
+    .anim-grow-y,
+    .anim-grow-y-down,
+    .anim-segment,
+    .anim-wipe,
+    .anim-halo,
+    .anim-reveal
+  ):not([data-replay] *) {
+  animation: none;
+}
+
+/* Portail client : un fondu de 250 ms, pas de flou ni de cascade (note C3). */
+[data-motion="client"] :is(.anim-frame, .anim-header, .anim-content, .anim-data, .anim-reveal) {
+  animation: nu-fade var(--dur-client) var(--ease-out) backwards;
+  animation-delay: 0ms;
+  animation-play-state: running;
+}
+
+/* Réduire les animations : obligatoire, tout devient un fondu de 150 ms (motion.md §3). */
+@media (prefers-reduced-motion: reduce) {
+  html {
+    scroll-behavior: auto;
+  }
+
+  :is(
+    .anim-frame,
+    .anim-header,
+    .anim-content,
+    .anim-data,
+    .anim-fade-late,
+    .anim-grow-x,
+    .anim-grow-y,
+    .anim-grow-y-down,
+    .anim-segment,
+    .anim-wipe,
+    .anim-halo,
+    .anim-enter-8,
+    .anim-pop,
+    .anim-reveal
+  ) {
+    animation-name: nu-fade !important;
+    animation-duration: var(--dur-reduced) !important;
+    animation-delay: 0ms !important;
+    animation-timing-function: linear !important;
+    animation-play-state: running !important;
+  }
+
+  .anim-spin,
+  .anim-pulse {
+    animation: none !important;
+  }
+
+  *,
+  ::before,
+  ::after {
+    transition-property:
+      opacity, color, background-color, border-color, box-shadow, stroke, fill !important;
+    transition-duration: var(--dur-reduced) !important;
+    transition-delay: 0ms !important;
   }
 }

@@ -20,6 +20,8 @@ const nextConfig: NextConfig = {
   output: "standalone",
   poweredByHeader: false,
   reactStrictMode: true,
+  // `next dev` ne génère pas de fichier AGENTS.md : les instructions sont dans CLAUDE.md.
+  agentRules: false,
   async headers() {
     return [{ source: "/:path*", headers: securityHeaders }];
   },

@@ -1,13 +1,15 @@
-import Link from "next/link";
+import { ButtonLink } from "@/components/ui/button";
+import { AuthCard, AuthScreen } from "./(auth)/auth-card";
 
 export default function NotFound() {
   return (
-    <main className="flex min-h-dvh flex-col items-center justify-center gap-2 px-6 text-center">
-      <h1 className="text-xl font-semibold">Page introuvable</h1>
-      <p className="text-ink-muted">Cette page n&apos;existe pas.</p>
-      <Link href="/" className="text-accent underline underline-offset-4">
-        Retour à l&apos;accueil
-      </Link>
-    </main>
+    <AuthScreen>
+      <AuthCard title="Page introuvable">
+        <p className="text-sm text-muted">Cette page n’existe pas, ou elle a changé d’adresse.</p>
+        <ButtonLink href="/" variant="accent" className="self-start">
+          Retour à l’accueil
+        </ButtonLink>
+      </AuthCard>
+    </AuthScreen>
   );
 }

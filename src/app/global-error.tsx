@@ -1,5 +1,7 @@
 "use client";
 
+import { Button } from "@/components/ui/button";
+import { AuthCard, AuthScreen } from "./(auth)/auth-card";
 import "./globals.css";
 
 /** Dernier filet : erreur dans le layout racine. Aucun détail technique affiché. */
@@ -11,15 +13,21 @@ export default function GlobalError({
   reset: () => void;
 }) {
   return (
-    <html lang="fr">
-      <body className="font-sans text-sm">
-        <main className="flex min-h-dvh flex-col items-center justify-center gap-3 px-6 text-center">
-          <h1 className="text-xl font-semibold">Nuera OS est momentanément indisponible</h1>
-          {error.digest ? <p className="text-ink-muted">Référence : {error.digest}</p> : null}
-          <button type="button" onClick={reset} className="underline underline-offset-4">
-            Réessayer
-          </button>
-        </main>
+    <html lang="fr" data-theme="light">
+      <body>
+        <AuthScreen>
+          <AuthCard title="Nuera OS est momentanément indisponible">
+            <p className="text-sm text-muted">
+              L’application a rencontré un problème. Réessayez dans quelques instants.
+            </p>
+            {error.digest ? (
+              <p className="font-mono text-xs text-muted">Référence : {error.digest}</p>
+            ) : null}
+            <Button variant="accent" onClick={reset} className="self-start">
+              Réessayer
+            </Button>
+          </AuthCard>
+        </AuthScreen>
       </body>
     </html>
   );
