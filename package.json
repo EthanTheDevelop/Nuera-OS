@@ -17,11 +17,13 @@
     "format:check": "prettier --check .",
     "test": "vitest run",
     "test:watch": "vitest",
+    "test:live": "vitest run --mode live",
     "check": "npm run format:check && npm run lint && npm run typecheck && npm run test",
     "db:generate": "drizzle-kit generate",
     "db:migrate": "tsx --conditions=react-server --env-file-if-exists=.env scripts/db-migrate.ts",
     "db:studio": "drizzle-kit studio",
-    "user:create": "tsx --conditions=react-server --env-file-if-exists=.env scripts/user-create.ts"
+    "user:create": "tsx --conditions=react-server --env-file-if-exists=.env scripts/user-create.ts",
+    "twenty:bootstrap": "tsx --conditions=react-server --env-file-if-exists=.env scripts/twenty-bootstrap.ts"
   },
   "dependencies": {
     "better-auth": "1.7.11",

@@ -1,7 +1,8 @@
 import { fileURLToPath } from "node:url";
-import { defineConfig } from "vitest/config";
+import { configDefaults, defineConfig } from "vitest/config";
 
-export default defineConfig({
+// `tests/live` parle à une instance réelle : uniquement avec `npm run test:live` (--mode live).
+export default defineConfig(({ mode }) => ({
   resolve: {
     alias: {
       "@": fileURLToPath(new URL("./src", import.meta.url)),
@@ -11,12 +12,15 @@ export default defineConfig({
   },
   test: {
     environment: "node",
-    include: ["src/**/*.test.ts", "tests/**/*.test.ts"],
+    include:
+      mode === "live" ? ["tests/live/**/*.test.ts"] : ["src/**/*.test.ts", "tests/**/*.test.ts"],
+    exclude:
+      mode === "live" ? configDefaults.exclude : [...configDefaults.exclude, "tests/live/**"],
     // Les tests d'intégration démarrent un PostgreSQL embarqué (PGlite) par fichier.
-    testTimeout: 30_000,
-    hookTimeout: 60_000,
+    testTimeout: mode === "live" ? 180_000 : 30_000,
+    hookTimeout: mode === "live" ? 180_000 : 60_000,
     env: {
       LOG_LEVEL: "silent",
     },
   },
-});
+}));

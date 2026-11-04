@@ -1,6 +1,11 @@
 import "server-only";
 import { z } from "@/lib/zod";
 
+/** Variable facultative : une valeur vide dans `.env` vaut « absente ». */
+function optional<T extends z.ZodType>(schema: T) {
+  return z.preprocess((value) => (value === "" ? undefined : value), schema.optional());
+}
+
 /**
  * Configuration serveur, validée une seule fois et figée.
  *
@@ -23,6 +28,11 @@ const envSchema = z.object({
   BETTER_AUTH_URL: z.url({ protocol: /^https?$/ }),
 
   LOG_LEVEL: z.enum(["debug", "info", "warn", "error", "silent"]).default("info"),
+
+  // CRM Twenty : facultatif, l'intégration signale « connexion requise » si absent.
+  TWENTY_API_URL: optional(z.url({ protocol: /^https?$/ })),
+  TWENTY_API_KEY: optional(z.string()),
+  TWENTY_WEBHOOK_SECRET: optional(z.string().min(32)),
 });
 
 export type Env = Readonly<z.infer<typeof envSchema>>;
