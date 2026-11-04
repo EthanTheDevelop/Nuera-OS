@@ -4,6 +4,8 @@
  */
 const UNIQUE_VIOLATION = "23505";
 const FOREIGN_KEY_VIOLATION = "23503";
+/** `ON DELETE RESTRICT` : 23503 jusqu'à PostgreSQL 17, 23001 à partir de PostgreSQL 18. */
+const RESTRICT_VIOLATION = "23001";
 
 interface PgErrorLike {
   code?: string;
@@ -24,5 +26,8 @@ export function isUniqueViolation(error: unknown, constraint?: string): boolean 
 
 export function isForeignKeyViolation(error: unknown, constraint?: string): boolean {
   const pg = findPgError(error);
-  return pg?.code === FOREIGN_KEY_VIOLATION && (!constraint || pg.constraint === constraint);
+  return (
+    (pg?.code === FOREIGN_KEY_VIOLATION || pg?.code === RESTRICT_VIOLATION) &&
+    (!constraint || pg.constraint === constraint)
+  );
 }

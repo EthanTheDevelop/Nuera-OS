@@ -1,6 +1,7 @@
 import { PGlite } from "@electric-sql/pglite";
 import { drizzle } from "drizzle-orm/pglite";
 import { migrate } from "drizzle-orm/pglite/migrator";
+import type { CrmGateway } from "@/integrations/twenty/crm-gateway";
 import type { Actor } from "@/server/auth/permissions";
 import type { Role } from "@/server/auth/roles";
 import type { ServiceContext } from "@/server/context";
@@ -37,6 +38,11 @@ export async function createTestActor(db: Database, role: Role): Promise<Actor> 
   return { userId: user.id, role, name: user.name, email };
 }
 
-export async function createTestContext(db: Database, role: Role): Promise<ServiceContext> {
-  return { db, actor: await createTestActor(db, role) };
+/** Contexte de service pour un rôle. `crm` : passerelle à injecter (voir `fake-crm-gateway.ts`). */
+export async function createTestContext(
+  db: Database,
+  role: Role,
+  options: { crm?: CrmGateway } = {},
+): Promise<ServiceContext> {
+  return { db, actor: await createTestActor(db, role), crm: options.crm };
 }

@@ -5,13 +5,21 @@ import { nextCookies } from "better-auth/next-js";
 import { createAccessControl } from "better-auth/plugins/access";
 import { admin } from "better-auth/plugins/admin";
 import { defaultStatements } from "better-auth/plugins/admin/access";
+import { magicLink } from "better-auth/plugins/magic-link";
+import { twoFactor } from "better-auth/plugins/two-factor";
 import { recordAudit } from "@/modules/audit/audit.service";
 import { getEnv } from "@/server/config/env";
 import { getDb } from "@/server/db/client";
-import { accounts, sessions, users, verifications } from "@/server/db/schema";
+import { accounts, sessions, twoFactors, users, verifications } from "@/server/db/schema";
 import type { Database } from "@/server/db/types";
 import { logger } from "@/server/logger";
 import { AUTH_COOKIE_PREFIX } from "./cookies";
+import {
+  createOutboxMagicLinkSender,
+  MAGIC_LINK_EXPIRES_IN_SECONDS,
+  sendMagicLinkToPortalClient,
+  type MagicLinkSender,
+} from "./magic-link";
 import { PASSWORD_MAX_LENGTH, PASSWORD_MIN_LENGTH } from "./password-policy";
 import { DEFAULT_ROLE, ROLES, type Role } from "./roles";
 
@@ -36,9 +44,13 @@ export interface AuthOptions {
   db: Database;
   secret: string;
   baseURL: string;
+  /** Envoi du lien de connexion client. Par défaut : dépôt dans `email_outbox`. */
+  sendMagicLink?: MagicLinkSender;
 }
 
-export function buildAuth({ db, secret, baseURL }: AuthOptions) {
+export function buildAuth({ db, secret, baseURL, sendMagicLink }: AuthOptions) {
+  const magicLinkSender = sendMagicLink ?? createOutboxMagicLinkSender(db);
+
   return betterAuth({
     appName: "Nuera OS",
     baseURL,
@@ -46,7 +58,13 @@ export function buildAuth({ db, secret, baseURL }: AuthOptions) {
     trustedOrigins: [baseURL],
     database: drizzleAdapter(db, {
       provider: "pg",
-      schema: { user: users, session: sessions, account: accounts, verification: verifications },
+      schema: {
+        user: users,
+        session: sessions,
+        account: accounts,
+        verification: verifications,
+        twoFactor: twoFactors,
+      },
     }),
     emailAndPassword: {
       enabled: true,
@@ -100,6 +118,17 @@ export function buildAuth({ db, secret, baseURL }: AuthOptions) {
         roles: authRoles,
         defaultRole: DEFAULT_ROLE,
         adminRoles: ["admin"],
+      }),
+      // Équipe : second facteur TOTP. Le secret et les codes de secours sont chiffrés.
+      twoFactor({ issuer: "Nuera OS" }),
+      // Clients : lien par e-mail. Il ne crée jamais de compte, et ne part que vers un client au
+      // `portal_memberships` valide (voir magic-link.ts). Jeton stocké haché en base.
+      magicLink({
+        disableSignUp: true,
+        expiresIn: MAGIC_LINK_EXPIRES_IN_SECONDS,
+        storeToken: "hashed",
+        sendMagicLink: ({ email, url }) =>
+          sendMagicLinkToPortalClient(db, magicLinkSender, { email, url }),
       }),
       // Doit rester le dernier plugin : applique les cookies dans les Server Actions.
       nextCookies(),

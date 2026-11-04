@@ -12,7 +12,11 @@
  * `domains`, `emails` et `phones` sont remplacés en entier (Twenty écrase ou vide les sous-champs
  * non transmis : voir docs/integrations/twenty.md).
  */
-import { ConflictError, IntegrationError } from "@/server/errors";
+import {
+  ConflictError,
+  ServiceUnavailableError,
+  type ServiceUnavailableReason,
+} from "@/server/errors";
 
 export const OPPORTUNITY_STAGES = [
   "NEW",
@@ -29,15 +33,7 @@ export type TaskStatus = (typeof TASK_STATUSES)[number];
 
 // --- Erreurs du port -----------------------------------------------------------------------------
 
-export type CrmUnavailableReason =
-  /** TWENTY_API_URL / TWENTY_API_KEY absents. */
-  | "not_configured"
-  /** Clé d'API absente, expirée ou révoquée. */
-  | "unauthorized"
-  /** Réseau, délai dépassé ou erreur 5xx après les nouvelles tentatives. */
-  | "unreachable"
-  /** Limite de débit de Twenty encore dépassée après les nouvelles tentatives. */
-  | "rate_limited";
+export type CrmUnavailableReason = ServiceUnavailableReason;
 
 const UNAVAILABLE_MESSAGES: Record<CrmUnavailableReason, string> = {
   not_configured:
@@ -48,15 +44,12 @@ const UNAVAILABLE_MESSAGES: Record<CrmUnavailableReason, string> = {
 };
 
 /** Le CRM ne peut pas répondre : jamais de succès simulé, l'appelant décide quoi afficher. */
-export class IntegrationUnavailableError extends IntegrationError {
-  readonly retryAfterMs: number | undefined;
-
+export class IntegrationUnavailableError extends ServiceUnavailableError {
   constructor(
-    readonly reason: CrmUnavailableReason,
+    reason: CrmUnavailableReason,
     options?: { cause?: unknown; status?: number; retryAfterMs?: number },
   ) {
-    super("crm", UNAVAILABLE_MESSAGES[reason], options);
-    this.retryAfterMs = options?.retryAfterMs;
+    super("crm", reason, UNAVAILABLE_MESSAGES[reason], options);
   }
 }
 

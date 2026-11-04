@@ -189,7 +189,7 @@ notify(tx, { userIds | role, kind, severity, title, body, href, dedupeKey }): Pr
 
 **Événements** (`domain_events.type`) : `opportunity.created|stage_changed|won|lost`, `quote.sent|accepted|refused|expired`, `project.created|status_changed|delivered`, `task.overdue`, `deliverable.submitted|validated|changes_requested`, `site.live|down|up`, `deployment.finished`, `backup.failed`, `domain.expiring`, `contract.expiring|quota_80|quota_exceeded|terminated`, `ticket.created|critical|closed`, `budget.threshold_80`, `invoice.overdue|paid`, `message.received`.
 
-Intégrations : `src/integrations/<service>/`. Chaque adaptateur a un `isConfigured`, lève `IntegrationUnavailableError` (message français « connexion requise ») s'il ne l'est pas, et n'est appelé que par les services. Toute lecture externe porte sa date ; une donnée périmée s'affiche comme telle.
+Intégrations : `src/integrations/<service>/`. Chaque adaptateur a un `isConfigured`, lève `ServiceUnavailableError` (message français « connexion requise ») s'il ne l'est pas, et n'est appelé que par les services. Toute lecture externe porte sa date ; une donnée périmée s'affiche comme telle.
 
 ## 7. Parcours à tester de bout en bout (`tests/journeys/`)
 
@@ -221,3 +221,24 @@ Intégrations : `src/integrations/<service>/`. Chaque adaptateur a un `isConfigu
 | Automatisations et administration | `src/modules/{platform,admin}`, `src/app/(app)/{automatisations,administration,reglages,profil}`, `src/integrations/{n8n,smtp}`, `src/app/api/{jobs,webhooks/n8n,export}`                                                | 05, 12, 14, 24     |
 
 Un lot qui a besoin d'une évolution hors de ses chemins l'écrit dans son rapport final ; il ne modifie pas le fichier d'un autre lot. Exception : `audit.constants.ts`, `navigation.ts` et `schema/**` sont figés par le socle et complétés par le responsable.
+
+## 9. Précisions du socle
+
+Choix faits en construisant le schéma, là où le texte ci-dessus laissait une impasse. Ils font référence.
+
+**Transitions.** Devis : `sent → accepted/refused` direct (une signature DocuSeal ne passe pas par la négociation). Projet : `active ⇄ in_validation`. Contrat : `suspended → active/terminated`. Opportunité : `LOST` depuis toute étape ouverte, `WON` aussi depuis `QUOTE_SENT`. Machines : `src/modules/<domaine>/<x>.status.ts`, helper `src/server/status-machine.ts`.
+
+**Échéances et factures.** Une échéance peut porter plusieurs factures (A12) : `financial_documents.schedule_item_id` fait foi, `payment_schedule_items.financial_document_id` désigne le document principal.
+
+**Rôles.** `DEFAULT_ROLE` vaut `viewer`, puisque `member` a désormais des droits. Le prestataire n'a ni `dashboard:read` ni lecture du temps des autres. `time_entries.hourly_cost_cents` reste lisible avec `time:read` : les services le masquent sans `team:read_costs`.
+
+**`company_id` nullable** sur contacts, opportunités, activités (Twenty autorise l'absence de client), documents, coûts directs, rendez-vous et temps. Des CHECK empêchent un NULL de contourner les clés composites. `messages`, `comments` et `maintenance_interventions` exigent `company_id`.
+
+**Pièges.**
+
+- Fusion de clients : les clés composites refusent de déplacer un parent seul. Déplacer parents et enfants dans une seule instruction `WITH … UPDATE` (exemple testé dans `tests/integration/tenancy.test.ts`).
+- Synchronisation Twenty : Twenty accepte une opportunité dont le contact appartient à un autre client, pas nous. Mettre le contact à NULL et journaliser dans ce cas.
+- Lignes du seed : `twenty_id` préfixé `seed-`, sans fiche dans Twenty. La réconciliation ne les considère pas comme supprimées, et toute écriture CRM sur ces lignes échoue honnêtement.
+- `email_outbox` contient des liens de connexion actifs en clair : le lot SMTP les efface après envoi.
+- Lien de connexion : réservé au rôle `client` avec adhésion valide. Réponse identique dans tous les cas, sans révéler si une adresse existe.
+- Erreurs d'intégration : `ServiceUnavailableError` (`src/server/errors.ts`) pour tous les adaptateurs. `IntegrationUnavailableError` en est la variante CRM.

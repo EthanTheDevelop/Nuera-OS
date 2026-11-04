@@ -2,13 +2,15 @@ import "server-only";
 import { headers } from "next/headers";
 import { redirect } from "next/navigation";
 import { cache } from "react";
-import type { ServiceContext } from "@/server/context";
+import { getCrmGateway } from "@/integrations/twenty";
+import type { PortalContext, ServiceContext } from "@/server/context";
 import { getDb } from "@/server/db/client";
 import { ForbiddenError } from "@/server/errors";
 import { logger } from "@/server/logger";
 import { getAuth } from "./auth";
 import type { Actor } from "./permissions";
-import { isRole } from "./roles";
+import { resolvePortalContext } from "./portal-context";
+import { isInternalRole, isRole } from "./roles";
 
 /**
  * Utilisateur courant, résolu une seule fois par requête (`cache`).
@@ -40,7 +42,27 @@ export async function requireActor(): Promise<Actor> {
   return actor;
 }
 
-/** Contexte de service de la requête courante (utilisateur connecté obligatoire). */
-export async function getServiceContext(): Promise<ServiceContext> {
-  return { db: getDb(), actor: await requireActor() };
+/**
+ * Exige un membre de l'équipe : tout rôle sauf `client`.
+ * Un client qui ouvre une URL interne part vers son espace (`docs/domain-model.md` §5).
+ */
+export async function requireInternalActor(): Promise<Actor> {
+  const actor = await requireActor();
+  if (!isInternalRole(actor.role)) redirect("/espace");
+  return actor;
 }
+
+/** Contexte de service de la requête courante : réservé à l'équipe, jamais à un client. */
+export async function getServiceContext(): Promise<ServiceContext> {
+  return { db: getDb(), actor: await requireInternalActor(), crm: getCrmGateway() };
+}
+
+/**
+ * Contexte du portail pour la requête courante. Sans session : page de connexion. Membre de
+ * l'équipe : retour à l'agence. Adhésion absente ou révoquée : `ForbiddenError`.
+ */
+export const getPortalContext = cache(async (): Promise<PortalContext> => {
+  const actor = await requireActor();
+  if (isInternalRole(actor.role)) redirect("/");
+  return resolvePortalContext(getDb(), actor);
+});

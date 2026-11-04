@@ -91,6 +91,39 @@ export class IntegrationError extends AppError {
   }
 }
 
+export type ServiceUnavailableReason =
+  /** Identifiants ou URL absents de la configuration. */
+  | "not_configured"
+  /** Le service refuse les identifiants configurés. */
+  | "unauthorized"
+  /** Réseau, délai dépassé ou erreur 5xx après les nouvelles tentatives. */
+  | "unreachable"
+  /** Limite de débit encore dépassée après les nouvelles tentatives. */
+  | "rate_limited";
+
+/**
+ * Un service externe ne peut pas répondre. Commun à tous les adaptateurs : jamais de succès
+ * simulé, l'appelant affiche « connexion requise » ou « données indisponibles ».
+ */
+export class ServiceUnavailableError extends IntegrationError {
+  readonly retryAfterMs: number | undefined;
+
+  constructor(
+    service: string,
+    readonly reason: ServiceUnavailableReason,
+    message: string,
+    options?: { cause?: unknown; status?: number; retryAfterMs?: number },
+  ) {
+    super(service, message, options);
+    this.retryAfterMs = options?.retryAfterMs;
+  }
+
+  /** La connexion doit être configurée ou réparée par un administrateur. */
+  get connectionRequired(): boolean {
+    return this.reason === "not_configured" || this.reason === "unauthorized";
+  }
+}
+
 export function isAppError(error: unknown): error is AppError {
   return error instanceof AppError;
 }

@@ -20,7 +20,7 @@ Node 24 obligatoire (`engine-strict`). Docker pour PostgreSQL et Twenty en local
 - Zod depuis `@/lib/zod` uniquement. Configuration via `getEnv()` uniquement. Pas de `any`.
 - Interface en français. Montants HT en centimes, durées en minutes.
 - Aucune donnée métier en dur, aucun mock dans le code livré. Valeur absente : état vide ou indisponible. Fixtures uniquement sous `tests/` ou dans le seed de développement.
-- Intégration absente : `IntegrationUnavailableError` et état « connexion requise ». Jamais de succès simulé.
+- Intégration absente : `ServiceUnavailableError` et état « connexion requise ». Jamais de succès simulé.
 - Versions de dépendances figées, publiées depuis au moins 14 jours.
 
 ## Git

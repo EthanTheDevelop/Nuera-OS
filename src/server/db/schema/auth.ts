@@ -1,15 +1,26 @@
 import { sql } from "drizzle-orm";
-import { boolean, check, index, pgTable, text, timestamp, uuid } from "drizzle-orm/pg-core";
+import {
+  boolean,
+  check,
+  index,
+  integer,
+  pgTable,
+  text,
+  timestamp,
+  uuid,
+} from "drizzle-orm/pg-core";
 // Imports relatifs dans le schéma : drizzle-kit ne résout pas les alias `@/`.
 import { DEFAULT_ROLE, ROLES } from "../../auth/roles";
 import { id, timestamps } from "./_columns";
 
 /**
- * Tables gérées par better-auth (core + plugin admin).
+ * Tables gérées par better-auth (core + plugins admin et twoFactor ; magicLink n'utilise que
+ * `verifications`).
  *
  * Les noms de propriétés TypeScript DOIVENT correspondre aux champs better-auth
  * (`emailVerified`, `banExpires`…). Toute évolution de la configuration better-auth
- * (nouveau plugin) peut exiger de nouvelles colonnes : vérifier avec `getAuthTables()`.
+ * (nouveau plugin) peut exiger de nouvelles colonnes : vérifié par `getAuthTables()`
+ * dans `tests/integration/auth-plugins.test.ts`.
  */
 
 /** Valeurs de rôle autorisées, dérivées de `ROLES` (constantes littérales, pas d'entrée utilisateur). */
@@ -28,9 +39,32 @@ export const users = pgTable(
     banned: boolean("banned").notNull().default(false),
     banReason: text("ban_reason"),
     banExpires: timestamp("ban_expires", { withTimezone: true }),
+    // Plugin twoFactor
+    twoFactorEnabled: boolean("two_factor_enabled").notNull().default(false),
     ...timestamps(),
   },
   (t) => [check("users_role_check", sql`${t.role} in (${ROLE_VALUES})`)],
+);
+
+/** Plugin twoFactor : secret TOTP et codes de secours, chiffrés par better-auth. */
+export const twoFactors = pgTable(
+  "two_factors",
+  {
+    id: id(),
+    secret: text("secret").notNull(),
+    backupCodes: text("backup_codes").notNull(),
+    userId: uuid("user_id")
+      .notNull()
+      .references(() => users.id, { onDelete: "cascade" }),
+    verified: boolean("verified").notNull().default(true),
+    failedVerificationCount: integer("failed_verification_count").notNull().default(0),
+    lockedUntil: timestamp("locked_until", { withTimezone: true }),
+    ...timestamps(),
+  },
+  (t) => [
+    index("two_factors_user_id_idx").on(t.userId),
+    index("two_factors_secret_idx").on(t.secret),
+  ],
 );
 
 export const sessions = pgTable(
