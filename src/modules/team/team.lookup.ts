@@ -1,4 +1,4 @@
-import { and, asc, eq, inArray, isNull } from "drizzle-orm";
+import { and, asc, eq, inArray, isNull, ne } from "drizzle-orm";
 import type { Actor } from "@/server/auth/permissions";
 import { missions, projectMembers, tasks, teamMembers } from "@/server/db/schema";
 import type { Database } from "@/server/db/types";
@@ -41,12 +41,24 @@ export async function getMemberIdForUser(db: Database, userId: string): Promise<
 }
 
 /**
- * Projets auxquels un acteur est rattaché : membre du projet, mission ou tâche assignée.
- * Base du périmètre `*:read_assigned` d'un prestataire.
+ * Projets auxquels un acteur est rattaché : membre du projet, mission non annulée (une mission livrée
+ * reste consultable) ou tâche non archivée qui lui est assignée. Une fiche inactive ou archivée n'ouvre
+ * plus rien. Base du périmètre `*:read_assigned` d'un prestataire.
  */
 export async function getAssignedProjectIds(db: Database, actor: Actor): Promise<string[]> {
-  const memberId = await getMemberIdForUser(db, actor.userId);
-  if (!memberId) return [];
+  const [member] = await db
+    .select({ id: teamMembers.id })
+    .from(teamMembers)
+    .where(
+      and(
+        eq(teamMembers.userId, actor.userId),
+        eq(teamMembers.status, "active"),
+        isNull(teamMembers.archivedAt),
+      ),
+    )
+    .limit(1);
+  if (!member) return [];
+  const memberId = member.id;
 
   const [asMember, asMission, asAssignee] = await Promise.all([
     db
@@ -56,11 +68,11 @@ export async function getAssignedProjectIds(db: Database, actor: Actor): Promise
     db
       .select({ projectId: missions.projectId })
       .from(missions)
-      .where(eq(missions.memberId, memberId)),
+      .where(and(eq(missions.memberId, memberId), ne(missions.status, "cancelled"))),
     db
       .select({ projectId: tasks.projectId })
       .from(tasks)
-      .where(eq(tasks.assigneeMemberId, memberId)),
+      .where(and(eq(tasks.assigneeMemberId, memberId), isNull(tasks.archivedAt))),
   ]);
 
   const ids = new Set<string>();
