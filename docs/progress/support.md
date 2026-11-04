@@ -1,0 +1,13 @@
+# Lot Support et incidents
+
+**Fait** : service, repository, schémas, actions, SLA, conversion, temps, tableau à 5 colonnes (A5) avec glisser-déposer réel, liste paginée, récurrence, fenêtre de détail (description, messages publics et internes, commentaires et mentions, historique, fichiers, temps, couverture), formulaires, `openIncidentTicket`, fonctions du portail, `listTicketsForCompany`, `listTicketsNearingDue`, `getSupportSummary`. Tests PGlite : `ticket.service.test.ts` et `ticket.audit.test.ts`.
+
+**Corrigé à l'audit** (chaque point a un test qui échouait avant, dans `ticket.audit.test.ts`) : rouvrir ou déplacer un incident sur un site qui en a déjà un ouvert renvoyait une erreur SQL ; un forfait au nombre de demandes ne se consommait jamais sans temps saisi ; « Recalculer » empilait des lignes d'historique et ne journalisait pas un changement de contrat ; motif de couverture perdu quand la qualification portait une note ; identifiants mal formés en erreur SQL (`refresh`, `archive`, `targets`) ; double archivage en 404 ; `updateTicket` sans champ de rattachement effaçait le lien ; échéance du contrat quitté conservée ; heure de l'échéance déplacée à chaque enregistrement ; création possible sur un site archivé ou un contrat résilié ; double envoi simultané non sérialisé ; numéro et lien de devis montrés à qui ne peut pas l'ouvrir.
+
+**Corrigé à l'écran** : filtres `client`, `site`, `statut` invisibles et impossibles à retirer après un lien de la récurrence (pastilles `ActiveFilters`) ; filtres « Incidents » et « Hors contrat » ajoutés (cadrage 09) ; état vide faux sans filtre ; responsable parti affiché « Non attribuée » ; `?demande=<hors périmètre>` redirige vers `/support/<id>`, vrai 404.
+
+**Vérifié au navigateur après audit** : libellé singulier « 1 ouverte » (le serveur de dev ne recompile qu'après une vraie modification du contenu, un simple changement de date du fichier ne suffit pas) ; repli du formulaire sur un site archivé ; glisser-déposer complet avec attribution à la réouverture ; prestataire, lecture, collaborateur ; 390 px.
+
+**Décisions** : conversion rattachée au client plutôt qu'au projet (un projet livré refuse les changements). « À valider » de la maquette = Résolue, « Faite » = Clôturée, « Appliquer » = Clôturer avec note de vérification. Barre de filtres ajoutée au-dessus du tableau, absente de la maquette.
+
+**Demandes aux autres lots** : compteur Support de la barre latérale (`getSupportOverview(ctx).open`, socle interface) ; erreur console « script tag » de `BuildScript` sur les pages 404 (socle interface) ; seed `T-2026-030` : première réponse antérieure à la réception ; portail : brancher les fonctions du service sur `/espace`.
