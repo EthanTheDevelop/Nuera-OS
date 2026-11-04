@@ -1,0 +1,83 @@
+# Environnement de DÉVELOPPEMENT uniquement : instance locale de Twenty CRM.
+#   docker compose -f docker-compose.twenty.yml --env-file .env up -d
+# Twenty garde sa propre base : ses données ne se mélangent jamais à celles de Nuera OS.
+# Port exposé sur 127.0.0.1 uniquement. La version est figée : la monter volontairement,
+# après avoir vérifié l'adaptateur (`src/integrations/twenty`).
+name: nuera-twenty
+
+x-twenty-env: &twenty-env
+  SERVER_URL: http://localhost:3100
+  PG_DATABASE_URL: postgres://twenty:${TWENTY_DB_PASSWORD:?Définir TWENTY_DB_PASSWORD dans .env}@twenty-db:5432/twenty
+  REDIS_URL: redis://twenty-redis:6379
+  STORAGE_TYPE: local
+  APP_SECRET: ${TWENTY_APP_SECRET:?Définir TWENTY_APP_SECRET dans .env}
+  ENCRYPTION_KEY: ${TWENTY_APP_SECRET}
+
+services:
+  twenty-server:
+    image: twentycrm/twenty:v2.55.0
+    restart: unless-stopped
+    ports:
+      - "127.0.0.1:3100:3000"
+    environment:
+      <<: *twenty-env
+      NODE_PORT: 3000
+      DISABLE_DB_MIGRATIONS: "false"
+      DISABLE_CRON_JOBS_REGISTRATION: "false"
+    volumes:
+      - twenty-storage:/app/packages/twenty-server/.local-storage
+    depends_on:
+      twenty-db:
+        condition: service_healthy
+      twenty-redis:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD", "curl", "--fail", "http://localhost:3000/healthz"]
+      interval: 5s
+      timeout: 5s
+      retries: 60
+
+  twenty-worker:
+    image: twentycrm/twenty:v2.55.0
+    restart: unless-stopped
+    command: ["yarn", "worker:prod"]
+    environment:
+      <<: *twenty-env
+      DISABLE_DB_MIGRATIONS: "true"
+      DISABLE_CRON_JOBS_REGISTRATION: "true"
+    volumes:
+      - twenty-storage:/app/packages/twenty-server/.local-storage
+    depends_on:
+      twenty-db:
+        condition: service_healthy
+      twenty-server:
+        condition: service_healthy
+
+  twenty-db:
+    image: postgres:16-alpine
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: twenty
+      POSTGRES_DB: twenty
+      POSTGRES_PASSWORD: ${TWENTY_DB_PASSWORD}
+    volumes:
+      - twenty-db-data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U twenty -d twenty"]
+      interval: 5s
+      timeout: 3s
+      retries: 20
+
+  twenty-redis:
+    image: redis:8-alpine
+    restart: unless-stopped
+    command: ["--maxmemory-policy", "noeviction"]
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 5s
+      timeout: 3s
+      retries: 20
+
+volumes:
+  twenty-storage:
+  twenty-db-data:
