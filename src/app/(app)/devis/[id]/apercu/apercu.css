@@ -1,0 +1,36 @@
+/*
+ * Impression de l'aperçu d'un devis. Portée limitée par `:has` : la feuille reste chargée après une
+ * navigation côté client, mais seule une page contenant le document change d'apparence.
+ */
+@media print {
+  @page {
+    size: A4;
+    margin: 16mm;
+  }
+
+  body:has([data-quote-document]) aside,
+  body:has([data-quote-document]) #contenu ~ *,
+  body:has([data-quote-document]) header:not([data-quote-document] header),
+  body:has([data-quote-document]) [data-print-hidden] {
+    display: none !important;
+  }
+
+  body:has([data-quote-document]) #contenu > div {
+    max-width: none;
+    padding: 0;
+  }
+
+  [data-quote-document] {
+    box-shadow: none !important;
+    border-radius: 0 !important;
+    padding: 0 !important;
+    animation: none !important;
+    filter: none !important;
+    opacity: 1 !important;
+  }
+
+  [data-quote-document] tr,
+  [data-quote-document] section {
+    break-inside: avoid;
+  }
+}
