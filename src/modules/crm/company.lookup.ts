@@ -68,3 +68,86 @@ export async function listContactOptions(
     email: row.email,
   }));
 }
+
+/** Référence d'une fiche pour un lien entre objets : identifiant Twenty compris. */
+export interface CompanyRef {
+  id: string;
+  twentyId: string;
+  name: string;
+  status: string;
+  archivedAt: Date | null;
+  mergedIntoId: string | null;
+}
+
+export async function getCompanyRef(db: Database, companyId: string): Promise<CompanyRef | null> {
+  const [row] = await db
+    .select({
+      id: companies.id,
+      twentyId: companies.twentyId,
+      name: companies.name,
+      status: companies.status,
+      archivedAt: companies.archivedAt,
+      mergedIntoId: companies.mergedIntoId,
+    })
+    .from(companies)
+    .where(eq(companies.id, companyId))
+    .limit(1);
+  return row ?? null;
+}
+
+export async function getCompanyRefByTwentyId(
+  db: Database,
+  twentyId: string,
+): Promise<CompanyRef | null> {
+  const [row] = await db
+    .select({
+      id: companies.id,
+      twentyId: companies.twentyId,
+      name: companies.name,
+      status: companies.status,
+      archivedAt: companies.archivedAt,
+      mergedIntoId: companies.mergedIntoId,
+    })
+    .from(companies)
+    .where(eq(companies.twentyId, twentyId))
+    .limit(1);
+  return row ?? null;
+}
+
+export interface ContactRef {
+  id: string;
+  twentyId: string;
+  companyId: string | null;
+  archivedAt: Date | null;
+}
+
+export async function getContactRef(db: Database, contactId: string): Promise<ContactRef | null> {
+  const [row] = await db
+    .select({
+      id: contacts.id,
+      twentyId: contacts.twentyId,
+      companyId: contacts.companyId,
+      archivedAt: contacts.archivedAt,
+    })
+    .from(contacts)
+    .where(eq(contacts.id, contactId))
+    .limit(1);
+  return row ?? null;
+}
+
+export async function getContactRefByTwentyId(
+  db: Database,
+  twentyId: string,
+): Promise<ContactRef | null> {
+  const [row] = await db
+    .select({
+      id: contacts.id,
+      twentyId: contacts.twentyId,
+      companyId: contacts.companyId,
+      archivedAt: contacts.archivedAt,
+    })
+    .from(contacts)
+    .where(eq(contacts.twentyId, twentyId))
+    .limit(1);
+  return row ?? null;
+}
