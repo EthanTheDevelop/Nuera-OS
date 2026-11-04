@@ -41,3 +41,30 @@ Node 24 obligatoire (`engine-strict`). Docker pour PostgreSQL et Twenty en local
 - Twenty : une fiche archivée garde son domaine ou son e-mail réservé. Sur `CrmDuplicateError`, proposer la restauration ou la fusion, jamais une recréation.
 - Twenty : téléphones au format E.164. Fusion irréversible pour la fiche perdante : confirmation explicite et audit.
 - Tests de service : `tests/helpers/fake-crm-gateway.ts`, contrôlé contre la vraie instance par `npm run test:live`.
+
+Formulaires :
+
+- `<form action={...}>` : React réinitialise le formulaire après chaque réponse, erreurs comprises. Pour un `select` contrôlé ou des cases : `onSubmit` + `preventDefault` + `startTransition`, ou recopier les valeurs envoyées dans l'état.
+- Un formulaire sans `method="post"` envoyé avant l'hydratation part en GET, valeurs dans l'URL.
+- En édition, toujours ajouter la valeur enregistrée aux options d'un `select` : une option absente (objet archivé, liste plafonnée) efface le lien sans bruit. Un `select` désactivé n'est pas envoyé : doubler par un champ caché.
+- Valeur lue dans l'URL : tronquer plutôt que `.max()` Zod (sinon page d'erreur), `isCalendarDay` pour une date, `Object.hasOwn` pour une clé (`constructor`, `__proto__`).
+- Fichier au-delà de 1 Mo en Server Action : refusé avant l'action. Contrôler la taille côté client et attraper l'erreur.
+
+Next.js et React :
+
+- `notFound()` sous un `loading.tsx` répond 200 : le flux est déjà parti. Garder la page `[id]` hors de cette frontière (groupe de routes pour la liste et son `loading.tsx`).
+- `useMotionPreset()` dépend de `prefers-reduced-motion`, inconnu du serveur : ne pas rendre côté serveur un `motion.*` qui en dépend. Thème sombre : `data-theme` sur la racine, pas la media query.
+- Le serveur de développement peut servir une sortie périmée : modifier le contenu d'un fichier, pas seulement sa date.
+
+Données et concurrence :
+
+- PGlite n'a qu'une connexion : il ne révèle aucune course entre transactions. Un invariant lecture-écriture exige `FOR UPDATE` et un essai sur le vrai PostgreSQL. Dans une transaction, lire via `tx`, jamais `ctx.db` (blocage). Appeler un autre service dans sa transaction : `{ ...ctx, db: tx }`, les transactions imbriquées deviennent des points de sauvegarde.
+- Écriture vers Twenty avant la transaction locale : vérifier d'abord les clés composites, sinon un orphelin reste dans Twenty.
+- Webhook : un reçu en échec doit pouvoir être retraité (`onConflictDoUpdate` si `status = 'failed'`). Ne pas dédoublonner par tranche de temps les webhooks qui ne sont qu'un signal.
+- `sql` brut sans jointure : Drizzle écrit `"id"` non qualifié, une sous-requête corrélée peut viser la mauvaise table. Qualifier à la main.
+- CSV : neutraliser les formules sans transformer les nombres négatifs en texte.
+
+Intégrations et essais navigateur :
+
+- DocuSeal : les URL de documents expirent. Ne pas les stocker, les relire à chaque ouverture.
+- Playwright : réutiliser un `storageState` par rôle, car la connexion répétée finit en 429 et le script mesure alors la page de connexion. Lignes `seed-` : toute écriture CRM échoue, créer de nouvelles lignes.
