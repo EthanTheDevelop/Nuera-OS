@@ -188,3 +188,30 @@ describe("seed", () => {
     expect(await nextNumber(db, "quote", now)).toBe("D-2026-019");
   }, 120_000);
 });
+
+describe("automatisations du seed", () => {
+  it("n'emploie que le catalogue en code, et son échec se relance", async () => {
+    const { AUTOMATION_RULES } = await import("@/modules/platform/automation.rules");
+    const { retryAutomationRun } = await import("@/modules/platform/automation.service");
+    const known = new Set(AUTOMATION_RULES.map((rule) => rule.key));
+
+    const rules = await db.select().from(schema.automationRules);
+    expect(rules.map((rule) => rule.key).sort()).toEqual([...known].sort());
+    const runs = await db.select().from(schema.automationRuns);
+    expect(runs.length).toBeGreaterThan(0);
+    for (const run of runs) expect(known.has(run.ruleKey)).toBe(true);
+
+    const failed = runs.find((run) => run.status === "failed");
+    expect(failed?.eventId).toBeTruthy();
+    const [admin] = await db.select().from(schema.users).where(eq(schema.users.role, "admin"));
+    if (!admin || !failed) throw new Error("Seed incomplet");
+    const status = await retryAutomationRun(
+      {
+        db,
+        actor: { userId: admin.id, role: "admin", name: admin.name, email: admin.email },
+      },
+      failed.id,
+    );
+    expect(status).toBe("succeeded");
+  });
+});

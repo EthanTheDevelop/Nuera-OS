@@ -9,8 +9,9 @@
  * `SEED_TWENTY_ID_PREFIX`. Le seed n'appelle aucun service externe.
  */
 import { createHash, randomBytes } from "node:crypto";
-import { eq, sql } from "drizzle-orm";
+import { eq, inArray, sql } from "drizzle-orm";
 import { recordAudit } from "@/modules/audit/audit.service";
+import { ensureAutomationRules } from "@/modules/platform/automation.service";
 import { sequenceYear, type SequenceScope } from "@/modules/platform/sequences";
 import { createUserAccount } from "@/modules/users/user.service";
 import type { Auth } from "@/server/auth/auth";
@@ -22,6 +23,14 @@ import type { Database } from "@/server/db/types";
 export const SEED_TWENTY_ID_PREFIX = "seed-";
 
 const SEED_EMAIL_DOMAIN = "seed.nuera.test";
+
+/** Règles de l'ancien seed, absentes du catalogue d'`automation.rules.ts`. */
+const LEGACY_RULE_KEYS = [
+  "quote_reminder_7d",
+  "project_from_quote",
+  "site_down_alert",
+  "invoice_paid_unlock",
+];
 
 /** UUID stable, dérivé d'une clé lisible : la base d'idempotence du seed. */
 export function seedId(key: string): string {
@@ -3173,6 +3182,17 @@ export async function runSeed(
           dispatchedAt: at(0, 7),
         },
         {
+          id: event("quote-reminder-due"),
+          type: "quote.reminder_due",
+          entityType: "quote",
+          entityId: quote.verdier,
+          companyId: company.verdier,
+          payload: { number: number("D", 14), since: day(-3) },
+          dedupeKey: `seed:quote.reminder_due:${quote.verdier}`,
+          occurredAt: at(-1),
+          dispatchedAt: at(-1),
+        },
+        {
           id: event("invoice-overdue"),
           type: "invoice.overdue",
           entityType: "financial_document",
@@ -3185,80 +3205,49 @@ export async function runSeed(
       ])
       .onConflictDoNothing();
 
-    await tx
-      .insert(s.automationRules)
-      .values([
-        {
-          id: seedId("rule:quote-reminder"),
-          key: "quote_reminder_7d",
-          name: "Relance de devis",
-          triggerLabel: "Un devis n'est pas signé après 7 jours",
-          actionLabel: "Relancer le client par e-mail",
-          toolLabel: "DocuSeal",
-          config: { delayDays: 7 },
-        },
-        {
-          id: seedId("rule:project-from-quote"),
-          key: "project_from_quote",
-          name: "Projet après signature",
-          triggerLabel: "Un devis est signé",
-          actionLabel: "Créer le projet, ouvrir l'espace client",
-          toolLabel: "Nuera OS",
-        },
-        {
-          id: seedId("rule:site-down"),
-          key: "site_down_alert",
-          name: "Alerte de panne",
-          triggerLabel: "Un site ne répond plus",
-          actionLabel: "Ouvrir un incident, alerter les associés",
-          toolLabel: "Uptime Kuma",
-        },
-        {
-          id: seedId("rule:invoice-paid"),
-          key: "invoice_paid_unlock",
-          name: "Facture payée",
-          triggerLabel: "Une facture est payée sur Indy",
-          actionLabel: "Débloquer la mise en ligne",
-          toolLabel: "n8n",
-          enabled: false,
-        },
-      ])
-      .onConflictDoNothing();
+    // Le catalogue vit dans `automation.rules.ts`. Les anciennes clés d'un seed précédent s'effacent :
+    // sans règle en code, elles n'existent plus pour le moteur.
+    await tx.delete(s.automationRuns).where(inArray(s.automationRuns.ruleKey, LEGACY_RULE_KEYS));
+    await tx.delete(s.automationRules).where(inArray(s.automationRules.key, LEGACY_RULE_KEYS));
+    await ensureAutomationRules(tx);
 
     await tx
       .insert(s.automationRuns)
       .values([
         {
-          id: seedId("run:project"),
-          ruleKey: "project_from_quote",
+          id: seedId("run:quote-accepted"),
+          ruleKey: "quote_accepted",
           eventId: event("quote-accepted"),
           status: "succeeded",
           startedAt: at(-40),
           finishedAt: at(-40),
-          result: { projectId: project.lune },
+          result: { number: number("D", 12), recipients: 2 },
         },
         {
           id: seedId("run:site-down"),
-          ruleKey: "site_down_alert",
+          ruleKey: "site_down",
           eventId: event("site-down"),
           status: "succeeded",
           startedAt: at(0, 7),
           finishedAt: at(0, 7),
-          result: { ticketId: ticket.verdierDown },
+          result: { recipients: 3 },
         },
         {
-          id: seedId("run:invoice"),
-          ruleKey: "invoice_paid_unlock",
+          id: seedId("run:invoice-overdue"),
+          ruleKey: "invoice_overdue",
           eventId: event("invoice-overdue"),
-          status: "skipped",
+          status: "succeeded",
           startedAt: at(-3),
           finishedAt: at(-3),
+          result: { recipients: 2 },
         },
+        // Échec relançable depuis l'écran 12 : il porte son événement, comme une vraie exécution.
         {
           id: seedId("run:reminder-failed"),
-          ruleKey: "quote_reminder_7d",
+          ruleKey: "quote_reminder",
+          eventId: event("quote-reminder-due"),
           status: "failed",
-          attempts: 2,
+          attempts: 3,
           error: "Connexion requise : SMTP non configuré.",
           startedAt: at(-1),
           finishedAt: at(-1),
@@ -3272,7 +3261,7 @@ export async function runSeed(
         {
           id: seedId("notification:down"),
           userId: uid("malik"),
-          kind: "site.down",
+          kind: "site_down",
           severity: "danger",
           title: "maison-verdier.example ne répond plus",
           body: "Incident ouvert automatiquement.",
@@ -3284,8 +3273,8 @@ export async function runSeed(
         {
           id: seedId("notification:overdue"),
           userId: uid("camille"),
-          kind: "invoice.overdue",
-          severity: "warning",
+          kind: "invoice_overdue",
+          severity: "danger",
           title: "Facture en retard · Maison Verdier",
           entityType: "financial_document",
           entityId: financeId("verdier-acompte"),
@@ -3295,7 +3284,7 @@ export async function runSeed(
         {
           id: seedId("notification:message"),
           userId: uid("camille"),
-          kind: "message.received",
+          kind: "client_message",
           severity: "info",
           title: "Claire Martin vous a écrit",
           entityType: "conversation",
@@ -3313,14 +3302,14 @@ export async function runSeed(
         {
           id: seedId("notif-pref:camille-message"),
           userId: uid("camille"),
-          kind: "message.received",
+          kind: "client_message",
           inApp: true,
           email: true,
         },
         {
           id: seedId("notif-pref:malik-down"),
           userId: uid("malik"),
-          kind: "site.down",
+          kind: "site_down",
           inApp: true,
           email: true,
         },
