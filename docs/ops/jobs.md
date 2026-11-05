@@ -3,8 +3,10 @@
 Nuera OS n'a pas de planificateur interne : Coolify (« Scheduled Tasks » de l'application) appelle `POST /api/jobs/<tâche>`.
 
 ```sh
-curl -fsS -X POST -H "Authorization: Bearer $JOBS_SECRET" http://localhost:3000/api/jobs/events-dispatch
+wget -qO- --post-data="" --header="Authorization: Bearer $JOBS_SECRET" http://127.0.0.1:3000/api/jobs/events-dispatch
 ```
+
+Commande vérifiée dans l'image de production, qui contient `wget` mais pas `curl`. Écrire `127.0.0.1` : `localhost` y répond « connexion refusée », le serveur n'écoutant qu'en IPv4.
 
 - `JOBS_SECRET` (32 caractères minimum) doit être défini, sinon toutes ces routes répondent 404. Secret à garder hors du dépôt.
 - Toute tâche est répétable : clés `dedupe_key`, `automation_runs` unique par règle et événement, `notifications` unique par compte et clé.
@@ -36,8 +38,6 @@ Réponses : 200 `succeeded`, `skipped` ou `not_configured` (intégration absente
 | `requirements-overdue`  | `50 6 * * *`   | Contenus attendus en retard : une relance à J+3, une à J+7                                                              |
 | `deliverables-overdue`  | `55 6 * * *`   | Validations client en retard : une relance à J+3, une à J+7                                                             |
 | `digest-daily`          | `0 7 * * *`    | Résumé du matin aux comptes qui l'ont demandé                                                                           |
-
-Coolify exécute les tâches dans le conteneur : `curl` doit y être présent, ou adapter la commande à l'image. À vérifier au déploiement.
 
 ## Webhooks entrants
 
