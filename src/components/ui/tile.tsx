@@ -14,6 +14,7 @@ export function TileHeader({
   aside,
   href,
   titleAs: Title = "h2",
+  fit = false,
   className,
 }: {
   icon: IconName;
@@ -22,17 +23,22 @@ export function TileHeader({
   /** Rend toute la tuile cliquable : le lien du titre s'étend sur le bloc parent. */
   href?: string;
   titleAs?: "h2" | "h3" | "h4";
+  /** Une seule ligne : le badge passe à la ligne, donc hors cadre, avant que le titre ne se coupe. */
+  fit?: boolean;
   className?: string;
 }) {
-  return (
-    <header className={cn("flex min-h-7 items-center gap-2", className)}>
+  const heading = (
+    <>
       <span
         aria-hidden="true"
         className="flex size-7 shrink-0 items-center justify-center rounded-sm bg-accent-pale text-accent"
       >
         <Icon name={icon} size={16} />
       </span>
-      <Title className="min-w-0 flex-1 text-tile-title text-ink">
+      <Title
+        title={fit && typeof title === "string" ? title : undefined}
+        className={cn("min-w-0 flex-1 text-tile-title text-ink", fit && "truncate")}
+      >
         {href ? (
           <Link
             href={href}
@@ -44,19 +50,39 @@ export function TileHeader({
           title
         )}
       </Title>
-      {aside ? <div className="relative z-10 shrink-0">{aside}</div> : null}
+    </>
+  );
+  const badge = aside ? <div className="relative z-10 shrink-0">{aside}</div> : null;
+  if (fit) {
+    return (
+      <header className={cn("tile-header gap-x-2", className)}>
+        <div className="tile-header-main gap-2">{heading}</div>
+        {badge}
+      </header>
+    );
+  }
+  return (
+    <header className={cn("flex min-h-7 items-center gap-2", className)}>
+      {heading}
+      {badge}
     </header>
   );
 }
 
-/** Formats de tuile de l'écran 01 : colonnes × lignes de la grille. */
-export type TileSize = "1x1" | "2x1" | "2x2" | "4x2";
+/** Formats de tuile : colonnes × rangées de la grille, de 1 à 3 chacun. */
+export type TileSize = "1x1" | "1x2" | "1x3" | "2x1" | "2x2" | "2x3" | "3x1" | "3x2" | "3x3";
 
-const TILE_SIZES: Record<TileSize, string> = {
+/** Sur une grille à 2 colonnes, trois colonnes se rendent sur deux : le format enregistré ne change pas. */
+export const TILE_SPAN_CLASSES: Record<TileSize, string> = {
   "1x1": "",
+  "1x2": "row-span-2",
+  "1x3": "row-span-3",
   "2x1": "col-span-2",
   "2x2": "col-span-2 row-span-2",
-  "4x2": "col-span-2 @lg:col-span-4 row-span-2",
+  "2x3": "col-span-2 row-span-3",
+  "3x1": "col-span-2 @lg:col-span-3",
+  "3x2": "col-span-2 @lg:col-span-3 row-span-2",
+  "3x3": "col-span-2 @lg:col-span-3 row-span-3",
 };
 
 /**
@@ -73,6 +99,7 @@ export function Tile({
   editing = false,
   handle,
   removeControl,
+  fit = false,
   className,
   children,
 }: {
@@ -85,6 +112,8 @@ export function Tile({
   editing?: boolean;
   handle?: ReactNode;
   removeControl?: ReactNode;
+  /** Hauteur imposée par la grille : le contenu s'adapte à la tuile (`tile-body`), jamais l'inverse. */
+  fit?: boolean;
   className?: string;
   children?: ReactNode;
 }) {
@@ -93,11 +122,13 @@ export function Tile({
       className={cn(
         "anim-content relative flex min-w-0 flex-col gap-(--tile-gap) rounded-xl bg-surface p-(--tile-pad) shadow-soft",
         editing && "outline-2 -outline-offset-2 outline-accent",
-        size && TILE_SIZES[size],
+        size && TILE_SPAN_CLASSES[size],
         className,
       )}
     >
-      {icon && title ? <TileHeader icon={icon} title={title} aside={aside} href={href} /> : null}
+      {icon && title ? (
+        <TileHeader icon={icon} title={title} aside={aside} href={href} fit={fit} />
+      ) : null}
       {children}
       {handle}
       {removeControl}
@@ -180,7 +211,7 @@ export function TileSlot({
   );
 }
 
-/** Chiffre de tuile : 26/600, ou 40/600 en `hero` (tuile 4×2), avec sa note. */
+/** Chiffre de tuile : 26/600, ou 40/600 en `hero` (grande tuile), avec sa note. */
 export function TileFigure({
   value,
   note,
@@ -198,14 +229,16 @@ export function TileFigure({
   className?: string;
 }) {
   return (
-    <div className={cn("@container mt-auto flex w-full min-w-0 flex-col gap-1", className)}>
+    <div
+      className={cn("tile-figure @container mt-auto flex w-full min-w-0 flex-col gap-1", className)}
+    >
       <p
         className={cn(
           "flex flex-wrap items-baseline gap-2 text-ink",
           hero ? "text-figure-hero" : "text-figure",
         )}
       >
-        <span className="tabular">{value}</span>
+        <span className="tabular max-w-full min-w-0">{value}</span>
         {unit ? <span className="text-sm font-normal text-muted">{unit}</span> : null}
       </p>
       {note ? (
@@ -252,7 +285,7 @@ export function TileResizeHandle({
       type="button"
       aria-label={`Redimensionner la tuile ${tileName}`}
       className={cn(
-        "hit-44 absolute right-0 bottom-0 z-10 flex size-7 cursor-nwse-resize touch-none items-center justify-center rounded-sm",
+        "hit-44 absolute right-0 bottom-0 z-10 flex size-7 cursor-nwse-resize touch-none items-center justify-center rounded-sm after:top-auto after:bottom-0 after:transform-none",
         editing ? "text-accent" : "text-muted",
         className,
       )}

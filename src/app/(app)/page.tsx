@@ -30,7 +30,7 @@ function BoardSkeleton() {
   return (
     <div className="@container" aria-busy="true">
       <div className={TILE_GRID}>
-        <TileSkeleton className="col-span-2 row-span-2 @lg:col-span-4" lines={3} />
+        <TileSkeleton className="col-span-2 row-span-2 @lg:col-span-3" lines={3} />
         <TileSkeleton className="col-span-2 row-span-2" lines={4} />
         <TileSkeleton className="col-span-2" />
         <TileSkeleton />

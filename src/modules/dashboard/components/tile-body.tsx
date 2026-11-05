@@ -1,9 +1,9 @@
 "use client";
 
 import Link from "next/link";
-import type { ReactNode } from "react";
+import { useEffect, useRef, type ReactNode } from "react";
 import { StackedBars } from "@/components/charts/stacked-bars";
-import { RollingNumber } from "@/components/motion/rolling-number";
+import { fittedFontSize, RollingNumber } from "@/components/motion/rolling-number";
 import { ConnectionRequired, EmptyState, ErrorState } from "@/components/states/states";
 import { Avatar } from "@/components/ui/avatar";
 import { Badge } from "@/components/ui/badge";
@@ -11,7 +11,7 @@ import { budgetTone, Gauge, loadTone } from "@/components/ui/gauge";
 import { Icon } from "@/components/ui/icon";
 import { TileFigure } from "@/components/ui/tile";
 import { cn } from "@/lib/cn";
-import type { DashboardTileSize } from "../dashboard.tiles";
+import { TILE_MAX_SPAN, tileSpan, type DashboardTileSize } from "../dashboard.tiles";
 import type {
   TileFigureView,
   TileGaugeView,
@@ -27,17 +27,8 @@ const EURO_FORMAT = {
   maximumFractionDigits: 0,
 } as const;
 
-/** Combien de lignes tiennent, selon leur hauteur (Figma 01 et « Tuiles vivantes »). */
-const ROW_CAPACITY: Record<TileRowStyle, Record<"2x1" | "2x2" | "4x2", number>> = {
-  plain: { "2x1": 4, "2x2": 10, "4x2": 10 },
-  gauge: { "2x1": 2, "2x2": 7, "4x2": 7 },
-  avatar: { "2x1": 1, "2x2": 3, "4x2": 3 },
-  date: { "2x1": 2, "2x2": 6, "4x2": 6 },
-  dot: { "2x1": 3, "2x2": 10, "4x2": 10 },
-  badge: { "2x1": 2, "2x2": 6, "4x2": 6 },
-};
-
-const COMPACT_ROWS = 2;
+/** Un chiffre en texte (`12 h / 30 h`) peut être plus long qu'un montant : il réduit davantage. */
+const TEXT_FIGURE_FLOOR = 0.45;
 
 const DOT = {
   success: "bg-success",
@@ -54,7 +45,16 @@ const VALUE_TONE = {
 };
 
 function Figure({ figure }: { figure: TileFigureView }): ReactNode {
-  if (figure.kind === "text") return figure.text;
+  if (figure.kind === "text") {
+    return (
+      <span
+        className="inline-block max-w-full truncate align-bottom"
+        style={{ fontSize: fittedFontSize(figure.text.length, TEXT_FIGURE_FLOOR) }}
+      >
+        {figure.text}
+      </span>
+    );
+  }
   return (
     <RollingNumber
       value={figure.value}
@@ -96,6 +96,7 @@ function RowValue({ row }: { row: TileRow }) {
   if (!row.value) return null;
   return (
     <span
+      data-tile-value
       className={cn(
         "shrink-0 font-mono text-table-head font-normal whitespace-nowrap",
         VALUE_TONE[row.tone ?? "muted"],
@@ -111,7 +112,9 @@ function GaugeRow({ row, index, editing }: { row: TileRow; index: number; editin
     <RowLink row={row} editing={editing} className="flex flex-col gap-1.5 py-0.5">
       <span className="flex items-baseline gap-2">
         <span className="min-w-0 flex-1 truncate text-sm text-text">{row.label}</span>
-        <RowValue row={row} />
+        <span data-tile-wide className="contents">
+          <RowValue row={row} />
+        </span>
         {row.detail ? (
           <span className="tabular shrink-0 text-sm text-text">{row.detail}</span>
         ) : null}
@@ -136,7 +139,9 @@ function AvatarRow({ row, editing }: { row: TileRow; editing: boolean }) {
       <span className="flex min-w-0 flex-1 flex-col gap-0.5">
         <span className="flex items-baseline gap-2">
           <span className="min-w-0 flex-1 truncate text-sm font-medium text-ink">{row.label}</span>
-          <RowValue row={row} />
+          <span data-tile-wide className="contents">
+            <RowValue row={row} />
+          </span>
         </span>
         {row.detail ? <span className="truncate text-xs text-muted">{row.detail}</span> : null}
         {row.suggestion ? (
@@ -184,7 +189,11 @@ function BadgeRow({ row, editing }: { row: TileRow; editing: boolean }) {
         <span className="truncate text-sm font-medium text-ink">{row.label}</span>
         {row.detail ? <span className="truncate text-xs text-muted">{row.detail}</span> : null}
       </span>
-      {row.badge ? <Badge tone={row.badge.tone}>{row.badge.label}</Badge> : null}
+      {row.badge ? (
+        <span data-tile-wide className="contents">
+          <Badge tone={row.badge.tone}>{row.badge.label}</Badge>
+        </span>
+      ) : null}
     </RowLink>
   );
 }
@@ -197,29 +206,59 @@ function PlainRow({ row, editing }: { row: TileRow; editing: boolean }) {
         {row.detail ? <span className="text-xs text-muted"> · {row.detail}</span> : null}
       </span>
       <RowValue row={row} />
-      {row.badge ? <Badge tone={row.badge.tone}>{row.badge.label}</Badge> : null}
+      {row.badge ? (
+        <span data-tile-wide className="contents">
+          <Badge tone={row.badge.tone}>{row.badge.label}</Badge>
+        </span>
+      ) : null}
     </RowLink>
   );
+}
+
+/**
+ * La mise en page écarte les lignes qui ne tiennent pas (`tile-rows`, colonne suivante, hors cadre).
+ * Reste à les retirer du clavier et des lecteurs d'écran, et à masquer une première ligne trop haute.
+ */
+function useClippedRows(count: number) {
+  const list = useRef<HTMLUListElement>(null);
+  useEffect(() => {
+    const element = list.current;
+    if (!element) return;
+    const update = () => {
+      const items = Array.from(element.children) as HTMLElement[];
+      const origin = items[0];
+      if (!origin) return;
+      for (const item of items) {
+        const clipped =
+          item.offsetLeft > origin.offsetLeft ||
+          item.offsetTop + item.offsetHeight > origin.offsetTop + element.clientHeight;
+        item.inert = clipped;
+        item.toggleAttribute("data-clipped", clipped);
+      }
+    };
+    const observer = new ResizeObserver(update);
+    observer.observe(element);
+    return () => observer.disconnect();
+  }, [count]);
+  return list;
 }
 
 function Rows({
   rows,
   style,
-  size,
   compact,
   editing,
 }: {
   rows: readonly TileRow[];
   style: TileRowStyle;
-  size: Exclude<DashboardTileSize, "1x1">;
   compact: boolean;
   editing: boolean;
 }) {
-  const shown = rows.slice(0, compact ? COMPACT_ROWS : ROW_CAPACITY[style][size]);
-  if (shown.length === 0) return null;
+  const list = useClippedRows(rows.length);
+  if (rows.length === 0) return null;
   return (
-    <ul className={cn("flex min-w-0 flex-col", style === "avatar" ? "gap-3" : "gap-1.5")}>
-      {shown.map((row, index) => (
+    <ul ref={list} className={cn("tile-rows", style === "avatar" ? "gap-3" : "gap-1.5")}>
+      {rows.map((row, index) => (
         <li key={row.id} className="min-w-0">
           {compact ? (
             <PlainRow
@@ -254,7 +293,7 @@ function TileEmpty({ view, editing }: { view: TileView; editing: boolean }) {
       icon="plus"
       title={empty.title}
       description={empty.description}
-      className="my-auto py-0"
+      className="tile-state my-auto py-0"
       action={
         empty.actionHref && !editing ? (
           <Link
@@ -273,10 +312,7 @@ function RevenueChart({ view }: { view: TileView }) {
   const chart = view.chart;
   if (!chart) return null;
   return (
-    <div className="relative z-10 flex min-w-0 flex-1 flex-col justify-end gap-3">
-      <p className="tabular text-figure-hero text-ink">
-        <Figure figure={view.figure} />
-      </p>
+    <div className="tile-chart">
       <StackedBars
         title="Chiffre d’affaires sur six mois"
         summary={view.note}
@@ -286,16 +322,15 @@ function RevenueChart({ view }: { view: TileView }) {
           { key: "recurring", label: "Récurrent", values: chart.recurring },
         ]}
         valueFormat={{ format: EURO_FORMAT }}
-        height={150}
-        header={<span className="text-sm text-muted">{view.note}</span>}
+        height="fill"
       />
     </div>
   );
 }
 
 /**
- * Contenu d'une tuile selon son format (« Tuiles vivantes ») : plus elle est grande, plus elle montre
- * de lignes. Le 1×1 ne garde que le chiffre et sa note.
+ * Contenu d'une tuile (« Tuiles vivantes ») : le format décide de ce qui est proposé, le cadre de ce
+ * qui tient (`tile-body` dans globals.css, requêtes de conteneur). Le 1×1 garde le chiffre et sa note.
  */
 export function TileBody({
   state,
@@ -309,13 +344,16 @@ export function TileBody({
   service: string;
 }) {
   if (!state) return null;
+  const { columns, rows: rowSpan } = tileSpan(size, TILE_MAX_SPAN);
+  const mini = columns === 1 && rowSpan === 1;
+  const short = rowSpan === 1;
   if (state.status === "error") {
     return (
       <ErrorState
         compact
         title="Tuile indisponible"
-        description={size === "1x1" ? "Réessayez plus tard." : "Cette donnée n’a pas pu être lue."}
-        className="my-auto py-0"
+        description={mini ? "Réessayez plus tard." : "Cette donnée n’a pas pu être lue."}
+        className="tile-state my-auto py-0"
       />
     );
   }
@@ -326,69 +364,77 @@ export function TileBody({
         service={service}
         missing={state.message}
         showSettingsLink={false}
-        className="my-auto py-0"
+        className="tile-state my-auto py-0"
       />
     );
   }
 
   const { view } = state;
-  if (size === "1x1") {
+  if (mini) {
     return (
       <TileFigure
         value={<Figure figure={view.figure} />}
         note={view.note ? <span className="line-clamp-2">{view.note}</span> : undefined}
         noteTone={view.noteTone}
-        unit={view.unit && view.figure.kind !== "text" ? view.unit : undefined}
       />
     );
   }
   if (view.empty) return <TileEmpty view={view} editing={editing} />;
-  if (size === "4x2" && view.chart) return <RevenueChart view={view} />;
 
-  const rowsOnly = view.rowsOnlyAt?.includes(size) ?? false;
+  const rowsOnly =
+    view.rowsFirst === "always" ||
+    (view.rowsFirst === "tall" && !short) ||
+    (view.rowsFirst === "short" && short);
   const style = view.rowStyle ?? "plain";
-  const rowsHidden = view.rowsFrom2x2 && size === "2x1";
-  // Sous le chiffre, un 2×1 n'a la place que de deux lignes simples.
-  const compact = size === "2x1" && !rowsOnly;
+  const rows = view.rows ?? [];
+  const chart = !rowsOnly && Boolean(view.chart);
+  // Sur une rangée, la note ne reste que seule à côté du chiffre : un avis de fraîcheur passe avant.
+  const noticed = Boolean(view.stale || view.partial);
+  const noteBelow =
+    !rowsOnly &&
+    Boolean(view.note) &&
+    (view.gauge || (short && !noticed && (chart || rows.length === 0)));
+  const noteInFigure = !short && !view.gauge && !rowsOnly;
+  const note = (
+    <span className={cn("tile-note line-clamp-2", VALUE_TONE[view.noteTone ?? "muted"])}>
+      {view.note}
+    </span>
+  );
 
   return (
-    <div className="flex min-w-0 flex-1 flex-col gap-2">
-      {view.stale ? <p className="text-xs text-warn">Dernière mesure : {view.stale}</p> : null}
-      {view.partial ? <p className="text-xs text-warn">{view.partial}</p> : null}
-      {rowsOnly ? null : (
-        <TileFigure
-          className="mt-0"
-          hero={size === "2x2" && Boolean(view.chart)}
-          value={<Figure figure={view.figure} />}
-          unit={view.unit}
-          note={size === "2x1" ? undefined : view.note}
-          noteTone={view.noteTone}
-        />
+    <div className={cn("tile-stack", !rowsOnly && "tile-stack--split")}>
+      {rowsOnly && !noticed ? null : (
+        <div className="tile-primary">
+          {view.stale ? (
+            <p className="truncate text-xs text-warn">Dernière mesure : {view.stale}</p>
+          ) : null}
+          {view.partial ? <p className="truncate text-xs text-warn">{view.partial}</p> : null}
+          {rowsOnly ? null : (
+            <TileFigure
+              className="mt-0"
+              hero={chart && !short}
+              value={<Figure figure={view.figure} />}
+              unit={view.unit}
+              note={noteInFigure && view.note ? note : undefined}
+              noteTone={view.noteTone}
+            />
+          )}
+          {view.gauge ? (
+            <Gauge
+              height={8}
+              value={Math.min(100, view.gauge.percent)}
+              tone={gaugeTone(view.gauge)}
+              label="Charge du mois"
+              valueText={view.gauge.valueText}
+            />
+          ) : null}
+          {noteBelow ? <p className="text-kpi-note">{note}</p> : null}
+        </div>
       )}
-      {view.gauge ? (
-        <Gauge
-          height={8}
-          value={Math.min(100, view.gauge.percent)}
-          tone={gaugeTone(view.gauge)}
-          label="Charge du mois"
-          valueText={view.gauge.valueText}
-        />
-      ) : null}
-      {!rowsOnly &&
-      (view.gauge || (size === "2x1" && (view.rows?.length ?? 0) === 0)) &&
-      view.note ? (
-        <p className={cn("line-clamp-2 text-kpi-note", VALUE_TONE[view.noteTone ?? "muted"])}>
-          {view.note}
-        </p>
-      ) : null}
-      {rowsHidden ? null : (
-        <Rows
-          rows={view.rows ?? []}
-          style={style}
-          size={size}
-          compact={compact}
-          editing={editing}
-        />
+      {chart ? (
+        <RevenueChart view={view} />
+      ) : view.rowsWhenTall && short ? null : (
+        <Rows rows={rows} style={style} compact={short && !rowsOnly} editing={editing} />
       )}
     </div>
   );

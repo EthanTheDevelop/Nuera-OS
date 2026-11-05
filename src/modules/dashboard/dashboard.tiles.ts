@@ -5,8 +5,11 @@ import type { Permission } from "@/server/auth/permissions";
  * Catalogue des tuiles du tableau de bord (écrans 01 et 06). Fichier pur : le service y lit les
  * permissions et les formats autorisés, l'interface les titres et les icônes.
  */
-export const TILE_SIZES = ["1x1", "2x1", "2x2", "4x2"] as const;
+export const TILE_SIZES = ["1x1", "1x2", "1x3", "2x1", "2x2", "2x3", "3x1", "3x2", "3x3"] as const;
 export type DashboardTileSize = (typeof TILE_SIZES)[number];
+
+/** Plus grand côté d'une tuile, en colonnes comme en rangées. */
+export const TILE_MAX_SPAN = 3;
 
 export const TILE_KEYS = [
   "revenue",
@@ -44,8 +47,6 @@ export interface TileDefinition {
   icon: IconName;
   /** Format de départ, celui de la maquette. */
   size: DashboardTileSize;
-  /** Formats permis, du plus petit au plus grand : la poignée se cale sur l'un d'eux. */
-  sizes: readonly DashboardTileSize[];
   /** Toutes requises. Sans l'une d'elles, la tuile n'existe pas pour ce compte. */
   permissions: readonly Permission[];
   href: string | null;
@@ -53,7 +54,6 @@ export interface TileDefinition {
   onDefaultBoard: boolean;
 }
 
-const STANDARD: readonly DashboardTileSize[] = ["1x1", "2x1", "2x2"];
 const FINANCE: readonly Permission[] = ["finance:read"];
 
 const tile = (
@@ -63,7 +63,7 @@ const tile = (
   size: DashboardTileSize,
   permissions: readonly Permission[],
   href: string | null,
-  options: { sizes?: readonly DashboardTileSize[]; onDefaultBoard?: boolean } = {},
+  options: { onDefaultBoard?: boolean } = {},
 ): TileDefinition => ({
   key,
   title,
@@ -71,7 +71,6 @@ const tile = (
   size,
   permissions,
   href,
-  sizes: options.sizes ?? STANDARD,
   onDefaultBoard: options.onDefaultBoard ?? false,
 });
 
@@ -79,10 +78,7 @@ const onBoard = { onDefaultBoard: true };
 
 /** Ordre de la maquette 01, puis ce que le cadrage exige et que Figma ne dessine pas. */
 export const TILE_CATALOG: readonly TileDefinition[] = [
-  tile("revenue", "Chiffre d’affaires", "euro", "4x2", FINANCE, "/finances", {
-    sizes: ["1x1", "2x1", "2x2", "4x2"],
-    onDefaultBoard: true,
-  }),
+  tile("revenue", "Chiffre d’affaires", "euro", "3x2", FINANCE, "/finances", onBoard),
   tile("pipeline", "Pipeline", "pipeline", "2x2", ["sales:read"], "/pipeline", onBoard),
   tile("load", "Charge du mois", "clock", "2x1", ["time:read"], "/temps", onBoard),
   tile("mrr", "MRR", "euro", "1x1", FINANCE, "/contrats", onBoard),
@@ -171,7 +167,19 @@ export interface DashboardLayout {
   tiles: LayoutTile[];
 }
 
-/** Colonnes et lignes d'un format, bornées à la largeur de la grille (4×2 tient sur 2 colonnes). */
+/**
+ * Format lu en base : un ancien format ou un côté hors bornes se ramène à 1..3 (`4x2` devient `3x2`),
+ * et ce qui ne se lit pas retombe sur le format de départ de la tuile.
+ */
+export function upgradeTileSize(value: unknown, fallback: DashboardTileSize): DashboardTileSize {
+  const match = typeof value === "string" ? /^(\d+)x(\d+)$/.exec(value) : null;
+  if (!match) return fallback;
+  const side = (text: string | undefined) =>
+    Math.max(1, Math.min(TILE_MAX_SPAN, Number(text))) as 1 | 2 | 3;
+  return `${side(match[1])}x${side(match[2])}`;
+}
+
+/** Colonnes et lignes d'un format, bornées à la largeur de la grille (3×2 tient sur 2 colonnes). */
 export function tileSpan(size: DashboardTileSize, gridColumns: number) {
   const [columns = 1, rows = 1] = size.split("x").map(Number);
   return { columns: Math.min(columns, gridColumns), rows };
@@ -274,22 +282,23 @@ export function closestInsertion(
   return best;
 }
 
-/** Format voisin aux flèches, sans boucler : les bouts de la liste restent les bouts. */
+/** Format voisin aux flèches, une dimension à la fois et sans boucler : 1 et 3 restent les bouts. */
 export function stepTileSize(
-  key: TileKey,
   size: DashboardTileSize,
+  axis: "columns" | "rows",
   step: -1 | 1,
 ): DashboardTileSize {
-  const { sizes } = tileDefinition(key);
-  return sizes[sizes.indexOf(size) + step] ?? size;
+  const { columns, rows } = tileSpan(size, TILE_MAX_SPAN);
+  const next = `${axis === "columns" ? columns + step : columns}x${axis === "rows" ? rows + step : rows}`;
+  return TILE_SIZES.find((candidate) => candidate === next) ?? size;
 }
 
 /**
- * Format autorisé le plus proche de l'étendue visée par la poignée, en colonnes et lignes (fractions
- * comprises). À égalité, le format en cours reste : sans déplacement, rien ne change.
+ * Format le plus proche de l'étendue visée par la poignée, en colonnes et lignes (fractions
+ * comprises). À égalité, le format en cours reste : sans déplacement, rien ne change, même quand la
+ * grille borne la largeur.
  */
 export function nearestTileSize(
-  key: TileKey,
   current: DashboardTileSize,
   target: { columns: number; rows: number },
   gridColumns: number,
@@ -298,7 +307,7 @@ export function nearestTileSize(
     const span = tileSpan(size, gridColumns);
     return (span.columns - target.columns) ** 2 + (span.rows - target.rows) ** 2;
   };
-  return tileDefinition(key).sizes.reduce(
+  return TILE_SIZES.reduce<DashboardTileSize>(
     (best, size) => (distance(size) < distance(best) ? size : best),
     current,
   );

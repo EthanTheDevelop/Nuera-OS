@@ -22,6 +22,7 @@ import {
   AddTile,
   Tile,
   TILE_GRID,
+  TILE_SPAN_CLASSES,
   TileRemoveButton,
   TileResizeHandle,
   TileSlot,
@@ -50,14 +51,6 @@ import {
 } from "../dashboard.tiles";
 import type { DashboardData, TileState } from "../dashboard.types";
 import { tileBadge, TileBody } from "./tile-body";
-
-/** Mêmes colonnes que les formats de `Tile` : ici, c'est l'enveloppe animée qui occupe la grille. */
-const TILE_SPAN: Record<DashboardTileSize, string> = {
-  "1x1": "",
-  "2x1": "col-span-2",
-  "2x2": "col-span-2 row-span-2",
-  "4x2": "col-span-2 @lg:col-span-4 row-span-2",
-};
 
 /** Hauteur minimale d'une rangée, celle de `TILE_GRID`. */
 const ROW_MIN_PX = 168;
@@ -131,12 +124,12 @@ function isInside(box: DOMRect | undefined, x: number, y: number, margin = 0) {
 
 const sizeLabel = (size: DashboardTileSize) => size.replace("x", "×");
 
-/** Flèches sur la poignée : vers le bas et la droite, on agrandit, comme en la tirant. */
-const ARROW_STEP: Partial<Record<string, -1 | 1>> = {
-  ArrowLeft: -1,
-  ArrowUp: -1,
-  ArrowRight: 1,
-  ArrowDown: 1,
+/** Flèches sur la poignée : la droite et le bas agrandissent, comme en la tirant, un côté à la fois. */
+const ARROW_STEP: Partial<Record<string, { axis: "columns" | "rows"; step: -1 | 1 }>> = {
+  ArrowLeft: { axis: "columns", step: -1 },
+  ArrowRight: { axis: "columns", step: 1 },
+  ArrowUp: { axis: "rows", step: -1 },
+  ArrowDown: { axis: "rows", step: 1 },
 };
 
 /**
@@ -237,7 +230,6 @@ function BoardResizeHandle({
       band.current.style.height = `${Math.max(drag.height + dy, drag.rowTrack / 2)}px`;
     }
     const size = nearestTileSize(
-      item.key,
       drag.last,
       {
         columns: (drag.width + dx + drag.gap) / drag.columnTrack,
@@ -273,10 +265,10 @@ function BoardResizeHandle({
       cancel();
       return;
     }
-    const step = ARROW_STEP[event.key];
-    if (!step) return;
+    const arrow = ARROW_STEP[event.key];
+    if (!arrow) return;
     event.preventDefault();
-    const size = stepTileSize(item.key, item.size, step);
+    const size = stepTileSize(item.size, arrow.axis, arrow.step);
     if (size !== item.size) onCommit(item.key, size);
   }
 
@@ -373,7 +365,7 @@ function BoardTile({
       style={{ ...staggerIndex(position), ...(placement ? placementStyle(placement) : null) }}
       className={cn(
         "relative min-w-0 rounded-xl outline-none focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-focus",
-        TILE_SPAN[item.size],
+        TILE_SPAN_CLASSES[item.size],
         editing && "cursor-grab select-none",
         active === "move" && "z-20 cursor-grabbing opacity-95 [&>article]:shadow-float",
         active === "resize" && "z-20 ring-4 ring-accent/40",
@@ -382,9 +374,10 @@ function BoardTile({
       <Tile
         icon={definition.icon}
         title={title}
-        aside={item.size === "1x1" ? undefined : tileBadge(state)}
+        aside={tileBadge(state)}
         href={editing ? undefined : (definition.href ?? undefined)}
         editing={editing}
+        fit
         className="h-full"
         handle={
           editing ? (
@@ -414,7 +407,7 @@ function BoardTile({
         }
       >
         {/* Le cadre et le titre d'abord, le contenu ensuite (note M1). */}
-        <div className="anim-data flex min-h-0 min-w-0 flex-1 flex-col">
+        <div className="anim-data tile-body">
           <TileBody state={state} size={item.size} editing={editing} service={definition.title} />
         </div>
       </Tile>
@@ -878,7 +871,7 @@ export function DashboardBoard({ data, editing }: { data: DashboardData; editing
           editing && galleryOpen && "lg:pr-[364px]",
         )}
       >
-        <div ref={grid} className={cn(TILE_GRID, "relative grid-flow-row-dense")}>
+        <div ref={grid} className={cn(TILE_GRID, "relative grid-flow-row-dense auto-rows-[168px]")}>
           {slots.map((cell) => (
             <TileSlot key={`${cell.column}:${cell.row}`} style={placementStyle(cell)} />
           ))}
@@ -942,8 +935,8 @@ export function DashboardBoard({ data, editing }: { data: DashboardData; editing
           }}
           className="pointer-events-none fixed top-0 left-0 z-40 opacity-95 [&>article]:shadow-float"
         >
-          <Tile icon={adding.icon} title={adding.title} editing className="h-full">
-            <div className="flex min-h-0 min-w-0 flex-1 flex-col overflow-hidden">
+          <Tile icon={adding.icon} title={adding.title} editing fit className="h-full">
+            <div className="tile-body">
               <TileBody
                 state={data.tiles[adding.key]}
                 size={adding.size}

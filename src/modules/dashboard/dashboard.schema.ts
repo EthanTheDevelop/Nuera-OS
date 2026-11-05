@@ -1,7 +1,34 @@
 import { z } from "@/lib/zod";
-import { TILE_KEYS, TILE_SIZES, tileDefinition } from "./dashboard.tiles";
+import {
+  TILE_KEYS,
+  TILE_SIZES,
+  tileDefinition,
+  upgradeTileSize,
+  type TileKey,
+} from "./dashboard.tiles";
 
-/** Disposition enregistrée : l'ordre du tableau fait foi, le format borné à ceux de la tuile. */
+const isTileKey = (value: unknown): value is TileKey =>
+  (TILE_KEYS as readonly unknown[]).includes(value);
+
+/**
+ * Une disposition enregistrée peut porter un ancien format (`4x2`) : il se traduit à la lecture, sans
+ * jamais faire échouer l'ensemble. Une tuile inconnue reste telle quelle : le schéma la refuse.
+ */
+export function upgradeStoredLayout(stored: unknown): unknown {
+  if (typeof stored !== "object" || stored === null || !("tiles" in stored)) return stored;
+  if (!Array.isArray(stored.tiles)) return stored;
+  return {
+    ...stored,
+    tiles: stored.tiles.map((entry: unknown) => {
+      if (typeof entry !== "object" || entry === null || !("key" in entry)) return entry;
+      if (!isTileKey(entry.key)) return entry;
+      const size = "size" in entry ? entry.size : undefined;
+      return { ...entry, size: upgradeTileSize(size, tileDefinition(entry.key).size) };
+    }),
+  };
+}
+
+/** Disposition enregistrée : l'ordre du tableau fait foi, chaque côté du format va de 1 à 3. */
 export const dashboardLayoutSchema = z
   .object({
     tiles: z
@@ -15,7 +42,7 @@ export const dashboardLayoutSchema = z
   })
   .superRefine(({ tiles }, context) => {
     const seen = new Set<string>();
-    tiles.forEach(({ key, size }, index) => {
+    tiles.forEach(({ key }, index) => {
       if (seen.has(key)) {
         context.addIssue({
           code: "custom",
@@ -24,13 +51,6 @@ export const dashboardLayoutSchema = z
         });
       }
       seen.add(key);
-      if (!tileDefinition(key).sizes.includes(size)) {
-        context.addIssue({
-          code: "custom",
-          path: ["tiles", index, "size"],
-          message: "Cette tuile n'existe pas dans ce format.",
-        });
-      }
     });
   });
 

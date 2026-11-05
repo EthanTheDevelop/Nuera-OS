@@ -74,10 +74,13 @@ export interface TileView {
   title?: string;
   rowStyle?: TileRowStyle;
   rows?: TileRow[];
-  /** Formats où seules les lignes s'affichent, sans le chiffre (maquette 01). */
-  rowsOnlyAt?: readonly string[];
-  /** Les lignes n'apparaissent qu'à partir du format 2×2 : la jauge occupe déjà le 2×1. */
-  rowsFrom2x2?: boolean;
+  /**
+   * Quand les lignes remplacent le chiffre (maquette 01) : `always` hors 1×1, `tall` à partir de deux
+   * rangées, `short` sur une seule rangée. Sans valeur, le chiffre reste.
+   */
+  rowsFirst?: "always" | "tall" | "short";
+  /** Les lignes n'apparaissent qu'à partir de deux rangées : la jauge occupe déjà la première. */
+  rowsWhenTall?: boolean;
   /** Charge en pourcentage : badge et ton suivent les seuils de l'arbitrage A7. */
   loadPercent?: number;
   gauge?: TileGaugeView;

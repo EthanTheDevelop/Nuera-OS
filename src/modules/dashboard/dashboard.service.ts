@@ -40,7 +40,7 @@ import { ServiceUnavailableError, ValidationError } from "@/server/errors";
 import { logger } from "@/server/logger";
 import { parseInput } from "@/server/validation";
 import * as repository from "./dashboard.repository";
-import { dashboardLayoutSchema } from "./dashboard.schema";
+import { dashboardLayoutSchema, upgradeStoredLayout } from "./dashboard.schema";
 import {
   TILE_CATALOG,
   tileDefinition,
@@ -78,7 +78,7 @@ function defaultLayout(actor: Actor): DashboardLayout {
 
 /** Une disposition enregistrée peut dater d'un autre rôle : ce qui n'est plus permis disparaît. */
 function readStoredLayout(actor: Actor, stored: unknown): DashboardLayout {
-  const parsed = dashboardLayoutSchema.safeParse(stored);
+  const parsed = dashboardLayoutSchema.safeParse(upgradeStoredLayout(stored));
   if (!parsed.success) return defaultLayout(actor);
   return {
     tiles: parsed.data.tiles.filter(({ key }) => canSeeTile(actor, tileDefinition(key))),
@@ -350,7 +350,7 @@ const LOADERS: Record<TileKey, (sources: Sources) => Promise<TileView>> = {
       note: `${plural(openCount, "affaire ouverte", "affaires ouvertes")} · ${formatCents(openAmount)}`,
       badge: { label: `${openCount} ${plural(openCount, "affaire")}`, tone: "accent" },
       rowStyle: "gauge",
-      rowsOnlyAt: ["2x2", "4x2"],
+      rowsFirst: "tall",
       rows: columns.map((column) => {
         const tone: TileGaugeView["tone"] =
           column.stage === "WON" ? "success" : column.stage === "LOST" ? "danger" : "accent";
@@ -412,7 +412,7 @@ const LOADERS: Record<TileKey, (sources: Sources) => Promise<TileView>> = {
         })),
         { id: "free", label: "Libres", value: `${days(free)} j` },
       ],
-      rowsFrom2x2: true,
+      rowsWhenTall: true,
       empty:
         overview.capacityMinutes === 0
           ? {
@@ -530,7 +530,7 @@ const LOADERS: Record<TileKey, (sources: Sources) => Promise<TileView>> = {
       note: `${plural(items.length, "message")} à traiter`,
       badge: ready > 0 ? { label: "ChatGPT", tone: "chatgpt" } : undefined,
       rowStyle: "avatar",
-      rowsOnlyAt: ["2x2", "4x2"],
+      rowsFirst: "tall",
       rows: items.slice(0, 8).map((item) => {
         const name = item.contactName ?? item.companyName;
         const context = item.contactName
@@ -566,7 +566,7 @@ const LOADERS: Record<TileKey, (sources: Sources) => Promise<TileView>> = {
         ? { label: "Cal.diy", tone: "neutral" }
         : undefined,
       rowStyle: "date",
-      rowsOnlyAt: ["2x1", "2x2", "4x2"],
+      rowsFirst: "always",
       rows: items.map((item) => ({
         id: item.id,
         label: appointmentLabel(item),
@@ -607,7 +607,7 @@ const LOADERS: Record<TileKey, (sources: Sources) => Promise<TileView>> = {
         : { label: "Uptime Kuma à connecter", tone: "warn" },
       stale,
       rowStyle: "dot",
-      rowsOnlyAt: ["2x1"],
+      rowsFirst: "short",
       rows: summary.rows.map((row) => ({
         id: row.id,
         label: row.primaryDomain ?? row.name,
@@ -638,7 +638,7 @@ const LOADERS: Record<TileKey, (sources: Sources) => Promise<TileView>> = {
       note: "devis à signer",
       badge: page.total > 0 ? { label: String(page.total), tone: "warn" } : undefined,
       rowStyle: "badge",
-      rowsOnlyAt: ["2x1", "2x2", "4x2"],
+      rowsFirst: "always",
       rows: items.map((quote) => {
         const elapsed = quote.sentAt ? daysBetween(parisDay(quote.sentAt), today) : null;
         return {
@@ -793,7 +793,7 @@ const LOADERS: Record<TileKey, (sources: Sources) => Promise<TileView>> = {
       figure: { kind: "number", value: items.length },
       note: `${plural(items.length, "action")} à mener`,
       rowStyle: "badge",
-      rowsOnlyAt: ["2x1", "2x2", "4x2"],
+      rowsFirst: "always",
       rows: items,
       partial: failed ? SOURCE_FAILED_NOTE : undefined,
       empty:
@@ -890,7 +890,7 @@ const LOADERS: Record<TileKey, (sources: Sources) => Promise<TileView>> = {
       note: `${plural(items.length, "alerte")} en cours`,
       noteTone: items.length > 0 ? "danger" : "muted",
       rowStyle: "badge",
-      rowsOnlyAt: ["2x1", "2x2", "4x2"],
+      rowsFirst: "always",
       rows: items,
       partial: failed ? SOURCE_FAILED_NOTE : undefined,
       empty:
@@ -973,7 +973,7 @@ const LOADERS: Record<TileKey, (sources: Sources) => Promise<TileView>> = {
       figure: { kind: "text", text: first?.value ?? "—" },
       note: first?.label,
       rowStyle: "plain",
-      rowsOnlyAt: ["2x1", "2x2", "4x2"],
+      rowsFirst: "always",
       rows: items,
       partial: failed ? SOURCE_FAILED_NOTE : undefined,
     };
@@ -1195,7 +1195,6 @@ const LOADERS: Record<TileKey, (sources: Sources) => Promise<TileView>> = {
       figure: { kind: "euros", value: centsToEuros(total), suffix: " HT" },
       note: capitalize(month.longLabel),
       rowStyle: "plain",
-      rowsOnlyAt: [],
       rows: [
         {
           id: "recurring",
@@ -1224,7 +1223,7 @@ const LOADERS: Record<TileKey, (sources: Sources) => Promise<TileView>> = {
       figure: { kind: "number", value: page.total },
       note: `${plural(page.total, "projet")} en cours`,
       rowStyle: "gauge",
-      rowsOnlyAt: ["2x2", "4x2"],
+      rowsFirst: "tall",
       rows: page.items.map((project) => ({
         id: project.id,
         label: project.name,
@@ -1266,7 +1265,7 @@ const LOADERS: Record<TileKey, (sources: Sources) => Promise<TileView>> = {
       note: `${plural(atRisk.length, "projet")} à reprendre en main`,
       noteTone: atRisk.length > 0 ? "warn" : "muted",
       rowStyle: "badge",
-      rowsOnlyAt: ["2x1", "2x2", "4x2"],
+      rowsFirst: "always",
       rows: atRisk.map((project) => ({
         id: project.id,
         label: project.name,
@@ -1300,7 +1299,7 @@ const LOADERS: Record<TileKey, (sources: Sources) => Promise<TileView>> = {
       },
       note: peak ? `Pic de charge en ${peak.label}` : "Aucune capacité renseignée",
       rowStyle: "gauge",
-      rowsOnlyAt: ["2x2", "4x2"],
+      rowsFirst: "tall",
       rows: weeks.map((week) => {
         const percent = week.loadPercent === null ? null : Math.round(week.loadPercent);
         return {

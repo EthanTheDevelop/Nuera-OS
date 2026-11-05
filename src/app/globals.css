@@ -1094,4 +1094,11 @@
   .tile-chart [data-chart-axis] {
     display: none;
   }
+
+  .tile-rows [data-tile-value] {
+    flex-shrink: 1;
+    max-width: 60%;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
 }
