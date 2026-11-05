@@ -85,8 +85,15 @@ function CopyLinkWindow({ url, onClose }: { url: string; onClose: () => void }) 
           <Button
             variant="accent"
             onClick={async () => {
-              await navigator.clipboard.writeText(url);
-              toast({ message: "Lien copié.", tone: "success" });
+              try {
+                await navigator.clipboard.writeText(url);
+                toast({ message: "Lien copié.", tone: "success" });
+              } catch {
+                toast({
+                  message: "Copie refusée : sélectionnez le lien ci-dessus.",
+                  tone: "danger",
+                });
+              }
             }}
           >
             Copier le lien
@@ -250,7 +257,7 @@ export function InviteToPortalButton({
         onClose={() => setOpen(false)}
         width={560}
         title="Espace client"
-        description="Choisissez qui reçoit l'accès. Une invitation part par e-mail, avec un lien valable 24 heures."
+        description="Choisissez qui reçoit l'accès. L'invitation rejoint la file d'envoi, avec un lien valable 24 heures : son état réel s'affiche sur chaque ligne."
       >
         <PortalAccessList companyId={companyId} overview={overview} />
       </Modal>

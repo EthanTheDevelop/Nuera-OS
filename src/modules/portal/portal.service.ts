@@ -1,3 +1,4 @@
+import { createHash } from "node:crypto";
 import { recordAudit } from "@/modules/audit/audit.service";
 import {
   listAppointmentsForPortal,
@@ -28,7 +29,9 @@ import {
 } from "@/modules/projects/project.portal";
 import { listSitesForPortal, type PortalSite } from "@/modules/sites/site.portal";
 import {
+  addPortalTicketMessage,
   createTicketFromPortal,
+  getTicketForPortal,
   listTicketsForPortal,
   type PortalTicketRow,
 } from "@/modules/support/ticket.service";
@@ -39,7 +42,7 @@ import {
 } from "@/modules/users/client-account.service";
 import type { PortalContext } from "@/server/context";
 import type { Database } from "@/server/db/types";
-import { NotFoundError, ValidationError } from "@/server/errors";
+import { ConflictError, NotFoundError, ValidationError } from "@/server/errors";
 import { parseInput } from "@/server/validation";
 import { firstNameOf, joinNames } from "./portal.format";
 import * as repository from "./portal.repository";
@@ -159,7 +162,8 @@ export interface PortalDeliverableView extends PortalDeliverable {
 export interface PortalProjectHome {
   project: Omit<PortalProjectDetail, "deliverables">;
   deliverables: PortalDeliverableView[];
-  payments: PortalPayments;
+  /** `null` : aperçu de l'agence sans `finance:read`. Le client lit toujours les siens. */
+  payments: PortalPayments | null;
   nextAppointment: PortalAppointment | null;
   /** « Hugo et Camille », à défaut « Nuera Studio ». */
   interlocutorNames: string;
@@ -170,11 +174,14 @@ export async function loadProjectHome(
   ctx: PortalContext,
   projectId: string,
   now: Date = new Date(),
+  options: { withPayments?: boolean } = {},
 ): Promise<PortalProjectHome> {
   const detail = await getProjectForPortal(ctx, projectId);
   const [documents, payments, appointments] = await Promise.all([
     listDocumentsForPortal(ctx, { projectId: detail.id }, PROJECT_DOCUMENTS_PAGE),
-    getProjectPaymentsForPortal(ctx, detail.id, { soldCents: detail.soldCents, now }),
+    options.withPayments === false
+      ? null
+      : getProjectPaymentsForPortal(ctx, detail.id, { soldCents: detail.soldCents, now }),
     listAppointmentsForPortal(ctx, { limit: 50 }),
   ]);
   const readable = new Map(documents.items.map((row) => [row.id, row]));
@@ -282,13 +289,25 @@ export async function submitDeliverableReview(
     deliverableId: string;
     decision: "validated" | "changes_requested";
     comment?: string | null;
+    /** La version affichée au client : une décision ne vaut que pour celle qu'il a vue. */
+    seen?: { projectId: string; version: number };
   },
 ): Promise<{ overIncludedRounds: boolean }> {
-  if (input.decision === "changes_requested" && !input.comment?.trim()) {
+  const { seen, ...review } = input;
+  if (review.decision === "changes_requested" && !review.comment?.trim()) {
     const message = "Dites-nous ce que vous souhaitez changer.";
     throw new ValidationError(message, { comment: [message] });
   }
-  const { outOfScopeChangeRequest } = await recordDeliverableReview(ctx, input);
+  if (seen) {
+    const { deliverables } = await getProjectForPortal(ctx, seen.projectId);
+    const current = deliverables.find((item) => item.id === review.deliverableId);
+    if (current && current.version !== seen.version) {
+      throw new ConflictError(
+        "Une nouvelle version vient d'arriver : regardez-la avant de vous décider.",
+      );
+    }
+  }
+  const { outOfScopeChangeRequest } = await recordDeliverableReview(ctx, review);
   return { overIncludedRounds: outOfScopeChangeRequest !== null };
 }
 
@@ -310,9 +329,47 @@ export async function submitRequirementText(
   rawInput: RequirementTextInput,
 ): Promise<void> {
   const input = parseInput(requirementTextSchema, rawInput);
-  // D'abord le contrôle : le contenu d'un autre client répond 404, et aucun message ne part.
-  const requirement = await markRequirementReceived(ctx, { requirementId: input.requirementId });
-  await sendPortalMessage(ctx, { body: `${requirement.label}\n\n${input.text}` });
+  await ctx.db.transaction(async (tx) => {
+    const scoped = { ...ctx, db: tx };
+    // D'abord le contrôle : le contenu d'un autre client répond 404, et aucun message ne part.
+    const requirement = await markRequirementReceived(scoped, {
+      requirementId: input.requirementId,
+    });
+    await sendPortalMessage(scoped, {
+      body: `${requirement.label}\n\n${input.text}`,
+      clientRequestId: requirementMessageId(input.requirementId, input.text),
+    });
+  });
+}
+
+/** Même contenu, même texte : même message, un envoi répété n'en crée pas un second. */
+function requirementMessageId(requirementId: string, text: string): string {
+  const hex = createHash("sha256").update(`${requirementId}\n${text}`).digest("hex");
+  return `${hex.slice(0, 8)}-${hex.slice(8, 12)}-5${hex.slice(13, 16)}-8${hex.slice(17, 20)}-${hex.slice(20, 32)}`;
+}
+
+/**
+ * Le service regroupe les demandes de même objet envoyées en moins d'une minute, pour absorber un
+ * double envoi. Si le détail diffère, ce n'est pas un doublon : il rejoint la demande en message, au
+ * lieu d'être perdu alors que le client lit « envoyée ».
+ */
+export async function openPortalTicket(
+  ctx: PortalContext,
+  input: Parameters<typeof createTicketFromPortal>[1],
+): Promise<{ id: string; number: string }> {
+  return ctx.db.transaction(async (tx) => {
+    const scoped = { ...ctx, db: tx };
+    const ticket = await createTicketFromPortal(scoped, input);
+    const detail = typeof input.description === "string" ? input.description.trim() : "";
+    if (detail) {
+      const saved = await getTicketForPortal(scoped, ticket.id);
+      const known =
+        saved.description === detail ||
+        saved.messages.some((message) => message.fromClient && message.body === detail);
+      if (!known) await addPortalTicketMessage(scoped, { ticketId: ticket.id, body: detail });
+    }
+    return { id: ticket.id, number: ticket.number };
+  });
 }
 
 // --- Mon site ----------------------------------------------------------------------------------
@@ -351,13 +408,12 @@ export async function requestSiteChange(
 ): Promise<{ id: string; number: string }> {
   const input = parseInput(siteChangeSchema, rawInput);
   const summary = input.current.replace(/\s+/g, " ").slice(0, 120);
-  const ticket = await createTicketFromPortal(ctx, {
+  return openPortalTicket(ctx, {
     siteId: input.siteId,
     subject: summary,
     description: `Version actuelle :\n${input.current}\n\nNouvelle version :\n${input.next}`,
     category: "change",
   });
-  return { id: ticket.id, number: ticket.number };
 }
 
 // --- Documents ---------------------------------------------------------------------------------
@@ -370,6 +426,9 @@ export const PORTAL_DOCUMENT_FILTERS = [
   "fichiers",
 ] as const;
 export type PortalDocumentFilter = (typeof PORTAL_DOCUMENT_FILTERS)[number];
+
+/** Au-delà, la base refuse le décalage : une URL trafiquée n'est pas une erreur. */
+const MAX_DOCUMENT_PAGE = 100_000;
 
 export function parseDocumentFilter(value: string | undefined): PortalDocumentFilter {
   return PORTAL_DOCUMENT_FILTERS.find((filter) => filter === value) ?? "tous";
@@ -432,7 +491,7 @@ export async function getPortalDocumentsPage(
   ctx: PortalContext,
   options: { filter: PortalDocumentFilter; page?: number; now?: Date },
 ): Promise<PortalDocumentsPage> {
-  const page = options.page ?? 1;
+  const page = Math.min(options.page ?? 1, MAX_DOCUMENT_PAGE);
   const showInvoices = options.filter === "tous" || options.filter === "factures";
   const [listed, invoiceFiles, invoices, anyFile] = await Promise.all([
     listDocumentsForPortal(ctx, toFilterInput(options.filter), { page, pageSize: 24 }),

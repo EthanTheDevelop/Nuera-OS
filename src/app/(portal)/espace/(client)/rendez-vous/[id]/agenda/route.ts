@@ -1,3 +1,4 @@
+import { unstable_rethrow } from "next/navigation";
 import { contentDisposition } from "@/modules/documents/document.format";
 import { buildAppointmentIcs } from "@/modules/portal/portal.format";
 import { getPortalAppointment } from "@/modules/portal/portal.service";
@@ -24,6 +25,8 @@ export async function GET(
       },
     });
   } catch (error) {
+    // Un membre de l'équipe repart vers l'agence : cette redirection n'est pas une panne.
+    unstable_rethrow(error);
     if (error instanceof ForbiddenError || isAppError(error)) {
       return new Response("Introuvable.", { status: 404 });
     }

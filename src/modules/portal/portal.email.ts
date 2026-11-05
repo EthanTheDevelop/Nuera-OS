@@ -38,7 +38,9 @@ export function buildInvitationEmail(input: {
     "",
     notice,
     "",
-    `${input.interlocutors}, Nuera Studio`,
+    input.interlocutors === "Nuera Studio"
+      ? "Nuera Studio"
+      : `${input.interlocutors}, Nuera Studio`,
     "",
     footer,
   ].join("\n");

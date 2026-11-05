@@ -3,6 +3,7 @@ import { getCompanyRef } from "@/modules/crm/company.lookup";
 import { getContact, listContactsForCompany } from "@/modules/crm/contact.service";
 import { enqueueEmail } from "@/modules/platform/email-outbox";
 import { getEmailDelivery, type EmailDelivery } from "@/modules/platform/email-outbox.status";
+import { z } from "@/lib/zod";
 import { requireReadableProject } from "@/modules/projects/project.access";
 import { getProjectForPortal, listProjectsForPortal } from "@/modules/projects/project.portal";
 import { closeClientSessions, ensureClientAccount } from "@/modules/users/client-account.service";
@@ -16,6 +17,7 @@ import { ConflictError, NotFoundError, ValidationError } from "@/server/errors";
 import { parseInput } from "@/server/validation";
 import { buildInvitationEmail } from "./portal.email";
 import { firstNameOf, joinNames } from "./portal.format";
+import { loadProjectHome, type PortalProjectHome } from "./portal.service";
 import * as repository from "./portal.repository";
 import {
   inviteClientSchema,
@@ -178,6 +180,25 @@ async function requireLiveMembership(db: Database, membershipId: string) {
 }
 
 /**
+ * L'adhésion ouvre le compte d'une adresse précise. Si la fiche a changé d'adresse depuis, un lien
+ * partirait vers la nouvelle et ouvrirait le compte qu'elle désigne, peut-être celui d'un autre client.
+ */
+async function requireContactOfAccount(
+  ctx: ServiceContext,
+  membership: PortalMembership,
+): Promise<{ firstName: string; email: string }> {
+  const contact = await getContact(ctx, membership.contactId);
+  if (!contact.email) throw new ConflictError("Ce contact n'a plus d'adresse e-mail.");
+  const email = contact.email.trim().toLowerCase();
+  if ((await repository.findAccountEmail(ctx.db, membership.userId)) !== email) {
+    throw new ConflictError(
+      "L'adresse de ce contact a changé : retirez cet accès, puis invitez-le à nouveau.",
+    );
+  }
+  return { firstName: contact.firstName, email };
+}
+
+/**
  * Nouvelle invitation pour un accès existant. Une invitation encore en attente d'envoi n'est pas
  * doublée : c'est la même, l'écran le dit.
  */
@@ -189,8 +210,7 @@ export async function resendPortalInvitation(
   assertCan(ctx.actor, "crm:update");
   const { membershipId } = parseInput(membershipIdSchema, rawInput);
   const membership = await requireLiveMembership(ctx.db, membershipId);
-  const contact = await getContact(ctx, membership.contactId);
-  if (!contact.email) throw new ConflictError("Ce contact n'a plus d'adresse e-mail.");
+  const contact = await requireContactOfAccount(ctx, membership);
 
   const current = await getEmailDelivery(ctx.db, invitationKey(membership));
   if (current?.status === "pending") {
@@ -211,10 +231,7 @@ export async function resendPortalInvitation(
     });
     return row;
   });
-  await queueInvitation(ctx.db, deps, updated, {
-    firstName: contact.firstName,
-    email: contact.email.trim().toLowerCase(),
-  });
+  await queueInvitation(ctx.db, deps, updated, contact);
   return {
     membershipId,
     status: updated.status,
@@ -235,9 +252,8 @@ export async function issuePortalInvitationLink(
   assertCan(ctx.actor, "users:manage");
   const { membershipId } = parseInput(membershipIdSchema, rawInput);
   const membership = await requireLiveMembership(ctx.db, membershipId);
-  const contact = await getContact(ctx, membership.contactId);
-  if (!contact.email) throw new ConflictError("Ce contact n'a plus d'adresse e-mail.");
-  const url = await deps.issueLink(contact.email.trim().toLowerCase());
+  const contact = await requireContactOfAccount(ctx, membership);
+  const url = await deps.issueLink(contact.email);
   if (!url) throw new ConflictError("Cette adresse n'a pas d'accès valide à l'espace client.");
   await recordAudit(ctx.db, {
     actorId: ctx.actor.userId,
@@ -250,8 +266,9 @@ export async function issuePortalInvitationLink(
 }
 
 /**
- * Retire l'accès, immédiatement : l'adhésion est relue à chaque requête, et les sessions sont fermées
- * dans la même transaction. Répéter ne change rien.
+ * Retire l'accès, immédiatement : l'adhésion est relue à chaque requête, et les sessions comme les
+ * liens encore valables disparaissent dans la même transaction. Sans cela, une réinvitation rendrait
+ * valable un lien transmis avant la révocation. Répéter ne change rien.
  */
 export async function revokePortalAccess(
   ctx: ServiceContext,
@@ -265,6 +282,8 @@ export async function revokePortalAccess(
     const revoked = await repository.revokeMembership(tx, membershipId);
     if (!revoked) return;
     await closeClientSessions(tx, membership.userId);
+    const email = await repository.findAccountEmail(tx, membership.userId);
+    if (email) await repository.deleteLoginLinks(tx, email);
     await recordAudit(tx, {
       actorId: ctx.actor.userId,
       action: "portal.membership_revoked",
@@ -344,6 +363,22 @@ export async function getAgencyPreviewScope(
   projectId: string,
 ): Promise<PortalContext> {
   assertCan(ctx.actor, "projects:read");
+  // Une adresse mal formée est un projet qui n'existe pas, pas une erreur de base.
+  if (!z.uuid().safeParse(projectId).success) throw new NotFoundError("Projet introuvable.");
   const project = await requireReadableProject(ctx, projectId);
   return { db: ctx.db, actor: ctx.actor, companyId: project.companyId, contactId: NO_CONTACT };
+}
+
+/**
+ * C3 tel que le client le voit, pour l'équipe. Le rôle reste celui de l'équipe : les paiements du
+ * client sont des données financières, réservées à `finance:read`.
+ */
+export async function loadAgencyPreview(
+  ctx: ServiceContext,
+  projectId: string,
+): Promise<PortalProjectHome> {
+  const scope = await getAgencyPreviewScope(ctx, projectId);
+  return loadProjectHome(scope, projectId, new Date(), {
+    withPayments: can(ctx.actor, "finance:read"),
+  });
 }

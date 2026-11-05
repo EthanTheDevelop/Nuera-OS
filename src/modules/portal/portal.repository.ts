@@ -1,8 +1,9 @@
-import { and, desc, eq, inArray, ne } from "drizzle-orm";
+import { and, desc, eq, inArray, ne, sql } from "drizzle-orm";
 import {
   portalMemberships,
   portalPreferences,
   users,
+  verifications,
   type PortalMembership,
   type PortalPreferences,
 } from "@/server/db/schema";
@@ -85,6 +86,25 @@ export async function revokeMembership(tx: Database, id: string): Promise<boolea
     .where(and(eq(portalMemberships.id, id), ne(portalMemberships.status, "revoked")))
     .returning({ id: portalMemberships.id });
   return rows.length > 0;
+}
+
+/** Adresse du compte d'une adhésion : celle qu'un lien de connexion ouvre vraiment. */
+export async function findAccountEmail(db: Database, userId: string): Promise<string | null> {
+  const [row] = await db
+    .select({ email: users.email })
+    .from(users)
+    .where(eq(users.id, userId))
+    .limit(1);
+  return row?.email ?? null;
+}
+
+/**
+ * Efface les liens de connexion encore valables d'une adresse. Le jeton est haché : seule la valeur
+ * JSON porte l'adresse, sous la forme écrite par better-auth.
+ */
+export async function deleteLoginLinks(tx: Database, email: string): Promise<void> {
+  const needle = `"email":${JSON.stringify(email)}`;
+  await tx.delete(verifications).where(sql`position(${needle} in ${verifications.value}) > 0`);
 }
 
 export async function findPreferences(

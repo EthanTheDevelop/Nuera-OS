@@ -4,9 +4,8 @@ import { ForbiddenState } from "@/components/states/states";
 import { CompactLink } from "@/components/ui/compact-button";
 import { Alert } from "@/components/ui/feedback";
 import { ProjectHome } from "@/modules/portal/components/project-home";
-import { getAgencyPreviewScope } from "@/modules/portal/portal-access.service";
+import { loadAgencyPreview } from "@/modules/portal/portal-access.service";
 import { orNotFound } from "@/modules/portal/portal.page";
-import { loadProjectHome } from "@/modules/portal/portal.service";
 import { can } from "@/server/auth/permissions";
 import { getServiceContext } from "@/server/auth/session";
 
@@ -28,10 +27,7 @@ export default async function AgencyPortalPreviewPage({
   const ctx = await getServiceContext();
   if (!can(ctx.actor, "projects:read")) return <ForbiddenState />;
   const { projectId } = await params;
-  const home = await orNotFound(async () => {
-    const scope = await getAgencyPreviewScope(ctx, projectId);
-    return loadProjectHome(scope, projectId);
-  });
+  const home = await orNotFound(() => loadAgencyPreview(ctx, projectId));
 
   return (
     <ClientMotionPreset>

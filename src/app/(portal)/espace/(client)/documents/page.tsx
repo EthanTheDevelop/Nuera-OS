@@ -1,4 +1,5 @@
 import type { Metadata } from "next";
+import { redirect } from "next/navigation";
 import { Suspense } from "react";
 import { PortalPageHeader } from "@/components/portal/portal-card";
 import { EmptyState } from "@/components/states/states";
@@ -9,6 +10,7 @@ import { Icon, type IconName } from "@/components/ui/icon";
 import { formatDateShort } from "@/lib/format";
 import { formatCents } from "@/lib/money";
 import { hrefWith, paramValue } from "@/lib/url-state";
+import { getDocumentStorageStatus } from "@/modules/documents/document.service";
 import type { PortalDocumentRow } from "@/modules/documents/document.types";
 import { requirePortalPage } from "@/modules/portal/portal.page";
 import {
@@ -104,6 +106,7 @@ function DocumentCard({ card }: { card: CardModel }) {
   return card.href ? (
     <a
       href={card.href}
+      download
       className={`${classes} transition-colors duration-(--dur-fast) hover:bg-surface-raised focus-visible:outline-2 focus-visible:outline-focus`}
     >
       {content}
@@ -126,6 +129,8 @@ export default async function PortalDocumentsPage({
   const data = await getPortalDocumentsPage(ctx, { filter, page: requestedPage });
   const cards = [...data.invoices.map(invoiceCard), ...data.documents.map(documentCard)];
   const last = Math.max(1, Math.ceil(data.total / data.pageSize));
+  // Une page au-delà de la dernière n'est pas une liste vide : le client a bien des documents.
+  if (requestedPage > last) redirect(hrefWith("/espace/documents", query, { page: last }));
 
   return (
     <div className="flex flex-col gap-6">
@@ -133,7 +138,7 @@ export default async function PortalDocumentsPage({
         title="Vos documents"
         subtitle="Tout ce que nous avons échangé, au même endroit"
         actions={
-          data.hasAnyFile ? (
+          data.hasAnyFile && getDocumentStorageStatus().configured ? (
             <CompactLink
               variant="secondary"
               icon="download"

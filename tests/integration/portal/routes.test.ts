@@ -24,10 +24,17 @@ const state = vi.hoisted(() => ({
   },
 }));
 
-vi.mock("@/server/auth/session", () => ({
-  getCurrentActor: async () => state.actor,
-  getPortalContext: async () => resolvePortalContext(state.db as Database, state.actor as Actor),
-}));
+vi.mock("@/server/auth/session", async () => {
+  const { redirect } = await import("next/navigation");
+  return {
+    getCurrentActor: async () => state.actor,
+    getPortalContext: async () => {
+      // Comme la vraie session : un membre de l'équipe repart vers l'agence.
+      if ((state.actor as Actor | null)?.role !== "client") redirect("/");
+      return resolvePortalContext(state.db as Database, state.actor as Actor);
+    },
+  };
+});
 vi.mock("@/server/db/client", () => ({ getDb: () => state.db }));
 vi.mock("@/server/config/env", () => ({ getEnv: () => state.env }));
 
@@ -210,6 +217,30 @@ describe("routes du portail", () => {
     expect(text).toContain("DTEND:20990115T093000Z");
     const other = await agenda(new Request(`${ORIGIN}/x`), params(b.appointment.id));
     expect(other.status).toBe(404);
+  });
+
+  it("déposer sur la demande d'un autre client répond 404", async () => {
+    as(a);
+    const response = await upload(
+      post(
+        `/api/documents/upload?filename=intrus.pdf&ticketId=${b.ticket.id}`,
+        Buffer.from("%PDF-1.7\nintrus\n%%EOF\n"),
+      ),
+    );
+    expect(response.status).toBe(404);
+  });
+
+  it("un membre de l'équipe repart vers l'agence : pas de 500 sur ces routes", async () => {
+    state.actor = { userId: "u", role: "admin", name: "Associé", email: "a@test.local" };
+    const digests = await Promise.all(
+      [archive(), agenda(new Request(`${ORIGIN}/x`), params(a.appointment.id))].map((run) =>
+        run.then(
+          () => "",
+          (error: { digest?: string }) => error.digest ?? "",
+        ),
+      ),
+    );
+    for (const digest of digests) expect(digest).toContain("NEXT_REDIRECT");
   });
 
   it("un accès révoqué perd tout, immédiatement, sur chaque route", async () => {

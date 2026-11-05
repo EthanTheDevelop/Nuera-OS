@@ -14,9 +14,13 @@ import { usePortalForm } from "./use-portal-form";
 /** « Je valide », « J'ai des retours » : la décision est écrite, et portée par une version. */
 export function DeliverableReviewActions({
   deliverableId,
+  projectId,
+  version,
   title,
 }: {
   deliverableId: string;
+  projectId: string;
+  version: number;
   title: string;
 }) {
   const router = useRouter();
@@ -51,6 +55,8 @@ export function DeliverableReviewActions({
       >
         <form action={formAction} className="flex flex-col gap-4">
           <input type="hidden" name="deliverableId" value={deliverableId} />
+          <input type="hidden" name="projectId" value={projectId} />
+          <input type="hidden" name="version" value={version} />
           <input type="hidden" name="decision" value={mode ?? ""} />
           <FormAlert state={state.status === "error" ? state : IDLE_ACTION_STATE} />
           {mode === "changes_requested" ? (

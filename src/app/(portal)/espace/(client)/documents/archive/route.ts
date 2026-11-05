@@ -1,3 +1,4 @@
+import { unstable_rethrow } from "next/navigation";
 import { contentDisposition } from "@/modules/documents/document.format";
 import { openPortalArchive } from "@/modules/portal/portal-archive";
 import { getCurrentActor, getPortalContext } from "@/server/auth/session";
@@ -19,6 +20,8 @@ export async function GET(): Promise<Response> {
       },
     });
   } catch (error) {
+    // Un membre de l'équipe repart vers l'agence : cette redirection n'est pas une panne.
+    unstable_rethrow(error);
     if (error instanceof ForbiddenError) {
       return new Response("Introuvable.", { status: 404 });
     }

@@ -8,15 +8,15 @@ import {
   markPortalRead,
   sendPortalMessage,
 } from "@/modules/messaging/message.service";
-import { addPortalTicketMessage, createTicketFromPortal } from "@/modules/support/ticket.service";
+import { addPortalTicketMessage } from "@/modules/support/ticket.service";
 import { formDataToObject, toActionErrorState } from "@/server/actions";
-import { getPortalContext } from "@/server/auth/session";
 import { getEnv } from "@/server/config/env";
 import { parseInput } from "@/server/validation";
-import { SELECTED_PROJECT_COOKIE } from "./portal.page";
+import { requirePortalPage, SELECTED_PROJECT_COOKIE } from "./portal.page";
 import { olderMessagesSchema } from "./portal.schema";
 import {
   assertPortalProject,
+  openPortalTicket,
   requestSiteChange,
   submitDeliverableReview,
   submitRequirementDocument,
@@ -26,7 +26,8 @@ import {
 
 /**
  * Adaptateurs du portail. Le contexte vient toujours de la session et de `portal_memberships` : aucun
- * champ de formulaire ne porte de `companyId`.
+ * champ de formulaire ne porte de `companyId`. `requirePortalPage` : un onglet resté ouvert après une
+ * révocation mène à la page du client, jamais à la connexion de l'équipe.
  */
 function done(message: string): ActionState {
   revalidatePath("/espace", "layout");
@@ -39,12 +40,16 @@ export async function reviewDeliverableAction(
 ): Promise<ActionState> {
   const values = formDataToObject(formData);
   try {
-    const ctx = await getPortalContext();
+    const ctx = await requirePortalPage();
     const decision = values.decision === "validated" ? "validated" : "changes_requested";
     const { overIncludedRounds } = await submitDeliverableReview(ctx, {
       deliverableId: values.deliverableId ?? "",
       decision,
       comment: values.comment,
+      seen:
+        values.projectId && values.version
+          ? { projectId: values.projectId, version: Number(values.version) }
+          : undefined,
     });
     if (decision === "validated") return done("Merci, votre validation est enregistrée.");
     return done(
@@ -62,7 +67,7 @@ export async function submitRequirementDocumentAction(input: {
   documentId: string;
 }): Promise<ActionState> {
   try {
-    await submitRequirementDocument(await getPortalContext(), input);
+    await submitRequirementDocument(await requirePortalPage(), input);
     return done("C'est bien reçu, merci.");
   } catch (error) {
     return toActionErrorState(error, { action: "portal.requirement_document" });
@@ -75,7 +80,7 @@ export async function submitRequirementTextAction(
 ): Promise<ActionState> {
   const values = formDataToObject(formData);
   try {
-    await submitRequirementText(await getPortalContext(), {
+    await submitRequirementText(await requirePortalPage(), {
       requirementId: values.requirementId ?? "",
       text: values.text ?? "",
     });
@@ -91,7 +96,7 @@ export async function sendMessageAction(input: {
   clientRequestId?: string;
 }): Promise<ActionState> {
   try {
-    await sendPortalMessage(await getPortalContext(), input);
+    await sendPortalMessage(await requirePortalPage(), input);
     revalidatePath("/espace/messages");
     return { status: "success", message: "Message envoyé." };
   } catch (error) {
@@ -101,13 +106,15 @@ export async function sendMessageAction(input: {
 
 /** Le compteur de la capsule se relit à la suite. */
 export async function markMessagesReadAction(): Promise<void> {
-  await markPortalRead(await getPortalContext());
+  await markPortalRead(await requirePortalPage());
   revalidatePath("/espace", "layout");
 }
 
 export async function loadOlderMessagesAction(rawBefore: { at: Date; id: string }) {
   const before = parseInput(olderMessagesSchema, rawBefore);
-  const { messages, hasMore } = await listPortalConversation(await getPortalContext(), { before });
+  const { messages, hasMore } = await listPortalConversation(await requirePortalPage(), {
+    before,
+  });
   return { messages, hasMore };
 }
 
@@ -117,7 +124,7 @@ export async function updateProfileAction(
 ): Promise<ActionState> {
   const values = formDataToObject(formData);
   try {
-    await updatePortalProfile(await getPortalContext(), {
+    await updatePortalProfile(await requirePortalPage(), {
       name: values.name ?? "",
       notifyMessage: values.notifyMessage === "on",
       notifyValidation: values.notifyValidation === "on",
@@ -139,7 +146,7 @@ export async function openTicketAction(
 ): Promise<TicketActionResult> {
   const values = formDataToObject(formData);
   try {
-    const ticket = await createTicketFromPortal(await getPortalContext(), {
+    const ticket = await openPortalTicket(await requirePortalPage(), {
       subject: values.subject ?? "",
       description: values.description || undefined,
       category: (values.category || "assistance") as "assistance",
@@ -158,7 +165,7 @@ export async function replyTicketAction(
 ): Promise<ActionState> {
   const values = formDataToObject(formData);
   try {
-    await addPortalTicketMessage(await getPortalContext(), {
+    await addPortalTicketMessage(await requirePortalPage(), {
       ticketId: values.ticketId ?? "",
       body: values.body ?? "",
     });
@@ -174,7 +181,7 @@ export async function requestSiteChangeAction(
 ): Promise<ActionState> {
   const values = formDataToObject(formData);
   try {
-    await requestSiteChange(await getPortalContext(), {
+    await requestSiteChange(await requirePortalPage(), {
       siteId: values.siteId ?? "",
       current: values.current ?? "",
       next: values.next ?? "",
@@ -188,7 +195,7 @@ export async function requestSiteChangeAction(
 /** Changer de projet : préférence d'affichage en cookie, relue et contrôlée à chaque requête. */
 export async function selectProjectAction(projectId: string): Promise<ActionState> {
   try {
-    await assertPortalProject(await getPortalContext(), projectId);
+    await assertPortalProject(await requirePortalPage(), projectId);
     const store = await cookies();
     store.set(SELECTED_PROJECT_COOKIE, projectId, {
       httpOnly: true,

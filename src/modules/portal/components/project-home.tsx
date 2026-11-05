@@ -339,7 +339,15 @@ function DeliverablePreview({ item }: { item: PortalDeliverableView }) {
   );
 }
 
-function DeliverableCard({ item, readOnly }: { item: PortalDeliverableView; readOnly: boolean }) {
+function DeliverableCard({
+  item,
+  projectId,
+  readOnly,
+}: {
+  item: PortalDeliverableView;
+  projectId: string;
+  readOnly: boolean;
+}) {
   const note = roundsNote(item);
   return (
     <PortalCard title={item.title} className="gap-4">
@@ -347,7 +355,14 @@ function DeliverableCard({ item, readOnly }: { item: PortalDeliverableView; read
         Version {item.version} · reçue {formatRelativeDate(item.updatedAt)}
       </p>
       <DeliverablePreview item={item} />
-      {readOnly ? null : <DeliverableReviewActions deliverableId={item.id} title={item.title} />}
+      {readOnly ? null : (
+        <DeliverableReviewActions
+          deliverableId={item.id}
+          projectId={projectId}
+          version={item.version}
+          title={item.title}
+        />
+      )}
       {note ? <p className="text-sm text-muted">{note}</p> : null}
     </PortalCard>
   );
@@ -381,6 +396,16 @@ function ReviewedCard({ items }: { items: readonly PortalDeliverableView[] }) {
 }
 
 function PaymentsCard({ home }: { home: PortalProjectHome }) {
+  if (!home.payments) {
+    return (
+      <PortalCard title="Paiements">
+        <p className="text-sm text-muted">
+          Le client voit ici ce qu&apos;il a réglé. Ces montants sont réservés aux personnes qui ont
+          accès aux finances.
+        </p>
+      </PortalCard>
+    );
+  }
   const { paidCents, totalCents, remainingCents, items } = home.payments;
   if (totalCents === null) {
     return (
@@ -479,7 +504,12 @@ export function ProjectHome({
         <div id="a-valider" className="flex min-w-0 scroll-mt-28 flex-col gap-6">
           {toValidate.length > 0 ? (
             toValidate.map((item) => (
-              <DeliverableCard key={item.id} item={item} readOnly={readOnly} />
+              <DeliverableCard
+                key={item.id}
+                item={item}
+                projectId={home.project.id}
+                readOnly={readOnly}
+              />
             ))
           ) : reviewed.length === 0 ? (
             <PortalCard title="À valider">

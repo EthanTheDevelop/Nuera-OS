@@ -53,13 +53,17 @@ function dayLabel(at: Date, now: Date): string {
   return label.charAt(0).toLocaleUpperCase("fr-FR") + label.slice(1);
 }
 
-function Bubble({ message }: { message: PortalMessage }) {
+/**
+ * Seul un message qui arrive entre en mouvement. Le fil présent au chargement s'affiche posé : en
+ * mouvement réduit, le préréglage du client diffère de celui du serveur et son décalage restait figé.
+ */
+function Bubble({ message, enter }: { message: PortalMessage; enter: boolean }) {
   const preset = useMotionPreset();
   const own = message.own;
   return (
     <motion.li
       layout="position"
-      initial={preset.message.initial}
+      initial={enter ? preset.message.initial : false}
       animate={preset.message.animate}
       className={cn("flex items-start gap-2.5", own ? "justify-end" : "justify-start")}
     >
@@ -121,6 +125,7 @@ export function MessagesPanel({
   const router = useRouter();
   const inputId = useId();
   const [body, setBody] = useState(draft ?? "");
+  const [loadedIds] = useState(() => new Set(messages.map((message) => message.id)));
   const [older, setOlder] = useState<PortalMessage[]>([]);
   const [canLoadOlder, setCanLoadOlder] = useState(hasMore);
   const [sending, setSending] = useState(false);
@@ -136,7 +141,8 @@ export function MessagesPanel({
   const now = useMemo(() => new Date(), []);
 
   useEffect(() => {
-    if (unread > 0) void markMessagesReadAction();
+    // Le compteur se relira au prochain passage : un échec ici ne gêne pas la lecture.
+    if (unread > 0) markMessagesReadAction().catch(() => undefined);
   }, [unread]);
 
   useEffect(() => {
@@ -154,15 +160,22 @@ export function MessagesPanel({
     async (text: string, documentId?: string) => {
       setSending(true);
       setError(null);
-      const result = await sendMessageAction({
-        body: text,
-        documentId,
-        clientRequestId: requestId.current,
-      });
-      setSending(false);
-      if (result.status === "error") {
-        setError(result.message);
+      try {
+        const result = await sendMessageAction({
+          body: text,
+          documentId,
+          clientRequestId: requestId.current,
+        });
+        if (result.status === "error") {
+          setError(result.message);
+          return false;
+        }
+      } catch {
+        // Le texte reste dans la saisie ; le même identifiant évite un doublon au nouvel essai.
+        setError("Le message n'a pas pu partir. Vérifiez votre connexion et réessayez.");
         return false;
+      } finally {
+        setSending(false);
       }
       requestId.current = crypto.randomUUID();
       router.refresh();
@@ -198,8 +211,7 @@ export function MessagesPanel({
         title: file.name,
         ...(projectId ? { projectId } : {}),
       });
-      await send(body.trim(), uploaded.id);
-      setBody("");
+      if (await send(body.trim(), uploaded.id)) setBody("");
     } catch (failure) {
       setError((failure as UploadFailure).message);
     }
@@ -221,9 +233,13 @@ export function MessagesPanel({
   async function loadOlder() {
     const first = thread[0];
     if (!first) return;
-    const result = await loadOlderMessagesAction({ at: first.at, id: first.id });
-    setOlder((current) => [...result.messages, ...current]);
-    setCanLoadOlder(result.hasMore);
+    try {
+      const result = await loadOlderMessagesAction({ at: first.at, id: first.id });
+      setOlder((current) => [...result.messages, ...current]);
+      setCanLoadOlder(result.hasMore);
+    } catch {
+      setError("Les messages précédents n'ont pas pu s'afficher. Réessayez.");
+    }
   }
 
   const rows: { day?: string; message: PortalMessage }[] = [];
@@ -265,7 +281,7 @@ export function MessagesPanel({
                     <Badge tone="neutral">{day}</Badge>
                   </li>
                 ) : null}
-                <Bubble message={message} />
+                <Bubble message={message} enter={!loadedIds.has(message.id)} />
               </Fragment>
             ))}
             <li ref={endOfThread} aria-hidden="true" />
