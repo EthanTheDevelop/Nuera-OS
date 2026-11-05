@@ -1,3 +1,4 @@
+import { unstable_rethrow } from "next/navigation";
 import { exportFinanceCsv } from "@/modules/finance/finance.export";
 import { isInternalRole } from "@/server/auth/roles";
 import { getCurrentActor, getServiceContext } from "@/server/auth/session";
@@ -32,6 +33,8 @@ export async function GET(request: Request) {
       },
     });
   } catch (error) {
+    // `getServiceContext` redirige un compte à enrôler : ce n'est pas une panne de l'export.
+    unstable_rethrow(error);
     if (isAppError(error)) {
       return Response.json(
         { error: error.message },

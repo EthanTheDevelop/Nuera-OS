@@ -1,4 +1,5 @@
 import "server-only";
+import { unstable_rethrow } from "next/navigation";
 import type { NextRequest } from "next/server";
 import { getEnv } from "@/server/config/env";
 import {
@@ -42,6 +43,8 @@ export function queryToObject(params: URLSearchParams): Record<string, string> {
 
 /** Traduit une erreur en réponse JSON : message prévu pour l'utilisateur, jamais de détail interne. */
 export function errorResponse(error: unknown, action: string): Response {
+  // Compte de l'équipe à enrôler en double authentification : la redirection doit passer.
+  unstable_rethrow(error);
   if (isAppError(error)) {
     logger.info("documents.request_rejected", { action, code: error.code });
     const unavailable = error instanceof ServiceUnavailableError;

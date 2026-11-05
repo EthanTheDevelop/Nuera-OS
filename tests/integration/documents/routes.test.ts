@@ -26,7 +26,10 @@ const state = vi.hoisted(() => ({
   },
 }));
 
-vi.mock("@/server/auth/session", () => ({ getCurrentActor: async () => state.actor }));
+vi.mock("@/server/auth/session", () => ({
+  getCurrentActor: async () => state.actor,
+  requireInternalActor: async () => state.actor,
+}));
 vi.mock("@/server/db/client", () => ({ getDb: () => state.db }));
 vi.mock("@/server/config/env", () => ({ getEnv: () => state.env }));
 
