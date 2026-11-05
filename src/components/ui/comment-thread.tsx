@@ -64,15 +64,18 @@ function splitMentions(
 export function CommentBody({
   body,
   mentionNames,
+  sameMetrics = false,
 }: {
   body: string;
   mentionNames: readonly string[];
+  /** Couleur seule : le calque miroir de la zone de texte doit garder ses largeurs de caractères. */
+  sameMetrics?: boolean;
 }) {
   return (
     <>
       {splitMentions(body, mentionNames).map((part, index) =>
         part.mention ? (
-          <span key={index} className="font-medium text-accent">
+          <span key={index} className={cn("text-accent", !sameMetrics && "font-medium")}>
             {part.text}
           </span>
         ) : (
@@ -166,7 +169,8 @@ function activeMention(text: string, caret: number): { start: number; query: str
  *
  * Deux façons d'envoyer :
  * - `action` : Server Action, champs `body` et `mentions` (identifiants séparés par des virgules) ;
- * - `onSubmit` : appel direct. Le champ se vide à la réussite.
+ * - `onSubmit` : appel direct. Le champ se vide à la réussite ; un rejet garde la saisie, à l'appelant
+ *   d'annoncer l'erreur.
  */
 export function CommentComposer({
   author,
@@ -279,6 +283,8 @@ export function CommentComposer({
     try {
       await onSubmit({ body: text.trim(), mentionIds });
       reset();
+    } catch {
+      // L'appelant a annoncé l'échec : le champ garde sa saisie, rien ne reste non capté.
     } finally {
       setPending(false);
     }
@@ -292,8 +298,12 @@ export function CommentComposer({
       action={
         action
           ? async (formData) => {
-              await action(formData);
-              reset();
+              try {
+                await action(formData);
+                reset();
+              } catch {
+                // Même règle qu'avec `onSubmit` : un échec garde la saisie.
+              }
             }
           : undefined
       }
@@ -311,17 +321,18 @@ export function CommentComposer({
           >
             {mention ? (
               <>
-                <CommentBody body={text.slice(0, mention.start)} mentionNames={names} />
-                <span className="font-medium text-accent">
+                <CommentBody body={text.slice(0, mention.start)} mentionNames={names} sameMetrics />
+                <span className="text-accent">
                   {text.slice(mention.start, mention.start + mention.query.length + 1)}
                 </span>
                 <CommentBody
                   body={text.slice(mention.start + mention.query.length + 1)}
                   mentionNames={names}
+                  sameMetrics
                 />
               </>
             ) : (
-              <CommentBody body={text} mentionNames={names} />
+              <CommentBody body={text} mentionNames={names} sameMetrics />
             )}
             {/* Un saut final garde une ligne vide visible, comme la zone de texte. */}
             {"​"}

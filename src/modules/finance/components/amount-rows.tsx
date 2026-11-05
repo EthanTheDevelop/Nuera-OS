@@ -3,7 +3,7 @@ import { InfoRow } from "@/components/ui/info-card";
 
 /**
  * Lignes libellé / montant : le montant garde sa largeur et c'est le libellé qui passe à la ligne.
- * `InfoRows` laisse rétrécir la valeur, qui déborde de sa carte quand le libellé est long.
+ * Contrairement à `InfoRows`, un montant ne passe jamais à la ligne, même très long.
  */
 export function AmountRows({
   rows,

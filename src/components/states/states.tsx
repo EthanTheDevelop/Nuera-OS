@@ -156,6 +156,7 @@ export function ConnectionRequired({
   missing,
   settingsHref = "/reglages/connexions",
   settingsLabel = "Ouvrir les connexions",
+  showSettingsLink = true,
   compact,
   className,
 }: {
@@ -165,6 +166,8 @@ export function ConnectionRequired({
   missing: ReactNode;
   settingsHref?: string;
   settingsLabel?: string;
+  /** `false` pour un rôle sans `integrations:read` : le lien mènerait à une page refusée. */
+  showSettingsLink?: boolean;
   compact?: boolean;
   className?: string;
 }) {
@@ -177,7 +180,7 @@ export function ConnectionRequired({
       title={`Connexion requise : ${service}`}
       className={className}
       action={
-        compact ? (
+        !showSettingsLink ? undefined : compact ? (
           <Link
             href={settingsHref}
             className="hit-44 text-sm font-medium text-accent underline-offset-4 hover:underline"

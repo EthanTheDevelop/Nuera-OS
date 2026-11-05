@@ -466,15 +466,7 @@ export function ConversationThread({
         )}
       </div>
 
-      <Modal
-        open={detailsOpen}
-        onClose={() => {
-          // `cancel` remonte l'arbre React : Échap dans « Planifier » ne doit fermer que cette fenêtre.
-          if (!document.querySelector("dialog[open] dialog[open]")) setDetailsOpen(false);
-        }}
-        title="Détails"
-        width={420}
-      >
+      <Modal open={detailsOpen} onClose={() => setDetailsOpen(false)} title="Détails" width={420}>
         {panel}
       </Modal>
     </motion.div>

@@ -32,6 +32,8 @@ export interface KanbanColumnDef {
   id: string;
   title: string;
   tone?: KanbanTone;
+  /** Total réel de la colonne, si seules les premières cartes sont chargées. */
+  total?: number;
   /** Lien « + Ajouter » en bas de colonne. */
   addHref?: string;
   addLabel?: string;
@@ -368,6 +370,11 @@ export function KanbanBoard({
       >
         {columns.map((column, columnIndex) => {
           const cards = inColumn(board, column.id);
+          // Le total du serveur compte aussi les cartes non chargées ; un déplacement en cours s'y ajoute.
+          const count =
+            column.total === undefined
+              ? cards.length
+              : column.total + cards.length - inColumn(items, column.id).length;
           return (
             <section
               key={column.id}
@@ -388,8 +395,8 @@ export function KanbanBoard({
                   {column.title}
                 </h3>
                 <span className="tabular font-mono text-xs leading-[1.25] font-medium text-muted">
-                  {cards.length}
-                  <span className="sr-only"> carte{cards.length > 1 ? "s" : ""}</span>
+                  {count}
+                  <span className="sr-only"> carte{count > 1 ? "s" : ""}</span>
                 </span>
               </header>
               <ul className="flex min-h-12 flex-col gap-3">

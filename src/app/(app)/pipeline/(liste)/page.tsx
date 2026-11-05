@@ -284,6 +284,7 @@ async function PipelineKanban({
     id: stage,
     title: OPPORTUNITY_STAGE_LABELS[stage],
     tone: STAGE_TONES[stage],
+    total: board.columns.find((column) => column.stage === stage)?.total ?? 0,
     // Une affaire archivée ne change plus d'étape : le service refuserait.
     dropDisabled: !canUpdate || Boolean(params.archivees),
     addHref:

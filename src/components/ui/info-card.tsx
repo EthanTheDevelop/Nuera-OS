@@ -15,8 +15,9 @@ export function InfoRow({
 }) {
   return (
     <div className={cn("flex min-h-5 items-center justify-between gap-3 text-sm", className)}>
-      <dt className="min-w-0 text-text">{label}</dt>
-      <dd className="tabular min-w-0 text-right text-text">{value}</dd>
+      <dt className="min-w-0 flex-1 text-text">{label}</dt>
+      {/* Montant ou badge entier : c'est le libellé qui passe à la ligne. */}
+      <dd className="tabular max-w-[70%] min-w-0 shrink-0 text-right text-text">{value}</dd>
     </div>
   );
 }

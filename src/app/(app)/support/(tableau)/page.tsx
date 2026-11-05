@@ -212,6 +212,7 @@ export default async function SupportPage({
         id: column.status,
         title: TICKET_STATUS_LABELS[column.status],
         tone: COLUMN_TONES[column.status],
+        total: column.total,
         ...(hidden > 0
           ? {
               addHref: hrefWith(PATH, params, { vue: "liste", statut: column.status, page: null }),

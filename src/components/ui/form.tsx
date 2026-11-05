@@ -241,16 +241,11 @@ export function SelectField({
   ...props
 }: FormFieldProps & Omit<SelectHTMLAttributes<HTMLSelectElement>, "name" | "id">) {
   const { controlId, error, value, aria } = fieldBindings({ name, label, hint, state, id });
+  // Un `value` contrôlé par l'appelant exclut `defaultValue` : React refuse les deux à la fois.
+  const initial = props.value === undefined ? { defaultValue: value ?? defaultValue } : {};
   return (
     <Field id={controlId} label={label} hint={hint} error={error} className={fieldClassName}>
-      <Select
-        key={value}
-        id={controlId}
-        name={name}
-        defaultValue={value ?? defaultValue}
-        {...aria}
-        {...props}
-      >
+      <Select key={value} id={controlId} name={name} {...initial} {...aria} {...props}>
         {children}
       </Select>
     </Field>

@@ -126,6 +126,8 @@ function ModalInner({
       aria-describedby={description ? descriptionId : undefined}
       onCancel={(event) => {
         event.preventDefault();
+        // `cancel` remonte l'arbre React : Échap ne ferme que la fenêtre du dessus.
+        event.stopPropagation();
         if (dismissible) onClose();
       }}
       className="fixed inset-0 m-0 flex h-dvh max-h-none w-screen max-w-none items-center justify-center bg-transparent p-2 text-text sm:p-6"

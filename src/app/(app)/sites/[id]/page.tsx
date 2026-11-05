@@ -127,31 +127,6 @@ function firstName(name: string): string {
   return name.split(" ")[0] ?? name;
 }
 
-/**
- * « Connexion requise ». Le lien vers les connexions n'est proposé qu'à qui peut ouvrir cet écran :
- * sans `integrations:read`, le fait reste dit, sans action.
- */
-function ServiceMissing({
-  service,
-  missing,
-  canOpenConnections,
-}: {
-  service: string;
-  missing: string;
-  canOpenConnections: boolean;
-}) {
-  return canOpenConnections ? (
-    <ConnectionRequired compact service={service} missing={missing} />
-  ) : (
-    <EmptyState
-      compact
-      icon="link"
-      title={`Connexion requise : ${service}`}
-      description={missing}
-    />
-  );
-}
-
 function RelationLink({ href, children }: { href: string; children: ReactNode }) {
   return (
     <Link href={href} className="hit-44 text-text hover:text-accent hover:underline">
@@ -487,10 +462,11 @@ export default async function SitePage({
               />
             ) : null}
             {!integrations.uptimeKuma.configured && health.measuredDays === 0 ? (
-              <ServiceMissing
+              <ConnectionRequired
+                compact
                 service="Uptime Kuma"
                 missing="L'URL et la page de statut ne sont pas renseignées : aucune mesure n'est disponible."
-                canOpenConnections={canOpenConnections}
+                showSettingsLink={canOpenConnections}
               />
             ) : !site.monitorId && health.measuredDays === 0 ? (
               <EmptyState
@@ -517,10 +493,11 @@ export default async function SitePage({
           <section aria-label="Déploiements" className="flex flex-col gap-3">
             {!integrations.coolify.configured && deployments.total === 0 ? (
               <div className="rounded-lg bg-surface shadow-soft">
-                <ServiceMissing
+                <ConnectionRequired
+                  compact
                   service="Coolify"
                   missing="L'URL et le jeton d'API ne sont pas renseignés : les déploiements ne peuvent être ni lus ni lancés."
-                  canOpenConnections={canOpenConnections}
+                  showSettingsLink={canOpenConnections}
                 />
               </div>
             ) : (

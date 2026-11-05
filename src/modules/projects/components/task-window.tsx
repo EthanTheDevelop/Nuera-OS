@@ -9,7 +9,6 @@ import { Button } from "@/components/ui/button";
 import { CommentComposer, CommentThread, type ThreadComment } from "@/components/ui/comment-thread";
 import { CompactButton } from "@/components/ui/compact-button";
 import { ConfirmDialog } from "@/components/ui/confirm-dialog";
-import { Alert } from "@/components/ui/feedback";
 import { Input, Select, Textarea } from "@/components/ui/form";
 import { DurationField } from "@/components/ui/form-client";
 import { Icon } from "@/components/ui/icon";
@@ -318,7 +317,6 @@ export function TaskWindow({
   const [tab, setTab] = useState(task.comments.length > 0 ? "comments" : "description");
   const [documentId, setDocumentId] = useState("");
   const [parentId, setParentId] = useState("");
-  const [unsent, setUnsent] = useState<string | null>(null);
   // Même identifiant tant que l'envoi n'a pas réussi : le renvoyer ne crée pas de doublon.
   const requestId = useRef<string | null>(null);
   const { run, announce, pending } = useCommand();
@@ -494,14 +492,12 @@ export function TaskWindow({
                             requestId.current = null;
                             setDocumentId("");
                             setParentId("");
+                          } else {
+                            // L'échec est déjà annoncé : le rejet garde la saisie dans le champ.
+                            throw new Error("Commentaire non envoyé.");
                           }
-                          // Le champ se vide dans tous les cas : le texte reste lisible ici.
-                          setUnsent(done ? null : body);
                         }}
                       />
-                      {unsent ? (
-                        <Alert tone="warn">Commentaire non envoyé : « {unsent} »</Alert>
-                      ) : null}
                       {threads.length > 0 ? (
                         <label className="ml-11 flex items-center gap-2 text-sm text-muted">
                           <Icon name="messages" size={16} />
