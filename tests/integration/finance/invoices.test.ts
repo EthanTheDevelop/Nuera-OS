@@ -10,8 +10,8 @@ import {
   createDirectCost,
   createInvoiceReference,
   createScheduleItem,
-  deleteDirectCost,
-  deleteScheduleItem,
+  archiveDirectCost,
+  archiveScheduleItem,
   getFinanceOverview,
   getFinanceSummary,
   getInvoice,
@@ -400,7 +400,7 @@ describe("échéancier en co-traitance (A12)", () => {
       .from(paymentScheduleItems)
       .where(eq(paymentScheduleItems.id, item.id));
     expect(row).toMatchObject({ status: "planned", financialDocumentId: null });
-    await expect(deleteScheduleItem(admin, item.id)).rejects.toThrow(ConflictError);
+    await expect(archiveScheduleItem(admin, item.id)).rejects.toThrow(ConflictError);
   });
 
   it("une échéance sans facture se retire, avec trace", async () => {
@@ -410,11 +410,11 @@ describe("échéancier en co-traitance (A12)", () => {
       label: "À retirer",
       amountCents: "1000",
     });
-    await deleteScheduleItem(admin, item.id);
+    await archiveScheduleItem(admin, item.id);
     const audit = await db
       .select()
       .from(auditLog)
-      .where(and(eq(auditLog.entityId, item.id), eq(auditLog.action, "schedule_item.deleted")));
+      .where(and(eq(auditLog.entityId, item.id), eq(auditLog.action, "schedule_item.archived")));
     expect(audit).toHaveLength(1);
   });
 });
@@ -433,8 +433,12 @@ describe("coûts", () => {
     const overview = await getRecurringOverview(admin);
     expect(overview.lines.find((line) => line.id === cost.id)?.monthlyCents).toBeNull();
     expect(overview.toQuantifyCount).toBeGreaterThanOrEqual(1);
-    await deleteDirectCost(admin, cost.id);
-    expect(await db.select().from(directCosts).where(eq(directCosts.id, cost.id))).toEqual([]);
+    await archiveDirectCost(admin, cost.id);
+    const [archived] = await db.select().from(directCosts).where(eq(directCosts.id, cost.id));
+    expect(archived?.archivedAt).not.toBeNull();
+    const after = await getRecurringOverview(admin);
+    expect(after.lines.find((line) => line.id === cost.id)).toBeUndefined();
+    await expect(archiveDirectCost(admin, cost.id)).rejects.toThrow(NotFoundError);
   });
 
   it("un abonnement est déficitaire si ses coûts dépassent son prix mensuel", async () => {

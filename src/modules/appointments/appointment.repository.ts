@@ -24,6 +24,7 @@ const FIELDS = {
   memberIds: appointments.memberIds,
   source: appointments.source,
   status: appointments.status,
+  clientVisible: appointments.clientVisible,
   companyId: appointments.companyId,
   companyName: companies.name,
   contactId: appointments.contactId,
@@ -148,7 +149,13 @@ export async function listForPortal(db: Database, companyId: string, limit: numb
       memberIds: appointments.memberIds,
     })
     .from(appointments)
-    .where(and(eq(appointments.companyId, companyId), ne(appointments.status, "cancelled")))
+    .where(
+      and(
+        eq(appointments.companyId, companyId),
+        eq(appointments.clientVisible, true),
+        ne(appointments.status, "cancelled"),
+      ),
+    )
     .orderBy(desc(appointments.startsAt))
     .limit(limit);
 }

@@ -11,6 +11,7 @@ import { Tile } from "@/components/ui/tile";
 import { DELIVERABLE_STATUS_LABELS, type DeliverableStatus } from "@/lib/domain-enums";
 import { formatDateShort } from "@/lib/format";
 import {
+  archiveDeliverableAction,
   createDeliverableAction,
   reviewDeliverableAction,
   startDeliverableVersionAction,
@@ -18,6 +19,7 @@ import {
   updateDeliverableAction,
 } from "../project.actions";
 import type { DeliverableView } from "../project.service";
+import { ArchiveItemButton } from "./archive-item-button";
 import { useCommand, useWindowForm } from "./use-project-command";
 
 interface Option {
@@ -248,6 +250,12 @@ function DeliverableDetail({
             <CompactButton variant="quiet" onClick={() => setEditing(true)}>
               Modifier
             </CompactButton>
+            <ArchiveItemButton
+              subject={deliverable.title}
+              description="Le livrable sort du projet. Refusé s'il a été soumis ou relu par le client. L'opération est tracée dans le journal."
+              action={() => archiveDeliverableAction(deliverable.id)}
+              onDone={onDone}
+            />
           </div>
         </ModalRow>
       ) : null}

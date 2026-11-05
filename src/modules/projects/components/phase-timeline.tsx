@@ -11,8 +11,14 @@ import { Tile } from "@/components/ui/tile";
 import { PHASE_STATUS_LABELS, type PhaseStatus } from "@/lib/domain-enums";
 import { formatDateShort } from "@/lib/format";
 import { canPhaseTransition } from "../phase.status";
-import { changePhaseStatusAction, createPhaseAction, updatePhaseAction } from "../project.actions";
+import {
+  archivePhaseAction,
+  changePhaseStatusAction,
+  createPhaseAction,
+  updatePhaseAction,
+} from "../project.actions";
 import type { ProjectDetail } from "../project.service";
+import { ArchiveItemButton } from "./archive-item-button";
 import { useCommand, useWindowForm } from "./use-project-command";
 
 type ProjectPhase = ProjectDetail["phases"][number];
@@ -90,6 +96,16 @@ function PhaseForm({
           <SubmitButton>{phase ? "Enregistrer" : "Ajouter le jalon"}</SubmitButton>
         </div>
       </form>
+      {phase ? (
+        <div className="mt-3 flex justify-end">
+          <ArchiveItemButton
+            subject={phase.name}
+            description="Le jalon sort du projet et de l'espace client. Refusé s'il a démarré ou si des tâches ou des livrables y sont rattachés. L'opération est tracée dans le journal."
+            action={() => archivePhaseAction(phase.id)}
+            onDone={onDone}
+          />
+        </div>
+      ) : null}
     </ModalRow>
   );
 }

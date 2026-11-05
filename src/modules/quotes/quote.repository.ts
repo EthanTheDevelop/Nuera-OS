@@ -508,7 +508,13 @@ export async function hasPaidScheduleItem(db: Database, quoteId: string): Promis
   const [row] = await db
     .select({ id: paymentScheduleItems.id })
     .from(paymentScheduleItems)
-    .where(and(eq(paymentScheduleItems.quoteId, quoteId), eq(paymentScheduleItems.status, "paid")))
+    .where(
+      and(
+        eq(paymentScheduleItems.quoteId, quoteId),
+        eq(paymentScheduleItems.status, "paid"),
+        isNull(paymentScheduleItems.archivedAt),
+      ),
+    )
     .limit(1);
   return Boolean(row);
 }

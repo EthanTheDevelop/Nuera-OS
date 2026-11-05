@@ -29,6 +29,7 @@ function readInput(formData: FormData) {
       projectId: values.projectId,
       opportunityId: values.opportunityId,
       memberIds: formData.getAll("memberIds").map(String),
+      clientVisible: values.clientVisible,
     } as never,
   };
 }

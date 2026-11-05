@@ -38,6 +38,7 @@ export interface AppointmentFormDefaults {
   projectId?: string | null;
   opportunityId?: string | null;
   memberIds?: readonly string[];
+  clientVisible?: boolean;
 }
 
 interface LinkOptions {
@@ -336,6 +337,13 @@ function AppointmentForm({
           </fieldset>
         </ModalRow>
       ) : null}
+      <ModalRow>
+        <Checkbox
+          name="clientVisible"
+          label="Visible par le client"
+          defaultChecked={defaults.clientVisible ?? false}
+        />
+      </ModalRow>
       <ModalRow className="flex justify-end gap-3">
         <Button onClick={onClose}>Annuler</Button>
         <Button type="submit" variant="accent" loading={submitting}>

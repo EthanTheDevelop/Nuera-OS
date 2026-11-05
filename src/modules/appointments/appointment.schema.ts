@@ -31,6 +31,11 @@ const appointmentFields = {
   projectId: optionalUuid,
   opportunityId: optionalUuid,
   memberIds: z.array(z.uuid()).max(20).default([]),
+  /** Case du formulaire : absente, elle vaut « non ». */
+  clientVisible: z
+    .unknown()
+    .optional()
+    .transform((value) => value === true || value === "on" || value === "true"),
 };
 
 export const createAppointmentSchema = z.object({

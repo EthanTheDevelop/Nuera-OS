@@ -1,4 +1,17 @@
-import { and, asc, count, desc, eq, inArray, isNotNull, ne, or, sql, type SQL } from "drizzle-orm";
+import {
+  and,
+  asc,
+  count,
+  desc,
+  eq,
+  inArray,
+  isNotNull,
+  isNull,
+  ne,
+  or,
+  sql,
+  type SQL,
+} from "drizzle-orm";
 import type {
   CostCategory,
   CostNature,
@@ -350,7 +363,12 @@ export async function findForeignLinks(db: Database, link: LinkCheck): Promise<s
       db
         .select({ companyId: paymentScheduleItems.companyId })
         .from(paymentScheduleItems)
-        .where(eq(paymentScheduleItems.id, link.scheduleItemId)),
+        .where(
+          and(
+            eq(paymentScheduleItems.id, link.scheduleItemId),
+            isNull(paymentScheduleItems.archivedAt),
+          ),
+        ),
     );
   }
   if (link.documentId) {
@@ -408,7 +426,12 @@ export async function listCompanyLinks(db: Database, companyId: string): Promise
           dueOn: paymentScheduleItems.dueOn,
         })
         .from(paymentScheduleItems)
-        .where(eq(paymentScheduleItems.companyId, companyId))
+        .where(
+          and(
+            eq(paymentScheduleItems.companyId, companyId),
+            isNull(paymentScheduleItems.archivedAt),
+          ),
+        )
         .orderBy(sql`${paymentScheduleItems.dueOn} desc nulls last`)
         .limit(100),
       db
@@ -469,7 +492,7 @@ export async function getScheduleItem(db: Database, id: string) {
   const [row] = await db
     .select()
     .from(paymentScheduleItems)
-    .where(eq(paymentScheduleItems.id, id))
+    .where(and(eq(paymentScheduleItems.id, id), isNull(paymentScheduleItems.archivedAt)))
     .limit(1);
   return row ?? null;
 }
@@ -482,7 +505,7 @@ export async function getScheduleItemForUpdate(db: Database, id: string) {
   const [row] = await db
     .select()
     .from(paymentScheduleItems)
-    .where(eq(paymentScheduleItems.id, id))
+    .where(and(eq(paymentScheduleItems.id, id), isNull(paymentScheduleItems.archivedAt)))
     .limit(1)
     .for("update");
   return row ?? null;
@@ -507,8 +530,11 @@ export async function updateScheduleItem(
   return row ?? null;
 }
 
-export async function deleteScheduleItem(db: Database, id: string): Promise<void> {
-  await db.delete(paymentScheduleItems).where(eq(paymentScheduleItems.id, id));
+export async function archiveScheduleItem(db: Database, id: string): Promise<void> {
+  await db
+    .update(paymentScheduleItems)
+    .set({ archivedAt: new Date() })
+    .where(eq(paymentScheduleItems.id, id));
 }
 
 export async function countScheduleDocuments(db: Database, id: string): Promise<number> {
@@ -569,6 +595,7 @@ export async function listScheduleItems(
 ): Promise<Paginated<ScheduleRow>> {
   const search = filter.search?.trim();
   const where = and(
+    isNull(paymentScheduleItems.archivedAt),
     filter.status ? eq(paymentScheduleItems.status, filter.status) : undefined,
     search
       ? or(
@@ -598,14 +625,16 @@ export async function listScheduleItems(
 }
 
 export async function getScheduleRow(db: Database, id: string): Promise<ScheduleRow | null> {
-  const [row] = await scheduleQuery(db).where(eq(paymentScheduleItems.id, id)).limit(1);
+  const [row] = await scheduleQuery(db)
+    .where(and(eq(paymentScheduleItems.id, id), isNull(paymentScheduleItems.archivedAt)))
+    .limit(1);
   return row ?? null;
 }
 
 /** Prochaines échéances à encaisser : toutes celles qui ne sont pas encore payées. */
 export async function listUpcomingSchedule(db: Database, limit: number): Promise<ScheduleRow[]> {
   return scheduleQuery(db)
-    .where(ne(paymentScheduleItems.status, "paid"))
+    .where(and(ne(paymentScheduleItems.status, "paid"), isNull(paymentScheduleItems.archivedAt)))
     .orderBy(sql`${paymentScheduleItems.dueOn} asc nulls last`, asc(paymentScheduleItems.label))
     .limit(limit);
 }
@@ -613,7 +642,11 @@ export async function listUpcomingSchedule(db: Database, limit: number): Promise
 // --- Coûts directs -----------------------------------------------------------------------------
 
 export async function getDirectCost(db: Database, id: string) {
-  const [row] = await db.select().from(directCosts).where(eq(directCosts.id, id)).limit(1);
+  const [row] = await db
+    .select()
+    .from(directCosts)
+    .where(and(eq(directCosts.id, id), isNull(directCosts.archivedAt)))
+    .limit(1);
   return row ?? null;
 }
 
@@ -632,8 +665,8 @@ export async function updateDirectCost(
   return row ?? null;
 }
 
-export async function deleteDirectCost(db: Database, id: string): Promise<void> {
-  await db.delete(directCosts).where(eq(directCosts.id, id));
+export async function archiveDirectCost(db: Database, id: string): Promise<void> {
+  await db.update(directCosts).set({ archivedAt: new Date() }).where(eq(directCosts.id, id));
 }
 
 export interface DirectCostRow {
@@ -699,6 +732,7 @@ export async function listDirectCosts(
 ): Promise<Paginated<DirectCostRow>> {
   const search = filter.search?.trim();
   const where = and(
+    isNull(directCosts.archivedAt),
     filter.nature ? eq(directCosts.nature, filter.nature) : undefined,
     filter.category ? eq(directCosts.category, filter.category) : undefined,
     filter.recurring === "yes" ? isNotNull(directCosts.recurringPeriod) : undefined,
@@ -731,14 +765,22 @@ export async function listDirectCosts(
 }
 
 export async function getDirectCostRow(db: Database, id: string): Promise<DirectCostRow | null> {
-  const [row] = await costQuery(db).where(eq(directCosts.id, id)).limit(1);
+  const [row] = await costQuery(db)
+    .where(and(eq(directCosts.id, id), isNull(directCosts.archivedAt)))
+    .limit(1);
   return row ?? null;
 }
 
 /** Coûts récurrents réalisés, les plus lourds d'abord. */
 export async function listRecurringCostRows(db: Database): Promise<DirectCostRow[]> {
   return costQuery(db)
-    .where(and(isNotNull(directCosts.recurringPeriod), eq(directCosts.nature, "actual")))
+    .where(
+      and(
+        isNotNull(directCosts.recurringPeriod),
+        eq(directCosts.nature, "actual"),
+        isNull(directCosts.archivedAt),
+      ),
+    )
     .orderBy(desc(directCosts.amountCents), asc(directCosts.label))
     .limit(500);
 }
@@ -778,6 +820,7 @@ export async function listRunningContractsWithCosts(db: Database) {
           isNotNull(directCosts.contractId),
           isNotNull(directCosts.recurringPeriod),
           eq(directCosts.nature, "actual"),
+          isNull(directCosts.archivedAt),
         ),
       ),
   ]);
@@ -893,7 +936,7 @@ export async function sumPlannedSchedule(db: Database) {
       items: sql<number>`count(*) filter (where ${remaining} > 0)::int`,
     })
     .from(paymentScheduleItems)
-    .where(ne(paymentScheduleItems.status, "paid"));
+    .where(and(ne(paymentScheduleItems.status, "paid"), isNull(paymentScheduleItems.archivedAt)));
   return { cents: Number(row?.cents ?? 0), items: Number(row?.items ?? 0) };
 }
 

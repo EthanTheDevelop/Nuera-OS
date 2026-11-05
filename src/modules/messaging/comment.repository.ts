@@ -53,7 +53,7 @@ export async function findCommentTarget(
         .select({ companyId: projects.companyId, projectId: deliverables.projectId })
         .from(deliverables)
         .innerJoin(projects, eq(deliverables.projectId, projects.id))
-        .where(eq(deliverables.id, entityId))
+        .where(and(eq(deliverables.id, entityId), isNull(deliverables.archivedAt)))
         .limit(1);
       return row ? { ...row, assigneeMemberId: null } : null;
     }

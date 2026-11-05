@@ -162,7 +162,11 @@ export async function listSites(
         // Le nom seul ne suffit pas : après un retrait, un autre client peut enregistrer ce nom.
         .leftJoin(
           domains,
-          and(eq(domains.name, sites.primaryDomain), eq(domains.companyId, sites.companyId)),
+          and(
+            eq(domains.name, sites.primaryDomain),
+            eq(domains.companyId, sites.companyId),
+            isNull(domains.archivedAt),
+          ),
         )
         .where(conditions)
         .orderBy(sql`${SORT_COLUMNS[sort.key]} ${direction} nulls last`, asc(sites.id))
@@ -645,7 +649,11 @@ export interface DomainRow extends Domain {
 }
 
 export async function listSiteDomains(db: Database, siteId: string): Promise<Domain[]> {
-  return db.select().from(domains).where(eq(domains.siteId, siteId)).orderBy(asc(domains.name));
+  return db
+    .select()
+    .from(domains)
+    .where(and(eq(domains.siteId, siteId), isNull(domains.archivedAt)))
+    .orderBy(asc(domains.name));
 }
 
 export async function listDomains(
@@ -659,6 +667,7 @@ export async function listDomains(
   const onlyActive =
     where.expiringBefore || where.tlsProblems ? isNull(sites.archivedAt) : undefined;
   const conditions = and(
+    isNull(domains.archivedAt),
     pattern
       ? or(
           ilike(domains.name, pattern),
@@ -711,12 +720,20 @@ export async function listDomains(
 }
 
 export async function findDomainById(db: Database, id: string): Promise<Domain | null> {
-  const [row] = await db.select().from(domains).where(eq(domains.id, id)).limit(1);
+  const [row] = await db
+    .select()
+    .from(domains)
+    .where(and(eq(domains.id, id), isNull(domains.archivedAt)))
+    .limit(1);
   return row ?? null;
 }
 
 export async function findDomainByName(db: Database, name: string): Promise<Domain | null> {
-  const [row] = await db.select().from(domains).where(eq(domains.name, name)).limit(1);
+  const [row] = await db
+    .select()
+    .from(domains)
+    .where(and(eq(domains.name, name), isNull(domains.archivedAt)))
+    .limit(1);
   return row ?? null;
 }
 
@@ -739,8 +756,8 @@ export async function updateDomain(
   return row;
 }
 
-export async function deleteDomain(db: Database, id: string): Promise<void> {
-  await db.delete(domains).where(eq(domains.id, id));
+export async function archiveDomain(db: Database, id: string): Promise<void> {
+  await db.update(domains).set({ archivedAt: new Date() }).where(eq(domains.id, id));
 }
 
 /** Hors sites archivés : un site sorti du registre n'alerte plus. */
@@ -752,6 +769,7 @@ export async function listExpiringDomains(db: Database, untilDay: string): Promi
     .where(
       and(
         or(lte(domains.expiresOn, untilDay), lte(domains.tlsExpiresOn, untilDay)),
+        isNull(domains.archivedAt),
         isNull(sites.archivedAt),
       ),
     )
@@ -770,7 +788,11 @@ export async function listDomainsToCheck(
     .from(domains)
     .leftJoin(sites, eq(sites.id, domains.siteId))
     .where(
-      and(or(isNull(domains.checkedAt), lt(domains.checkedAt, before)), isNull(sites.archivedAt)),
+      and(
+        or(isNull(domains.checkedAt), lt(domains.checkedAt, before)),
+        isNull(domains.archivedAt),
+        isNull(sites.archivedAt),
+      ),
     )
     .orderBy(sql`${domains.checkedAt} asc nulls first`)
     .limit(limit);

@@ -12,6 +12,10 @@ import { convertChangeRequestToQuote } from "./change-request.conversion";
 import {
   acceptChangeRequest,
   addHandoverItem,
+  archiveDeliverable,
+  archiveHandoverItem,
+  archivePhase,
+  archiveRequirement,
   changePhaseStatus,
   createChangeRequest,
   createDeliverable,
@@ -466,5 +470,33 @@ export async function toggleHandoverItemAction(
   return command("handover.toggle", async (ctx) => {
     await toggleHandoverItem(ctx, { itemId, done });
     return done ? "Point de passation validé." : "Point de passation rouvert.";
+  });
+}
+
+export async function archivePhaseAction(phaseId: string): Promise<ActionState> {
+  return command("phases.archive", async (ctx) => {
+    await archivePhase(ctx, { phaseId });
+    return "Jalon archivé.";
+  });
+}
+
+export async function archiveDeliverableAction(deliverableId: string): Promise<ActionState> {
+  return command("deliverables.archive", async (ctx) => {
+    await archiveDeliverable(ctx, { deliverableId });
+    return "Livrable archivé.";
+  });
+}
+
+export async function archiveRequirementAction(requirementId: string): Promise<ActionState> {
+  return command("requirements.archive", async (ctx) => {
+    await archiveRequirement(ctx, { requirementId });
+    return "Contenu attendu archivé.";
+  });
+}
+
+export async function archiveHandoverItemAction(itemId: string): Promise<ActionState> {
+  return command("handover.archive", async (ctx) => {
+    await archiveHandoverItem(ctx, { itemId });
+    return "Point de passation archivé.";
   });
 }

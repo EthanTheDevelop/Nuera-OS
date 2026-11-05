@@ -112,9 +112,9 @@ export async function updateScheduleItemAction(
   }
 }
 
-export async function deleteScheduleItemAction(id: string): Promise<ActionState> {
+export async function archiveScheduleItemAction(id: string): Promise<ActionState> {
   try {
-    await finance.deleteScheduleItem(await getServiceContext(), id);
+    await finance.archiveScheduleItem(await getServiceContext(), id);
     return success("Échéance retirée.");
   } catch (error) {
     return toActionErrorState(error, { action: "finance.schedule.delete" });
@@ -148,9 +148,9 @@ export async function updateDirectCostAction(
   }
 }
 
-export async function deleteDirectCostAction(id: string): Promise<ActionState> {
+export async function archiveDirectCostAction(id: string): Promise<ActionState> {
   try {
-    await finance.deleteDirectCost(await getServiceContext(), id);
+    await finance.archiveDirectCost(await getServiceContext(), id);
     return success("Coût retiré.");
   } catch (error) {
     return toActionErrorState(error, { action: "finance.cost.delete" });

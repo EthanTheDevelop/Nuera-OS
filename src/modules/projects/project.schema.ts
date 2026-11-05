@@ -313,6 +313,11 @@ export const addHandoverItemSchema = z.object({
   label: title("Le point de passation"),
 });
 
+export const archivePhaseSchema = z.object({ phaseId: uuid });
+export const archiveDeliverableSchema = z.object({ deliverableId: uuid });
+export const archiveRequirementSchema = z.object({ requirementId: uuid });
+export const archiveHandoverItemSchema = z.object({ itemId: uuid });
+
 export const toggleHandoverItemSchema = z.object({
   itemId: uuid,
   done: z.boolean(),

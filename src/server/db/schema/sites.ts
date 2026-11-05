@@ -155,18 +155,23 @@ export const domains = pgTable(
       .notNull()
       .references((): AnyPgColumn => companies.id, { onDelete: "restrict" }),
     siteId: uuid("site_id"),
-    name: text("name").notNull().unique(),
+    name: text("name").notNull(),
     registrar: text("registrar"),
     expiresOn: date("expires_on"),
     autoRenew: boolean("auto_renew").notNull().default(false),
     tlsStatus: text("tls_status", { enum: TLS_STATUSES }).notNull().default("unknown"),
     tlsExpiresOn: date("tls_expires_on"),
     checkedAt: instant("checked_at"),
+    archivedAt: instant("archived_at"),
     ...timestamps(),
   },
   (t) => [
     companyFk("domains_site_company_fk", [t.siteId, t.companyId], [sites.id, sites.companyId]),
     enumCheck("domains_tls_status_check", t.tlsStatus, TLS_STATUSES),
+    // Un domaine archivé ne bloque pas son rajout.
+    uniqueIndex("domains_name_unique")
+      .on(t.name)
+      .where(sql`${t.archivedAt} is null`),
     index("domains_company_id_idx").on(t.companyId),
     index("domains_site_id_idx").on(t.siteId),
     index("domains_expires_on_idx").on(t.expiresOn),

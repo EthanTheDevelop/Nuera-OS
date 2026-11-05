@@ -15,7 +15,7 @@ import {
 import {
   checkDomainTls,
   createDomain,
-  deleteDomain,
+  archiveDomain,
   listDomains,
   listExpiringDomains,
   runDomainTlsChecks,
@@ -293,18 +293,44 @@ describe("domaines", () => {
     });
     expect(updated).toMatchObject({ registrar: "Gandi", expiresOn: null, autoRenew: false });
 
-    await deleteDomain(member, { id: domain.id });
-    await expect(deleteDomain(member, { id: domain.id })).rejects.toBeInstanceOf(NotFoundError);
+    await archiveDomain(member, { id: domain.id });
+    await expect(archiveDomain(member, { id: domain.id })).rejects.toBeInstanceOf(NotFoundError);
 
     const audits = await db
       .select({ action: schema.auditLog.action })
       .from(schema.auditLog)
       .where(eq(schema.auditLog.entityId, domain.id));
     expect(audits.map((row) => row.action).sort()).toEqual([
+      "domain.archived",
       "domain.created",
-      "domain.deleted",
       "domain.updated",
     ]);
+  });
+
+  it("un domaine archivé quitte le registre, et son nom peut être repris", async () => {
+    const company = await createCompany(db);
+    const name = nextName();
+    const first = await createDomain(member, {
+      companyId: company.id,
+      name,
+      expiresOn: "2026-01-01",
+    });
+    await archiveDomain(member, { id: first.id });
+
+    const [row] = await db.select().from(schema.domains).where(eq(schema.domains.id, first.id));
+    expect(row?.archivedAt).not.toBeNull();
+    const registry = await listDomains(member, { search: name }, { page: 1, pageSize: 20 });
+    expect(registry.items).toHaveLength(0);
+    await expect(updateDomain(member, { id: first.id, registrar: "X" })).rejects.toBeInstanceOf(
+      NotFoundError,
+    );
+
+    const again = await createDomain(member, { companyId: company.id, name });
+    expect(again.id).not.toBe(first.id);
+    // Unicité partielle : deux domaines actifs du même nom restent impossibles.
+    await expect(createDomain(member, { companyId: company.id, name })).rejects.toBeInstanceOf(
+      ConflictError,
+    );
   });
 
   it("un domaine déjà enregistré est refusé", async () => {

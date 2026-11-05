@@ -7,7 +7,7 @@ import { getServiceContext } from "@/server/auth/session";
 import { formDataToObject, toActionErrorState } from "@/server/actions";
 import { recordManualBackup } from "./backup.service";
 import { refreshSiteDeployments, triggerDeployment } from "./deployment.service";
-import { checkDomainTls, createDomain, deleteDomain, updateDomain } from "./domain.service";
+import { archiveDomain, checkDomainTls, createDomain, updateDomain } from "./domain.service";
 import {
   changeSiteStatus,
   createSite,
@@ -134,10 +134,10 @@ export async function updateDomainAction(_: ActionState, formData: FormData): Pr
   }
 }
 
-export async function deleteDomainAction(id: string, siteId: string | null): Promise<ActionState> {
+export async function archiveDomainAction(id: string, siteId: string | null): Promise<ActionState> {
   try {
     const ctx = await getServiceContext();
-    await deleteDomain(ctx, { id });
+    await archiveDomain(ctx, { id });
     refresh(siteId);
     return { status: "success", message: "Domaine retiré." };
   } catch (error) {

@@ -1,4 +1,4 @@
-import { and, asc, eq, gte, sql } from "drizzle-orm";
+import { and, asc, eq, gte, isNull, sql } from "drizzle-orm";
 import { appointments, clientRequirements, projects } from "@/server/db/schema";
 import type { Database } from "@/server/db/types";
 
@@ -34,7 +34,9 @@ export async function getSuggestionProjectContext(
     db
       .select({ label: clientRequirements.label, status: clientRequirements.status })
       .from(clientRequirements)
-      .where(eq(clientRequirements.projectId, projectId))
+      .where(
+        and(eq(clientRequirements.projectId, projectId), isNull(clientRequirements.archivedAt)),
+      )
       .orderBy(sql`${clientRequirements.dueOn} asc nulls last`, asc(clientRequirements.label)),
     db
       .select({ title: appointments.title, at: appointments.startsAt })

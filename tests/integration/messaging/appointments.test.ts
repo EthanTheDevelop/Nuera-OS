@@ -335,17 +335,25 @@ describe("rendez-vous", () => {
   });
 
   describe("portail", () => {
-    it("ne donne que les rendez-vous de son client, sans les annulés", async () => {
+    it("ne donne que les rendez-vous visibles de son client, sans les annulés", async () => {
       const company = await createCompany(db);
       const portal = await createPortalTestContext(db, { company });
       const other = await createCompany(db);
       const mine = await createAppointment(
         admin,
-        base({ companyId: company.id, memberIds: [admin.member.id] }),
+        base({ companyId: company.id, memberIds: [admin.member.id], clientVisible: "on" }),
       );
-      const cancelled = await createAppointment(admin, base({ companyId: company.id }));
+      const cancelled = await createAppointment(
+        admin,
+        base({ companyId: company.id, clientVisible: "on" }),
+      );
+      // La case est décochée par défaut : un rendez-vous interne reste invisible.
+      await createAppointment(admin, base({ companyId: company.id, title: "Interne" }));
       await changeAppointmentStatus(admin, cancelled.id, "cancelled");
-      await createAppointment(admin, base({ companyId: other.id, title: "Autre client" }));
+      await createAppointment(
+        admin,
+        base({ companyId: other.id, title: "Autre client", clientVisible: "on" }),
+      );
 
       const rows = await listAppointmentsForPortal(portal);
       expect(rows.map((row) => row.id)).toEqual([mine.id]);
@@ -452,6 +460,7 @@ describe("rendez-vous", () => {
       expect(row).toMatchObject({
         source: "cal",
         title: "Découverte",
+        clientVisible: false,
         durationMinutes: 45,
         channel: "Visio",
         location: null,

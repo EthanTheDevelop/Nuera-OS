@@ -12,7 +12,7 @@ import { IDLE_ACTION_STATE, submittedValue, type ActionState } from "@/lib/actio
 import {
   checkDomainTlsAction,
   createDomainAction,
-  deleteDomainAction,
+  archiveDomainAction,
   loadCompanyLinksAction,
   updateDomainAction,
 } from "../site.actions";
@@ -241,7 +241,7 @@ export function DeleteDomainButton({
         tone="danger"
         onCancel={() => setOpen(false)}
         onConfirm={async () => {
-          const result = await deleteDomainAction(domainId, siteId);
+          const result = await archiveDomainAction(domainId, siteId);
           if (result.status === "idle") return;
           toast({
             message: result.message,

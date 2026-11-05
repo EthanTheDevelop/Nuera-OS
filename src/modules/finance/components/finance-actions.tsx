@@ -14,8 +14,8 @@ import { useActionToast, useToast } from "@/components/ui/toast";
 import { IDLE_ACTION_STATE, type ActionState } from "@/lib/action-state";
 import {
   changeInvoiceStatusAction,
-  deleteDirectCostAction,
-  deleteScheduleItemAction,
+  archiveDirectCostAction,
+  archiveScheduleItemAction,
   setInvoiceVisibilityAction,
 } from "../finance.actions";
 import { EXPORT_MENU, exportHref } from "../finance.constants";
@@ -288,7 +288,7 @@ export function ScheduleActions({
         cancelLabel="Garder"
         tone="danger"
         onConfirm={async () => {
-          const state = await deleteScheduleItemAction(item.id);
+          const state = await archiveScheduleItemAction(item.id);
           if (state.status === "success") {
             toast({ message: state.message });
             router.push("/finances/echeancier");
@@ -358,7 +358,7 @@ export function CostRowActions({
         cancelLabel="Garder"
         tone="danger"
         onConfirm={async () => {
-          const state = await deleteDirectCostAction(cost.id);
+          const state = await archiveDirectCostAction(cost.id);
           if (state.status === "success") toast({ message: state.message });
           if (state.status === "error") toast({ message: state.message, tone: "danger" });
           close();

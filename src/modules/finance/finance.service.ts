@@ -605,8 +605,8 @@ export async function updateScheduleItem(ctx: ServiceContext, id: string, rawInp
   });
 }
 
-/** Une échéance qui a porté une facture reste dans l'historique : seule une prévision se retire. */
-export async function deleteScheduleItem(ctx: ServiceContext, id: string): Promise<void> {
+/** Une échéance qui a porté une facture reste dans l'historique : seule une prévision s'archive. */
+export async function archiveScheduleItem(ctx: ServiceContext, id: string): Promise<void> {
   assertCan(ctx.actor, "finance:manage");
   assertIdFormat(id, "Échéance introuvable.");
   await ctx.db.transaction(async (tx) => {
@@ -615,10 +615,10 @@ export async function deleteScheduleItem(ctx: ServiceContext, id: string): Promi
     if ((await repository.countScheduleDocuments(tx, id)) > 0) {
       throw new ConflictError("Cette échéance porte des factures : elle ne peut pas être retirée.");
     }
-    await repository.deleteScheduleItem(tx, id);
+    await repository.archiveScheduleItem(tx, id);
     await recordAudit(tx, {
       actorId: ctx.actor.userId,
-      action: "schedule_item.deleted",
+      action: "schedule_item.archived",
       entityType: "schedule_item",
       entityId: id,
       metadata: { label: current.label, amountCents: current.amountCents },
@@ -700,17 +700,17 @@ export async function updateDirectCost(ctx: ServiceContext, id: string, rawInput
   });
 }
 
-export async function deleteDirectCost(ctx: ServiceContext, id: string): Promise<void> {
+export async function archiveDirectCost(ctx: ServiceContext, id: string): Promise<void> {
   assertCan(ctx.actor, "finance:manage");
   assertIdFormat(id, "Coût introuvable.");
   await ctx.db.transaction(async (tx) => {
     const current = await repository.getDirectCost(tx, id);
     if (!current) throw new NotFoundError("Coût introuvable.");
-    await repository.deleteDirectCost(tx, id);
-    // Le journal garde la trace complète de ce qui a été retiré.
+    await repository.archiveDirectCost(tx, id);
+    // Archivé, jamais effacé : le coût sort de la marge et des listes, le journal dit pourquoi.
     await recordAudit(tx, {
       actorId: ctx.actor.userId,
-      action: "direct_cost.deleted",
+      action: "direct_cost.archived",
       entityType: "direct_cost",
       entityId: id,
       metadata: {

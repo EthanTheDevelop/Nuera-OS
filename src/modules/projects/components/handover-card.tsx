@@ -7,8 +7,13 @@ import { Icon } from "@/components/ui/icon";
 import { Tile } from "@/components/ui/tile";
 import { IDLE_ACTION_STATE } from "@/lib/action-state";
 import { cn } from "@/lib/cn";
-import { addHandoverItemAction, toggleHandoverItemAction } from "../project.actions";
+import {
+  addHandoverItemAction,
+  archiveHandoverItemAction,
+  toggleHandoverItemAction,
+} from "../project.actions";
 import type { ProjectDetail } from "../project.service";
+import { ArchiveItemButton } from "./archive-item-button";
 import { useCommand } from "./use-project-command";
 
 /** Recette et passation (Figma 100:5067) : coche verte quand c'est fait, horloge sinon. */
@@ -68,7 +73,7 @@ export function HandoverCard({
               </span>
             );
             return (
-              <li key={item.id} className="min-h-8 text-sm text-text">
+              <li key={item.id} className="flex min-h-8 items-center gap-2 text-sm text-text">
                 {editable ? (
                   <button
                     type="button"
@@ -76,7 +81,7 @@ export function HandoverCard({
                     aria-checked={checked}
                     disabled={pending}
                     onClick={() => run(() => toggleHandoverItemAction(item.id, !checked))}
-                    className="flex min-h-8 w-full items-center gap-3 rounded-sm py-1 text-left hover:bg-surface-raised/60 focus-visible:outline-2 focus-visible:outline-focus"
+                    className="flex min-h-8 min-w-0 flex-1 items-center gap-3 rounded-sm py-1 text-left hover:bg-surface-raised/60 focus-visible:outline-2 focus-visible:outline-focus"
                   >
                     {mark}
                     {item.label}
@@ -88,6 +93,13 @@ export function HandoverCard({
                     <span className="sr-only">{checked ? " : fait" : " : à faire"}</span>
                   </span>
                 )}
+                {editable ? (
+                  <ArchiveItemButton
+                    subject={item.label}
+                    description="Le point sort de la liste de passation. Refusé s'il est déjà validé. L'opération est tracée dans le journal."
+                    action={() => archiveHandoverItemAction(item.id)}
+                  />
+                ) : null}
               </li>
             );
           })}

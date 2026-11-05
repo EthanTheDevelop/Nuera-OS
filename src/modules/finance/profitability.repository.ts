@@ -1,4 +1,4 @@
-import { and, asc, count, desc, eq, inArray, ne, or, sql, type SQL } from "drizzle-orm";
+import { and, asc, count, desc, eq, inArray, isNull, ne, or, sql, type SQL } from "drizzle-orm";
 import {
   companies,
   contracts,
@@ -254,7 +254,7 @@ export async function loadCostRows(
       nature: directCosts.nature,
     })
     .from(directCosts)
-    .where(or(...conditions));
+    .where(and(or(...conditions), isNull(directCosts.archivedAt)));
 }
 
 export type CostRow = Awaited<ReturnType<typeof loadCostRows>>[number];
@@ -318,6 +318,7 @@ export async function loadScheduleInPeriod(
     .where(
       and(
         inArray(paymentScheduleItems.projectId, [...projectIds]),
+        isNull(paymentScheduleItems.archivedAt),
         sql`${paymentScheduleItems.dueOn} between ${period.from}::date and ${period.to}::date`,
       ),
     );

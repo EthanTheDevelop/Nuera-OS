@@ -201,7 +201,7 @@ export async function phasesByProject(
   const rows = await db
     .select()
     .from(projectPhases)
-    .where(inArray(projectPhases.projectId, [...projectIds]))
+    .where(and(inArray(projectPhases.projectId, [...projectIds]), isNull(projectPhases.archivedAt)))
     .orderBy(asc(projectPhases.position), asc(projectPhases.createdAt));
   for (const row of rows) {
     const list = result.get(row.projectId);
@@ -237,6 +237,7 @@ export async function expectedRequirementsByProject(
     .where(
       and(
         inArray(clientRequirements.projectId, [...projectIds]),
+        isNull(clientRequirements.archivedAt),
         eq(clientRequirements.status, "expected"),
       ),
     )
@@ -605,7 +606,11 @@ export async function countOpenHandover(db: Database, projectId: string): Promis
     .select({ count: sql<number>`count(*)::int` })
     .from(handoverChecklistItems)
     .where(
-      and(eq(handoverChecklistItems.projectId, projectId), isNull(handoverChecklistItems.doneAt)),
+      and(
+        eq(handoverChecklistItems.projectId, projectId),
+        isNull(handoverChecklistItems.doneAt),
+        isNull(handoverChecklistItems.archivedAt),
+      ),
     );
   return row?.count ?? 0;
 }

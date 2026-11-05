@@ -448,7 +448,7 @@ export async function listDomainsOfSites(
   return db
     .select({ name: domains.name, expiresOn: domains.expiresOn, autoRenew: domains.autoRenew })
     .from(domains)
-    .where(inArray(domains.siteId, [...siteIds]))
+    .where(and(inArray(domains.siteId, [...siteIds]), isNull(domains.archivedAt)))
     .orderBy(sql`${domains.expiresOn} asc nulls last`, asc(domains.name))
     .limit(100);
 }
@@ -884,6 +884,7 @@ export async function listRecurringCosts(
           siteIds.length > 0 ? inArray(directCosts.siteId, [...siteIds]) : undefined,
         ),
         isNotNull(directCosts.recurringPeriod),
+        isNull(directCosts.archivedAt),
       ),
     )
     .orderBy(asc(directCosts.label))
@@ -898,6 +899,7 @@ export async function countPlannedScheduleItems(db: Database, contractId: string
       and(
         eq(paymentScheduleItems.contractId, contractId),
         eq(paymentScheduleItems.status, "planned"),
+        isNull(paymentScheduleItems.archivedAt),
       ),
     );
   return row?.total ?? 0;

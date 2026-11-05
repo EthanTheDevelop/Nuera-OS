@@ -125,6 +125,7 @@ export const paymentScheduleItems = pgTable(
      * `financial_documents.schedule_item_id`.
      */
     financialDocumentId: uuid("financial_document_id"),
+    archivedAt: instant("archived_at"),
     ...timestamps(),
   },
   (t): PgTableExtraConfigValue[] => [
@@ -179,6 +180,7 @@ export const directCosts = pgTable(
     incurredOn: date("incurred_on").notNull(),
     recurringPeriod: text("recurring_period", { enum: BILLING_PERIODS }),
     nature: text("nature", { enum: COST_NATURES }).notNull().default("actual"),
+    archivedAt: instant("archived_at"),
     ...timestamps(),
   },
   (t) => [

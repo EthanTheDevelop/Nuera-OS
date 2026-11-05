@@ -27,7 +27,7 @@ export type { DomainRow } from "./site.repository";
 
 /**
  * Domaines : registre manuel (aucune API de registrar disponible) et contrôle réel du certificat.
- * Un domaine n'a pas d'`archived_at` : le retirer est tracé dans le journal.
+ * Retirer un domaine l'archive : il sort de toutes les lectures, et son nom redevient disponible.
  */
 
 export async function listDomains(
@@ -120,7 +120,7 @@ export async function updateDomain(ctx: ServiceContext, input: unknown): Promise
   });
 }
 
-export async function deleteDomain(ctx: ServiceContext, input: unknown): Promise<void> {
+export async function archiveDomain(ctx: ServiceContext, input: unknown): Promise<void> {
   assertCan(ctx.actor, "sites:archive");
   const { id } = parseInput(domainIdSchema, input);
 
@@ -128,10 +128,10 @@ export async function deleteDomain(ctx: ServiceContext, input: unknown): Promise
   if (!domain) throw new NotFoundError("Domaine introuvable.");
 
   await ctx.db.transaction(async (tx) => {
-    await repository.deleteDomain(tx, id);
+    await repository.archiveDomain(tx, id);
     await recordAudit(tx, {
       actorId: ctx.actor.userId,
-      action: "domain.deleted",
+      action: "domain.archived",
       entityType: "domain",
       entityId: id,
       metadata: { name: domain.name, companyId: domain.companyId, siteId: domain.siteId },

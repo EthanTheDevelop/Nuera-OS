@@ -12,6 +12,7 @@ import {
   projectPhases,
   projects,
   quotes,
+  tasks,
   tickets,
   type ChangeRequest,
   type ClientRequirement,
@@ -31,13 +32,33 @@ export async function listPhases(db: Database, projectId: string): Promise<Proje
   return db
     .select()
     .from(projectPhases)
-    .where(eq(projectPhases.projectId, projectId))
+    .where(and(eq(projectPhases.projectId, projectId), isNull(projectPhases.archivedAt)))
     .orderBy(asc(projectPhases.position), asc(projectPhases.createdAt));
 }
 
 export async function findPhase(db: Database, phaseId: string): Promise<ProjectPhase | null> {
-  const [row] = await db.select().from(projectPhases).where(eq(projectPhases.id, phaseId)).limit(1);
+  const [row] = await db
+    .select()
+    .from(projectPhases)
+    .where(and(eq(projectPhases.id, phaseId), isNull(projectPhases.archivedAt)))
+    .limit(1);
   return row ?? null;
+}
+
+/** Ce qui rattache encore des éléments à ce jalon : tâches et livrables non archivés. */
+export async function countPhaseDependents(
+  tx: Database,
+  phaseId: string,
+): Promise<{ tasks: number; deliverables: number }> {
+  const [taskRow] = await tx
+    .select({ total: sql<number>`count(*)::int` })
+    .from(tasks)
+    .where(and(eq(tasks.phaseId, phaseId), isNull(tasks.archivedAt)));
+  const [deliverableRow] = await tx
+    .select({ total: sql<number>`count(*)::int` })
+    .from(deliverables)
+    .where(and(eq(deliverables.phaseId, phaseId), isNull(deliverables.archivedAt)));
+  return { tasks: taskRow?.total ?? 0, deliverables: deliverableRow?.total ?? 0 };
 }
 
 export async function insertPhases(
@@ -66,7 +87,13 @@ export async function completeOpenPhases(tx: Database, projectId: string): Promi
   await tx
     .update(projectPhases)
     .set({ status: "done", updatedAt: new Date() })
-    .where(and(eq(projectPhases.projectId, projectId), sql`${projectPhases.status} <> 'done'`));
+    .where(
+      and(
+        eq(projectPhases.projectId, projectId),
+        isNull(projectPhases.archivedAt),
+        sql`${projectPhases.status} <> 'done'`,
+      ),
+    );
 }
 
 export async function nextPhasePosition(tx: Database, projectId: string): Promise<number> {
@@ -118,7 +145,7 @@ export async function listDeliverables(db: Database, projectId: string): Promise
     .select({ deliverable: deliverables, documentTitle: documents.title })
     .from(deliverables)
     .leftJoin(documents, eq(documents.id, deliverables.documentId))
-    .where(eq(deliverables.projectId, projectId))
+    .where(and(eq(deliverables.projectId, projectId), isNull(deliverables.archivedAt)))
     .orderBy(asc(deliverables.createdAt));
   return rows.map((row) => ({ ...row.deliverable, documentTitle: row.documentTitle }));
 }
@@ -162,7 +189,7 @@ export async function findDeliverableScope(
     })
     .from(deliverables)
     .innerJoin(projects, eq(projects.id, deliverables.projectId))
-    .where(eq(deliverables.id, deliverableId))
+    .where(and(eq(deliverables.id, deliverableId), isNull(deliverables.archivedAt)))
     .limit(1);
   return row ?? null;
 }
@@ -188,6 +215,17 @@ export async function updateDeliverable(
     .returning();
   if (!row) throw new Error("Livrable non modifié.");
   return row;
+}
+
+export async function countDeliverableReviews(
+  tx: Database,
+  deliverableId: string,
+): Promise<number> {
+  const [row] = await tx
+    .select({ total: sql<number>`count(*)::int` })
+    .from(deliverableReviews)
+    .where(eq(deliverableReviews.deliverableId, deliverableId));
+  return row?.total ?? 0;
 }
 
 export async function insertReview(
@@ -242,6 +280,7 @@ export async function listUnvalidatedClientDeliverables(
     .where(
       and(
         eq(deliverables.projectId, projectId),
+        isNull(deliverables.archivedAt),
         eq(deliverables.requiresClientValidation, true),
         sql`${deliverables.status} <> 'validated'`,
       ),
@@ -260,7 +299,7 @@ export async function listRequirements(db: Database, projectId: string): Promise
     .select({ requirement: clientRequirements, documentTitle: documents.title })
     .from(clientRequirements)
     .leftJoin(documents, eq(documents.id, clientRequirements.documentId))
-    .where(eq(clientRequirements.projectId, projectId))
+    .where(and(eq(clientRequirements.projectId, projectId), isNull(clientRequirements.archivedAt)))
     .orderBy(sql`${clientRequirements.dueOn} asc nulls last`, asc(clientRequirements.createdAt));
   return rows.map((row) => ({ ...row.requirement, documentTitle: row.documentTitle }));
 }
@@ -285,7 +324,7 @@ export async function findRequirementScope(
     })
     .from(clientRequirements)
     .innerJoin(projects, eq(projects.id, clientRequirements.projectId))
-    .where(eq(clientRequirements.id, requirementId))
+    .where(and(eq(clientRequirements.id, requirementId), isNull(clientRequirements.archivedAt)))
     .limit(1);
   return row ?? null;
 }
@@ -407,6 +446,19 @@ export async function findChangeRequest(
 }
 
 /** Une demande peut n'avoir aucun projet : son propre verrou sérialise les décisions. */
+/** La demande transformée en ce devis, s'il y en a une. */
+export async function findChangeRequestOfQuote(
+  db: Database,
+  quoteId: string,
+): Promise<ChangeRequest | null> {
+  const [row] = await db
+    .select()
+    .from(changeRequests)
+    .where(eq(changeRequests.quoteId, quoteId))
+    .limit(1);
+  return row ?? null;
+}
+
 export async function lockChangeRequest(
   tx: Database,
   changeRequestId: string,
@@ -493,7 +545,12 @@ export async function listHandover(
   return db
     .select()
     .from(handoverChecklistItems)
-    .where(eq(handoverChecklistItems.projectId, projectId))
+    .where(
+      and(
+        eq(handoverChecklistItems.projectId, projectId),
+        isNull(handoverChecklistItems.archivedAt),
+      ),
+    )
     .orderBy(asc(handoverChecklistItems.position), asc(handoverChecklistItems.createdAt));
 }
 
@@ -504,7 +561,7 @@ export async function findHandoverItem(
   const [row] = await db
     .select()
     .from(handoverChecklistItems)
-    .where(eq(handoverChecklistItems.id, itemId))
+    .where(and(eq(handoverChecklistItems.id, itemId), isNull(handoverChecklistItems.archivedAt)))
     .limit(1);
   return row ?? null;
 }
@@ -572,6 +629,7 @@ export async function listPhasesDueBetween(
     .where(
       and(
         sql`${projectPhases.dueOn} between ${input.from} and ${input.to}`,
+        isNull(projectPhases.archivedAt),
         isNull(projects.archivedAt),
         input.projectIds === null
           ? undefined

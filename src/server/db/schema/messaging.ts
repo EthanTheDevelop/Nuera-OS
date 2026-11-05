@@ -1,5 +1,6 @@
 import { sql } from "drizzle-orm";
 import {
+  boolean,
   check,
   index,
   integer,
@@ -190,6 +191,8 @@ export const appointments = pgTable(
     source: text("source", { enum: APPOINTMENT_SOURCES }).notNull().default("manual"),
     externalId: text("external_id").unique(),
     status: text("status", { enum: APPOINTMENT_STATUSES }).notNull().default("planned"),
+    /** Le client ne voit un rendez-vous sur son portail que si la case est cochée. */
+    clientVisible: boolean("client_visible").notNull().default(false),
     ...timestamps(),
   },
   (t) => [

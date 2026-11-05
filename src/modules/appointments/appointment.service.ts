@@ -47,6 +47,7 @@ export interface AppointmentView {
   memberNames: string[];
   source: "manual" | "cal";
   status: "planned" | "done" | "cancelled";
+  clientVisible: boolean;
   companyId: string | null;
   companyName: string | null;
   contactId: string | null;
@@ -75,6 +76,7 @@ async function toViews(db: Database, rows: AppointmentRow[]): Promise<Appointmen
     }),
     source: row.source,
     status: row.status,
+    clientVisible: row.clientVisible,
     companyId: row.companyId,
     companyName: row.companyName,
     contactId: row.contactId,
@@ -203,7 +205,7 @@ export interface PortalAppointment {
   memberNames: string[];
 }
 
-/** Rendez-vous de son client, sans annulés, du plus récent au plus ancien. */
+/** Rendez-vous de son client marqués visibles, sans annulés, du plus récent au plus ancien. */
 export async function listAppointmentsForPortal(
   ctx: PortalContext,
   options: { limit?: number } = {},
@@ -347,6 +349,7 @@ export async function createAppointment(
       channel: input.channel ?? null,
       location: input.location ?? null,
       memberIds: input.memberIds,
+      clientVisible: input.clientVisible,
       source: "manual",
     });
     if (!created) return { id: input.clientRequestId ?? "" };
@@ -400,6 +403,7 @@ export async function updateAppointment(
       channel: input.channel ?? null,
       location: input.location ?? null,
       memberIds: input.memberIds,
+      clientVisible: input.clientVisible,
     });
     if (!written) throw new ConflictError("Seul un rendez-vous prévu peut être modifié.");
     await recordAudit(tx, {
@@ -552,6 +556,8 @@ export async function applyCalWebhook(
       ...place,
       memberIds,
       source: "cal",
+      // Une réservation Cal.diy reste interne tant que l'agence ne l'a pas rendue visible.
+      clientVisible: false,
       externalId: uid,
     });
     if (!created) return "duplicate";

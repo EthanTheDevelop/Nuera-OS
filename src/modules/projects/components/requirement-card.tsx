@@ -10,12 +10,14 @@ import { Modal, ModalRow } from "@/components/ui/modal";
 import { Tile } from "@/components/ui/tile";
 import { formatDateShort } from "@/lib/format";
 import {
+  archiveRequirementAction,
   createRequirementAction,
   markRequirementReceivedAction,
   reopenRequirementAction,
   updateRequirementAction,
 } from "../project.actions";
 import type { ProjectDetail } from "../project.service";
+import { ArchiveItemButton } from "./archive-item-button";
 import { useCommand, useWindowForm } from "./use-project-command";
 
 type Requirement = ProjectDetail["requirements"][number];
@@ -170,6 +172,11 @@ export function RequirementCard({
                   >
                     Modifier
                   </CompactButton>
+                  <ArchiveItemButton
+                    subject={requirement.label}
+                    description="Le client ne l'attendra plus. Refusé si le contenu a déjà été reçu. L'opération est tracée dans le journal."
+                    action={() => archiveRequirementAction(requirement.id)}
+                  />
                 </div>
               ) : null}
             </li>

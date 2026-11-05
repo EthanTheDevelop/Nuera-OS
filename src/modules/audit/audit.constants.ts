@@ -65,6 +65,7 @@ export const AUDIT_ACTIONS = {
   // Production
   "project.created": "Projet créé",
   "project.updated": "Projet modifié",
+  "project.budget_raised": "Budget du projet augmenté par un avenant",
   "project.status_changed": "Statut du projet modifié",
   "project.delivered": "Projet livré",
   "project.closed": "Projet clôturé",
@@ -72,6 +73,7 @@ export const AUDIT_ACTIONS = {
   "project.restored": "Projet restauré",
   "project_phase.created": "Jalon créé",
   "project_phase.updated": "Jalon modifié",
+  "project_phase.archived": "Jalon archivé",
   "project_member.added": "Intervenant ajouté au projet",
   "project_member.removed": "Intervenant retiré du projet",
   "task.created": "Tâche créée",
@@ -83,6 +85,7 @@ export const AUDIT_ACTIONS = {
   "task_dependency.removed": "Dépendance retirée",
   "deliverable.created": "Livrable créé",
   "deliverable.updated": "Livrable modifié",
+  "deliverable.archived": "Livrable archivé",
   "deliverable.submitted": "Livrable soumis à validation",
   "deliverable.validated": "Livrable validé",
   "deliverable.changes_requested": "Retours demandés sur un livrable",
@@ -97,9 +100,11 @@ export const AUDIT_ACTIONS = {
   "client_requirement.created": "Contenu attendu ajouté",
   "client_requirement.received": "Contenu attendu reçu",
   "client_requirement.updated": "Contenu attendu modifié",
+  "client_requirement.archived": "Contenu attendu archivé",
   "handover_item.done": "Point de passation validé",
   "handover_item.created": "Point de passation ajouté",
   "handover_item.reopened": "Point de passation rouvert",
+  "handover_item.archived": "Point de passation archivé",
 
   // Temps et équipe
   "team_member.created": "Membre créé",
@@ -132,7 +137,7 @@ export const AUDIT_ACTIONS = {
   "site_backup.created": "Sauvegarde enregistrée",
   "domain.created": "Domaine ajouté",
   "domain.updated": "Domaine modifié",
-  "domain.deleted": "Domaine retiré",
+  "domain.archived": "Domaine archivé",
 
   // Contrats
   "maintenance_plan.created": "Formule créée",
@@ -169,10 +174,10 @@ export const AUDIT_ACTIONS = {
   "finance.import_ran": "Import de factures",
   "schedule_item.created": "Échéance créée",
   "schedule_item.updated": "Échéance modifiée",
-  "schedule_item.deleted": "Échéance retirée",
+  "schedule_item.archived": "Échéance archivée",
   "direct_cost.created": "Coût ajouté",
   "direct_cost.updated": "Coût modifié",
-  "direct_cost.deleted": "Coût retiré",
+  "direct_cost.archived": "Coût archivé",
 
   // Documents
   "document.created": "Document ajouté",

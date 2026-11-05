@@ -49,6 +49,7 @@ export function AppointmentRowActions({
             projectId: appointment.projectId,
             opportunityId: appointment.opportunityId,
             memberIds: appointment.memberIds,
+            clientVisible: appointment.clientVisible,
           }}
         />
       ) : null}

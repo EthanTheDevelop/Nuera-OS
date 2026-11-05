@@ -97,6 +97,7 @@ export const projectPhases = pgTable(
     dueOn: date("due_on"),
     status: text("status", { enum: PHASE_STATUSES }).notNull().default("todo"),
     clientVisible: boolean("client_visible").notNull().default(true),
+    archivedAt: instant("archived_at"),
     ...timestamps(),
   },
   (t) => [
@@ -185,6 +186,7 @@ export const deliverables = pgTable(
     documentId: uuid("document_id"),
     requiresClientValidation: boolean("requires_client_validation").notNull().default(false),
     feedbackRoundsIncluded: integer("feedback_rounds_included").notNull().default(0),
+    archivedAt: instant("archived_at"),
     ...timestamps(),
   },
   (t) => [
@@ -259,6 +261,8 @@ export const changeRequests = pgTable(
     estimatedMinutes: integer("estimated_minutes"),
     amountCents: integer("amount_cents"),
     quoteId: uuid("quote_id"),
+    /** Le budget et le temps prévus du projet ont déjà été augmentés de cette demande. */
+    budgetAppliedAt: instant("budget_applied_at"),
     ...timestamps(),
   },
   (t): PgTableExtraConfigValue[] => [
@@ -300,6 +304,7 @@ export const clientRequirements = pgTable(
     dueOn: date("due_on"),
     receivedAt: instant("received_at"),
     documentId: uuid("document_id"),
+    archivedAt: instant("archived_at"),
     ...timestamps(),
   },
   (t) => [
@@ -325,6 +330,7 @@ export const handoverChecklistItems = pgTable(
     label: text("label").notNull(),
     doneAt: instant("done_at"),
     position: integer("position").notNull().default(0),
+    archivedAt: instant("archived_at"),
     ...timestamps(),
   },
   (t) => [index("handover_checklist_items_project_idx").on(t.projectId, t.position)],

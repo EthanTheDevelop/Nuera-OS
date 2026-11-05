@@ -29,6 +29,10 @@ import {
 import * as repository from "./project.repository";
 import {
   addHandoverItemSchema,
+  archiveDeliverableSchema,
+  archiveHandoverItemSchema,
+  archivePhaseSchema,
+  archiveRequirementSchema,
   changePhaseStatusSchema,
   changeRequestDecisionSchema,
   companyRowsSchema,
@@ -883,6 +887,7 @@ export async function acceptChangeRequest(
     assertChangeRequestTransition(changeRequest.status, "accepted");
 
     let taskId: string | null = null;
+    let budgetApplied = false;
     if (project) {
       const task = await taskRepository.insertTask(tx, {
         number: await nextNumber(tx, "task"),
@@ -906,10 +911,12 @@ export async function acceptChangeRequest(
             (project.estimatedMinutes ?? 0) + (changeRequest.estimatedMinutes ?? 0) || null,
           budgetCents: (project.budgetCents ?? 0) + (changeRequest.amountCents ?? 0) || null,
         });
+        budgetApplied = true;
       }
     }
     const updated = await production.updateChangeRequest(tx, changeRequest.id, {
       status: "accepted",
+      ...(budgetApplied ? { budgetAppliedAt: new Date() } : {}),
     });
     await recordAudit(tx, {
       actorId: ctx.actor.userId,
@@ -1073,5 +1080,131 @@ export async function toggleHandoverItem(
       metadata: { label: item.label, projectId: item.projectId },
     });
     return updated;
+  });
+}
+
+// --- Archivage d'un élément ajouté par erreur --------------------------------------------------
+
+/**
+ * Le verrou du projet ordonne l'archivage avec les gestes qui rattachent quelque chose à l'élément.
+ * Chaque refus dit ce qui en dépend : l'utilisateur sait quoi faire avant de réessayer.
+ */
+export async function archivePhase(ctx: ServiceContext, input: { phaseId: string }): Promise<void> {
+  assertCan(ctx.actor, "projects:update");
+  const { phaseId } = parseInput(archivePhaseSchema, input);
+  const phase = await production.findPhase(ctx.db, phaseId);
+  if (!phase) throw new NotFoundError("Jalon introuvable.");
+  await requireEditableProject(ctx, phase.projectId);
+  await ctx.db.transaction(async (tx) => {
+    await lockEditableProject(tx, phase.projectId);
+    const fresh = await production.findPhase(tx, phaseId);
+    if (!fresh) throw new NotFoundError("Jalon introuvable.");
+    if (fresh.status !== "todo") {
+      throw new ConflictError(
+        "Ce jalon a déjà démarré : il fait partie de l'historique du projet et ne peut pas être archivé.",
+      );
+    }
+    const { tasks, deliverables } = await production.countPhaseDependents(tx, phaseId);
+    if (tasks > 0 || deliverables > 0) {
+      const parts = [
+        tasks > 0 ? `${tasks} tâche${tasks > 1 ? "s" : ""}` : null,
+        deliverables > 0 ? `${deliverables} livrable${deliverables > 1 ? "s" : ""}` : null,
+      ].filter(Boolean);
+      throw new ConflictError(
+        `Ce jalon porte encore ${parts.join(" et ")} : rattachez-les ailleurs avant de l'archiver.`,
+      );
+    }
+    await production.updatePhase(tx, phaseId, { archivedAt: new Date() });
+    await recordAudit(tx, {
+      actorId: ctx.actor.userId,
+      action: "project_phase.archived",
+      entityType: "project_phase",
+      entityId: phaseId,
+      metadata: { name: fresh.name, projectId: fresh.projectId },
+    });
+  });
+}
+
+export async function archiveDeliverable(
+  ctx: ServiceContext,
+  input: { deliverableId: string },
+): Promise<void> {
+  assertCan(ctx.actor, "projects:update");
+  const { deliverableId } = parseInput(archiveDeliverableSchema, input);
+  const scope = await requireDeliverableForAgency(ctx, deliverableId);
+  const projectId = scope.deliverable.projectId;
+  await ctx.db.transaction(async (tx) => {
+    await lockEditableProject(tx, projectId);
+    const fresh = await requireFreshDeliverable(tx, deliverableId);
+    if ((await production.countDeliverableReviews(tx, deliverableId)) > 0) {
+      throw new ConflictError(
+        "Ce livrable a déjà reçu une relecture du client : il ne peut pas être archivé.",
+      );
+    }
+    if (fresh.status !== "draft") {
+      throw new ConflictError(
+        "Ce livrable a déjà été soumis à validation : il ne peut pas être archivé.",
+      );
+    }
+    await production.updateDeliverable(tx, deliverableId, { archivedAt: new Date() });
+    await recordAudit(tx, {
+      actorId: ctx.actor.userId,
+      action: "deliverable.archived",
+      entityType: "deliverable",
+      entityId: deliverableId,
+      metadata: { title: fresh.title, projectId },
+    });
+  });
+}
+
+export async function archiveRequirement(
+  ctx: ServiceContext,
+  input: { requirementId: string },
+): Promise<void> {
+  assertCan(ctx.actor, "projects:update");
+  const { requirementId } = parseInput(archiveRequirementSchema, input);
+  const { requirement } = await requireRequirementForAgency(ctx, requirementId);
+  await ctx.db.transaction(async (tx) => {
+    await lockEditableProject(tx, requirement.projectId);
+    const fresh = await production.findRequirementScope(tx, requirementId);
+    if (!fresh) throw new NotFoundError("Contenu attendu introuvable.");
+    if (fresh.requirement.status === "received" || fresh.requirement.documentId) {
+      throw new ConflictError("Ce contenu a déjà été reçu : rouvrez-le avant de l'archiver.");
+    }
+    await production.updateRequirement(tx, requirementId, { archivedAt: new Date() });
+    await recordAudit(tx, {
+      actorId: ctx.actor.userId,
+      action: "client_requirement.archived",
+      entityType: "client_requirement",
+      entityId: requirementId,
+      metadata: { label: fresh.requirement.label, projectId: requirement.projectId },
+    });
+  });
+}
+
+export async function archiveHandoverItem(
+  ctx: ServiceContext,
+  input: { itemId: string },
+): Promise<void> {
+  assertCan(ctx.actor, "projects:update");
+  const { itemId } = parseInput(archiveHandoverItemSchema, input);
+  const item = await production.findHandoverItem(ctx.db, itemId);
+  if (!item) throw new NotFoundError("Point de passation introuvable.");
+  await requireEditableProject(ctx, item.projectId);
+  await ctx.db.transaction(async (tx) => {
+    await lockEditableProject(tx, item.projectId);
+    const fresh = await production.findHandoverItem(tx, itemId);
+    if (!fresh) throw new NotFoundError("Point de passation introuvable.");
+    if (fresh.doneAt) {
+      throw new ConflictError("Ce point est déjà validé : rouvrez-le avant de l'archiver.");
+    }
+    await production.updateHandoverItem(tx, itemId, { archivedAt: new Date() });
+    await recordAudit(tx, {
+      actorId: ctx.actor.userId,
+      action: "handover_item.archived",
+      entityType: "handover_item",
+      entityId: itemId,
+      metadata: { label: fresh.label, projectId: item.projectId },
+    });
   });
 }
