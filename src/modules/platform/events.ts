@@ -13,10 +13,13 @@ export const DOMAIN_EVENT_ENTITY_TYPES = {
   "opportunity.stage_changed": "opportunity",
   "opportunity.won": "opportunity",
   "opportunity.lost": "opportunity",
+  "opportunity.action_due": "opportunity",
   "quote.sent": "quote",
   "quote.accepted": "quote",
   "quote.refused": "quote",
   "quote.expired": "quote",
+  "quote.reminder_due": "quote",
+  "requirement.overdue": "client_requirement",
   "project.created": "project",
   "project.status_changed": "project",
   "project.delivered": "project",
@@ -25,11 +28,13 @@ export const DOMAIN_EVENT_ENTITY_TYPES = {
   "deliverable.submitted": "deliverable",
   "deliverable.validated": "deliverable",
   "deliverable.changes_requested": "deliverable",
+  "deliverable.validation_overdue": "deliverable",
   "site.live": "site",
   "site.down": "site",
   "site.up": "site",
   "deployment.finished": "deployment",
   "backup.failed": "site_backup",
+  "backup.missing": "site",
   "domain.expiring": "domain",
   "contract.expiring": "contract",
   "contract.quota_80": "contract",
@@ -38,6 +43,8 @@ export const DOMAIN_EVENT_ENTITY_TYPES = {
   "ticket.created": "ticket",
   "ticket.critical": "ticket",
   "ticket.closed": "ticket",
+  "ticket.client_message": "ticket",
+  "ticket.due_soon": "ticket",
   "budget.threshold_80": "project",
   "invoice.overdue": "financial_document",
   "invoice.paid": "financial_document",
@@ -63,6 +70,16 @@ export interface DomainEventPayloads {
   };
   "quote.refused": { number: string };
   "quote.expired": { number: string };
+  /** Devis envoyé sans réponse : une relance par échéance, voir le job des devis. */
+  "quote.reminder_due": { number: string; since: string };
+  /** Contenu client attendu et en retard : une relance à J+3, une à J+7. */
+  "requirement.overdue": {
+    projectId: string;
+    projectName: string;
+    label: string;
+    dueOn: string;
+    stage: "j3" | "j7";
+  };
   "project.created": { number: string; name: string; quoteId: string | null };
   "project.status_changed": { fromStatus: string; toStatus: string };
   "project.delivered": { number: string; deliveredOn: string };
@@ -76,6 +93,23 @@ export interface DomainEventPayloads {
   "deliverable.submitted": { projectId: string; title: string; version: number };
   "deliverable.validated": { projectId: string; title: string; version: number };
   "deliverable.changes_requested": { projectId: string; title: string; version: number };
+  /** Validation client attendue depuis trop longtemps : une relance à J+3, une à J+7. */
+  "deliverable.validation_overdue": {
+    projectId: string;
+    projectName: string;
+    title: string;
+    version: number;
+    stage: "j3" | "j7";
+  };
+  /** Prochaine action d'une affaire à échéance : émis une fois par date. */
+  "opportunity.action_due": {
+    name: string;
+    nextAction: string | null;
+    nextActionOn: string;
+    ownerMemberId: string | null;
+  };
+  /** Site en ligne sans sauvegarde réussie récente : émis une fois par dernière sauvegarde connue. */
+  "backup.missing": { name: string; lastBackupAt: string | null };
   "site.live": { name: string; primaryDomain: string | null };
   "site.down": { name: string; primaryDomain: string | null; source: string };
   "site.up": { name: string; primaryDomain: string | null; source: string };
@@ -110,6 +144,10 @@ export interface DomainEventPayloads {
   };
   "ticket.critical": { number: string; subject: string; siteId: string | null };
   "ticket.closed": { number: string; subject: string };
+  /** Un client a écrit sur une demande depuis le portail : l'agence doit le savoir. */
+  "ticket.client_message": { number: string; subject: string; messageId: string };
+  /** Échéance de réponse proche : émis une fois par échéance. */
+  "ticket.due_soon": { number: string; subject: string; dueAt: string };
   "budget.threshold_80": { consumedCents: number; budgetCents: number };
   "invoice.overdue": { externalRef: string | null; amountCents: number; dueOn: string | null };
   "invoice.paid": { externalRef: string | null; amountCents: number; paidOn: string | null };

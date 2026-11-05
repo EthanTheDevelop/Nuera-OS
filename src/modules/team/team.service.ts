@@ -545,7 +545,7 @@ export async function removeMemberAbsence(ctx: ServiceContext, id: string): Prom
  * Un prestataire et son compte vont ensemble : un compte `member` sur une fiche de prestataire
  * lirait tout, un compte `contractor` sur une fiche interne perdrait son cloisonnement.
  */
-function assertKindMatchesRole(kind: MemberKind, role: string): void {
+export function assertKindMatchesRole(kind: MemberKind, role: string): void {
   if ((kind === "contractor") !== (role === "contractor")) {
     throw new ConflictError(
       kind === "contractor"

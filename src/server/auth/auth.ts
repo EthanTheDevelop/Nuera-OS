@@ -8,12 +8,14 @@ import { defaultStatements } from "better-auth/plugins/admin/access";
 import { magicLink } from "better-auth/plugins/magic-link";
 import { twoFactor } from "better-auth/plugins/two-factor";
 import { recordAudit } from "@/modules/audit/audit.service";
+import { kickEmailOutbox } from "@/modules/platform/email-outbox.kick";
 import { getEnv } from "@/server/config/env";
 import { getDb } from "@/server/db/client";
 import { accounts, sessions, twoFactors, users, verifications } from "@/server/db/schema";
 import type { Database } from "@/server/db/types";
 import { logger } from "@/server/logger";
 import { AUTH_COOKIE_PREFIX } from "./cookies";
+import { sendPasswordResetMail } from "./reset-link";
 import {
   createOutboxMagicLinkSender,
   MAGIC_LINK_EXPIRES_IN_SECONDS,
@@ -36,6 +38,29 @@ const accountAdministrator = accessControl.newRole({
 });
 const noAccountAdministration = accessControl.newRole({ user: [], session: [] });
 
+/**
+ * Routes HTTP du plugin admin, fermées : tout passe par `admin.service`, qui journalise et applique
+ * les règles (dernier compte de direction, type de fiche). L'API serveur (`auth.api.createUser`) reste
+ * disponible : better-auth ne contrôle `disabledPaths` qu'à l'entrée HTTP.
+ */
+const CLOSED_ADMIN_PATHS = [
+  "ban-user",
+  "create-user",
+  "get-user",
+  "has-permission",
+  "impersonate-user",
+  "list-user-sessions",
+  "list-users",
+  "remove-user",
+  "revoke-user-session",
+  "revoke-user-sessions",
+  "set-role",
+  "set-user-password",
+  "stop-impersonating",
+  "unban-user",
+  "update-user",
+].map((path) => `/admin/${path}`);
+
 const authRoles = Object.fromEntries(
   ROLES.map((role) => [role, role === "admin" ? accountAdministrator : noAccountAdministration]),
 ) as Record<Role, typeof noAccountAdministration>;
@@ -46,16 +71,34 @@ export interface AuthOptions {
   baseURL: string;
   /** Envoi du lien de connexion client. Par défaut : dépôt dans `email_outbox`. */
   sendMagicLink?: MagicLinkSender;
+  /** Appelé après le dépôt d'un e-mail de connexion, pour ne pas attendre la tâche planifiée. */
+  onMailQueued?: () => void;
 }
 
-export function buildAuth({ db, secret, baseURL, sendMagicLink }: AuthOptions) {
-  const magicLinkSender = sendMagicLink ?? createOutboxMagicLinkSender(db);
+/** Journal d'une opération de sécurité : une erreur est tracée, jamais propagée à la connexion. */
+async function auditQuietly(db: Database, event: Parameters<typeof recordAudit>[1]): Promise<void> {
+  try {
+    await recordAudit(db, event);
+  } catch (error) {
+    logger.error("audit.write_failed", { action: event.action, error });
+  }
+}
+
+export function buildAuth({ db, secret, baseURL, sendMagicLink, onMailQueued }: AuthOptions) {
+  const outboxSender = createOutboxMagicLinkSender(db);
+  const magicLinkSender: MagicLinkSender =
+    sendMagicLink ??
+    (async (mail) => {
+      await outboxSender(mail);
+      onMailQueued?.();
+    });
 
   return betterAuth({
     appName: "Nuera OS",
     baseURL,
     secret,
     trustedOrigins: [baseURL],
+    disabledPaths: CLOSED_ADMIN_PATHS,
     database: drizzleAdapter(db, {
       provider: "pg",
       schema: {
@@ -73,6 +116,12 @@ export function buildAuth({ db, secret, baseURL, sendMagicLink }: AuthOptions) {
       disableSignUp: true,
       minPasswordLength: PASSWORD_MIN_LENGTH,
       maxPasswordLength: PASSWORD_MAX_LENGTH,
+      // Un mot de passe réinitialisé ferme toutes les sessions ouvertes.
+      revokeSessionsOnPasswordReset: true,
+      sendResetPassword: async ({ user, url }) => {
+        const queued = await sendPasswordResetMail(db, { userId: user.id, email: user.email, url });
+        if (queued) onMailQueued?.();
+      },
     },
     session: {
       // Session glissante : expire après 7 jours sans activité, prolongée au plus une fois par jour.
@@ -94,6 +143,47 @@ export function buildAuth({ db, secret, baseURL, sendMagicLink }: AuthOptions) {
       log: (level, message, ...args) => logger[level](`auth.library_${level}`, { message, args }),
     },
     databaseHooks: {
+      user: {
+        update: {
+          // better-auth n'écrit ce drapeau qu'à l'activation réelle et à la désactivation.
+          after: async (user, context) => {
+            const path = context?.path;
+            const enabled = (user as { twoFactorEnabled?: boolean | null }).twoFactorEnabled;
+            if (path === "/two-factor/verify-totp" && enabled) {
+              await auditQuietly(db, {
+                actorId: user.id,
+                action: "auth.two_factor_enabled",
+                entityType: "user",
+                entityId: user.id,
+              });
+            }
+            if (path === "/two-factor/disable" && !enabled) {
+              await auditQuietly(db, {
+                actorId: user.id,
+                action: "auth.two_factor_disabled",
+                entityType: "user",
+                entityId: user.id,
+              });
+            }
+          },
+        },
+      },
+      account: {
+        update: {
+          after: async (account, context) => {
+            const path = context?.path;
+            if (path === "/change-password" || path === "/reset-password") {
+              await auditQuietly(db, {
+                actorId: account.userId,
+                action: "user.password_reset",
+                entityType: "user",
+                entityId: account.userId,
+                metadata: { via: path === "/change-password" ? "profile" : "reset_link" },
+              });
+            }
+          },
+        },
+      },
       session: {
         create: {
           after: async (session) => {
@@ -148,6 +238,7 @@ export function getAuth(): Auth {
       db: getDb(),
       secret: env.BETTER_AUTH_SECRET,
       baseURL: env.BETTER_AUTH_URL,
+      onMailQueued: () => kickEmailOutbox(getDb()),
     });
   }
   return globalForAuth.__nueraAuth;

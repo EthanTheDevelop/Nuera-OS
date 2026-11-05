@@ -1,7 +1,12 @@
 import { eq } from "drizzle-orm";
 import { afterAll, beforeAll, beforeEach, describe, expect, it, vi } from "vitest";
 import { resolvePortalContext } from "@/server/auth/portal-context";
-import { auditLog, portalMemberships, type PortalMembership } from "@/server/db/schema";
+import {
+  appSettings,
+  auditLog,
+  portalMemberships,
+  type PortalMembership,
+} from "@/server/db/schema";
 import type { Database } from "@/server/db/types";
 import { ForbiddenError } from "@/server/errors";
 import { createTestActor, createTestDatabase } from "../helpers/db";
@@ -188,12 +193,38 @@ describe("session", () => {
   it.each(["admin", "member", "contractor", "viewer"] as const)(
     "requireInternalActor : accepte %s",
     async (role) => {
-      const actor = await createTestActor(db, role);
-      signInAs(actor);
-      const { requireInternalActor } = await loadSession();
-      await expect(requireInternalActor()).resolves.toMatchObject({ userId: actor.userId, role });
+      vi.stubEnv("DATABASE_URL", "postgres://test@127.0.0.1/test");
+      vi.stubEnv("BETTER_AUTH_SECRET", "s".repeat(32));
+      vi.stubEnv("BETTER_AUTH_URL", "http://localhost:3000");
+      try {
+        const actor = await createTestActor(db, role);
+        signInAs(actor);
+        const { requireInternalActor } = await loadSession();
+        await expect(requireInternalActor()).resolves.toMatchObject({ userId: actor.userId, role });
+      } finally {
+        vi.unstubAllEnvs();
+      }
     },
   );
+
+  it("double authentification exigée : renvoi vers le profil, sauf pendant l'enrôlement", async () => {
+    vi.stubEnv("DATABASE_URL", "postgres://test@127.0.0.1/test");
+    vi.stubEnv("BETTER_AUTH_SECRET", "s".repeat(32));
+    vi.stubEnv("BETTER_AUTH_URL", "http://localhost:3000");
+    await db.insert(appSettings).values({ key: "security.require_two_factor", value: true });
+    try {
+      const actor = await createTestActor(db, "member");
+      signInAs(actor);
+      const { requireInternalActor } = await loadSession();
+      await expect(requireInternalActor()).rejects.toThrow("REDIRECT:/profil");
+      await expect(requireInternalActor({ allowTwoFactorEnrolment: true })).resolves.toMatchObject({
+        userId: actor.userId,
+      });
+    } finally {
+      await db.delete(appSettings).where(eq(appSettings.key, "security.require_two_factor"));
+      vi.unstubAllEnvs();
+    }
+  });
 
   it("getServiceContext : expose le port CRM, non configuré sans connexion Twenty", async () => {
     vi.stubEnv("DATABASE_URL", "postgres://test@127.0.0.1/test");

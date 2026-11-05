@@ -57,6 +57,22 @@ const envSchema = z.object({
   OPENAI_BASE_URL: optional(z.url({ protocol: /^https?$/ })),
   // Webhook Cal.diy / Cal.com : la route ne répond que si ce secret est défini.
   CAL_WEBHOOK_SECRET: optional(z.string().min(16)),
+
+  // Tâches planifiées : sans ce secret, /api/jobs/* répond 404.
+  JOBS_SECRET: optional(z.string().min(32)),
+
+  // E-mails sortants : sans hôte ni expéditeur, la boîte d'envoi reste « non configurée ».
+  SMTP_HOST: optional(z.string()),
+  SMTP_PORT: optional(z.coerce.number().int().min(1).max(65535)),
+  SMTP_SECURE: optional(z.stringbool()),
+  SMTP_USER: optional(z.string()),
+  SMTP_PASSWORD: optional(z.string()),
+  SMTP_FROM: optional(z.string()),
+
+  // n8n : facultatif. Sans URL ni secret, la règle de relais échoue en « connexion requise ».
+  N8N_WEBHOOK_URL: optional(z.url({ protocol: /^https?$/ })),
+  N8N_WEBHOOK_SECRET: optional(z.string().min(32)),
+  N8N_WEBHOOK_HEADER_TOKEN: optional(z.string().min(16)),
 });
 
 export type Env = Readonly<z.infer<typeof envSchema>>;

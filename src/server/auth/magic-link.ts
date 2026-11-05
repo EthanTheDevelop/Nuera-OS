@@ -77,3 +77,12 @@ export async function sendMagicLinkToPortalClient(
     .limit(1);
   if (eligible) await send(mail);
 }
+
+/** Émet un lien sans l'envoyer. `null` : l'adresse n'a pas d'adhésion valide, aucun lien n'existe. */
+export type PortalLinkIssuer = (email: string) => Promise<string | null>;
+
+/** Destination commune d'un lien de connexion client, et page du lien expiré (C9). */
+export const PORTAL_LINK_CALLBACKS = {
+  callbackURL: "/espace",
+  errorCallbackURL: "/espace/lien-expire",
+} as const;

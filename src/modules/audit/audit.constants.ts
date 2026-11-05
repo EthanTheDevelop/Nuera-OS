@@ -212,6 +212,7 @@ export const AUDIT_ACTIONS = {
 
   // Portail
   "portal.invitation_sent": "Invitation à l'espace client envoyée",
+  "portal.invitation_link_issued": "Lien de connexion copié pour l'espace client",
   "portal.membership_activated": "Espace client activé",
   "portal.membership_revoked": "Accès à l'espace client révoqué",
   "portal.membership_restored": "Accès à l'espace client rétabli",

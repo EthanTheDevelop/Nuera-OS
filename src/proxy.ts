@@ -16,6 +16,7 @@ const PUBLIC_PATHS = new Set([
   // Portail client : page de connexion par lien et lien expiré (C2, C9).
   "/espace/connexion",
   "/espace/lien-expire",
+  "/espace/acces-retire",
 ]);
 
 function contentSecurityPolicy(nonce: string): string {
@@ -60,6 +61,13 @@ export function proxy(request: NextRequest) {
     !isDevGallery(pathname) &&
     !getSessionCookie(request, { cookiePrefix: AUTH_COOKIE_PREFIX })
   ) {
+    // Portail client : connexion par lien, jamais la page de l'équipe.
+    if (
+      (pathname === "/espace" || pathname.startsWith("/espace/")) &&
+      !pathname.startsWith("/espace/apercu/")
+    ) {
+      return NextResponse.redirect(new URL("/espace/connexion", request.url));
+    }
     const loginUrl = new URL("/login", request.url);
     if (pathname !== "/") loginUrl.searchParams.set("next", `${pathname}${search}`);
     return NextResponse.redirect(loginUrl);

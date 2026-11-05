@@ -1,5 +1,5 @@
 import { createAuthClient } from "better-auth/client";
-import { twoFactorClient } from "better-auth/client/plugins";
+import { magicLinkClient, twoFactorClient } from "better-auth/client/plugins";
 
 /**
  * Client better-auth pour le navigateur (connexion, second facteur, déconnexion).
@@ -9,7 +9,7 @@ import { twoFactorClient } from "better-auth/client/plugins";
 function createClient() {
   return createAuthClient({
     baseURL: window.location.origin,
-    plugins: [twoFactorClient()],
+    plugins: [twoFactorClient(), magicLinkClient()],
   });
 }
 

@@ -1246,6 +1246,15 @@ export async function addPortalTicketMessage(
       }));
     if (!duplicate) {
       await repository.updateTicketRow(tx, ticket.id, { updatedAt: now });
+      await emitEvent(tx, {
+        type: "ticket.client_message",
+        entityType: "ticket",
+        entityId: ticket.id,
+        companyId: portalCtx.companyId,
+        actorId: portalCtx.actor.userId,
+        dedupeKey: `ticket.client_message:${message.id}`,
+        payload: { number: ticket.number, subject: ticket.subject, messageId: message.id },
+      });
       await recordAudit(tx, {
         actorId: portalCtx.actor.userId,
         action: "portal.message_sent",

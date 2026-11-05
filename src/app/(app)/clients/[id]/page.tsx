@@ -3,7 +3,10 @@ import { notFound, redirect } from "next/navigation";
 import { ForbiddenState } from "@/components/states/states";
 import { ButtonLink } from "@/components/ui/button";
 import { Alert } from "@/components/ui/feedback";
+import { Tile } from "@/components/ui/tile";
 import { paramValue } from "@/lib/url-state";
+import { InviteToPortalButton, PortalAccessList } from "@/modules/portal/components/portal-access";
+import { getPortalAccessForCompany } from "@/modules/portal/portal-access.service";
 import {
   listActivitiesForCompany,
   listCompanyTimeline,
@@ -102,6 +105,7 @@ export default async function ClientRecordPage({
     filterOptions,
     syncStatus,
     related,
+    portalAccess,
   ] = await Promise.all([
     listContactsForCompany(ctx, id, { limit: 50 }),
     listCompanyTimeline(ctx, id, {
@@ -117,6 +121,7 @@ export default async function ClientRecordPage({
       : Promise.resolve({ sources: [], tags: [], owners: [] }),
     getCrmSyncStatus(ctx),
     loadCompanyRelated(ctx, id),
+    getPortalAccessForCompany(ctx, id),
   ]);
 
   const links = {
@@ -143,6 +148,9 @@ export default async function ClientRecordPage({
                 canMerge={canMerge}
                 company={company}
               />
+            ) : null}
+            {portalAccess.canManage && !archived ? (
+              <InviteToPortalButton companyId={id} overview={portalAccess} />
             ) : null}
             {can(ctx.actor, "messages:send") && !archived ? (
               <ButtonLink variant="accent" href={`/messages?client=${id}&nouvelle=1`}>
@@ -210,6 +218,9 @@ export default async function ClientRecordPage({
             canUpdate={canUpdate && !archived}
             canMerge={canMerge}
           />
+          <Tile icon="globe2" title="Espace client">
+            <PortalAccessList companyId={id} overview={portalAccess} />
+          </Tile>
           <DocumentsSection section={related.documents} />
           <SitesSection section={related.sites} />
           <IdentitySection company={company} />

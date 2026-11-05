@@ -42,7 +42,7 @@ import {
   type ProjectDetail,
 } from "@/modules/projects/project.service";
 import { getTaskDetail, listTasks, type TaskDetail } from "@/modules/projects/task.service";
-import { canAny } from "@/server/auth/permissions";
+import { can, canAny } from "@/server/auth/permissions";
 import { getServiceContext } from "@/server/auth/session";
 import type { ServiceContext } from "@/server/context";
 import { NotFoundError } from "@/server/errors";
@@ -274,6 +274,11 @@ export default async function ProjectPage({
         className="mb-0 lg:mb-0"
         actions={
           <>
+            {can(ctx.actor, "projects:read") ? (
+              <CompactLink variant="secondary" icon="globe2" href={`/espace/apercu/${project.id}`}>
+                Ouvrir l&apos;espace client
+              </CompactLink>
+            ) : null}
             {capabilities.edit ? <EditProjectButton project={project} members={members} /> : null}
             {capabilities.addTask ? (
               <NewTaskButton projectId={project.id} members={members} phases={phaseOptions} />

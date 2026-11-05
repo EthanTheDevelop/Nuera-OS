@@ -89,7 +89,9 @@ export function ClientCapsule({
         <Link href="/espace" aria-label="Accueil de mon espace" className="shrink-0 rounded-sm">
           <Logo width={103} />
         </Link>
-        <span aria-hidden="true" className="h-6 w-px shrink-0 bg-border-on-dark" />
+        {progress ? (
+          <span aria-hidden="true" className="h-6 w-px shrink-0 bg-border-on-dark" />
+        ) : null}
         {progress ? (
           <Link
             href="/espace"
