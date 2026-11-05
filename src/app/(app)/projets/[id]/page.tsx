@@ -91,6 +91,10 @@ function ageLabel(from: Date, today: string): string {
   return `${days} jour${days > 1 ? "s" : ""}`;
 }
 
+function formatMarginCents(cents: number | null): string {
+  return cents === null ? "Non calculable" : formatCentsHT(cents);
+}
+
 function PlannedCard({ project }: { project: ProjectDetail }) {
   const { planned } = project;
   if (!planned) return null;
@@ -105,6 +109,12 @@ function PlannedCard({ project }: { project: ProjectDetail }) {
   }
   if (planned.consumedCents !== null) {
     rows.push({ label: "Coût du temps", value: formatCentsHT(planned.consumedCents) });
+  }
+  // La marge vient de `getMargin`, comme partout : prévue et réelle restent séparées.
+  if (project.margin) {
+    const { forecast, actual } = project.margin;
+    rows.push({ label: "Marge prévue", value: formatMarginCents(forecast.marginCents) });
+    rows.push({ label: "Marge réelle", value: formatMarginCents(actual.marginCents) });
   }
   const gap = planned.gapMinutes;
   return (

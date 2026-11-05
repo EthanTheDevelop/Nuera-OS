@@ -11,7 +11,9 @@ import {
   type MemberOption,
 } from "@/modules/team/team.lookup";
 import { getSixWeekLoad, type WeekLoad } from "@/modules/time/capacity.service";
+import { getMargin, type MarginBreakdown } from "@/modules/finance/profitability.service";
 import { assertCan, assertCanAny, can } from "@/server/auth/permissions";
+import { logger } from "@/server/logger";
 import type { ServiceContext } from "@/server/context";
 import type { Project, ProjectPhase } from "@/server/db/schema";
 import type { Database } from "@/server/db/types";
@@ -933,6 +935,8 @@ export interface ProjectDetail {
   handover: Awaited<ReturnType<typeof production.listHandover>>;
   changeRequests: production.ChangeRequestRow[];
   planned: PlannedActual | null;
+  /** Marge par `getMargin`, avec `finance:read` seulement. Indisponible : NULL, jamais un zéro. */
+  margin: MarginBreakdown | null;
   /** Journal du projet. Vide pour qui ne voit que ce qui lui est affecté. */
   history: ProjectHistoryEntry[];
   sites: repository.ProjectSiteRow[];
@@ -947,6 +951,16 @@ export interface ProjectDetail {
     seeBudget: boolean;
     convertToQuote: boolean;
   };
+}
+
+async function readMargin(ctx: ServiceContext, projectId: string): Promise<MarginBreakdown | null> {
+  if (!can(ctx.actor, "finance:read")) return null;
+  try {
+    return await getMargin(ctx.db, { scope: "project", id: projectId });
+  } catch (error) {
+    logger.warn("project.margin_unavailable", { projectId, error });
+    return null;
+  }
 }
 
 export async function getProjectDetail(
@@ -1009,6 +1023,8 @@ export async function getProjectDetail(
   const seeCosts = can(ctx.actor, "team:read_costs");
   const editable =
     can(ctx.actor, "projects:update") && project.archivedAt === null && project.status !== "closed";
+
+  const margin = await readMargin(ctx, projectId);
 
   let planned: PlannedActual | null = null;
   if (time) {
@@ -1093,6 +1109,7 @@ export async function getProjectDetail(
     handover,
     changeRequests,
     planned,
+    margin,
     history: audit.map(describeProjectAudit),
     sites,
     documents: documents.map(({ id, title, kind, visibility }) => ({
