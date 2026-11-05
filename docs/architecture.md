@@ -69,7 +69,8 @@ arbitrages et répartition des fichiers : `docs/domain-model.md`.
 ## Exploitation
 
 - **Image** : `Dockerfile`, sortie `standalone`, Node 24, utilisateur non privilégié, outils
-  `cli/db-migrate.mjs` et `cli/user-create.mjs`. Déploiement : `docs/deployment-coolify.md`.
+  `cli/db-migrate.mjs`, `cli/user-create.mjs` et `cli/db-seed-staging.mjs` (données fictives,
+  staging seulement : `docs/ops/donnees-staging.md`). Déploiement : `docs/deployment-coolify.md`.
 - **État sur disque** : les documents seuls, sous `STORAGE_DIR`, sur un volume. Tout le reste est en base.
 - **Tâches planifiées** : pas de planificateur interne, Coolify appelle `/api/jobs/*` (`docs/ops/jobs.md`).
 - **Sauvegarde** : base et volume ensemble, hors du serveur (`docs/ops/sauvegarde-restauration.md`).

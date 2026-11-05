@@ -46,7 +46,8 @@ COPY --from=builder --chown=nextjs:nodejs /app/public ./public
 # Migrations SQL versionnées : appliquées au démarrage si DB_MIGRATE_ON_START=true,
 # ou manuellement avec `node cli/db-migrate.mjs`.
 COPY --from=builder --chown=nextjs:nodejs /app/drizzle ./drizzle
-# CLI : `node cli/db-migrate.mjs`, `node cli/user-create.mjs --email … --name … --role admin`.
+# CLI : `node cli/db-migrate.mjs`, `node cli/user-create.mjs --email … --name … --role admin`,
+# `SEED_ALLOWED=true node cli/db-seed-staging.mjs` (staging seulement, docs/ops/donnees-staging.md).
 COPY --from=builder --chown=nextjs:nodejs /app/dist/cli ./cli
 
 USER nextjs

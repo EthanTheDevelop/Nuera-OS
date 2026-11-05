@@ -73,6 +73,10 @@ const envSchema = z.object({
   N8N_WEBHOOK_URL: optional(z.url({ protocol: /^https?$/ })),
   N8N_WEBHOOK_SECRET: optional(z.string().min(32)),
   N8N_WEBHOOK_HEADER_TOKEN: optional(z.string().min(16)),
+
+  // Jeu de données staging (`cli/db-seed-staging.mjs`) : refusé sauf valeur exacte « true ».
+  // Lu tel quel, sans conversion : « 1 » ou « yes » n'autorisent rien. Jamais lu par l'application.
+  SEED_ALLOWED: optional(z.string()),
 });
 
 export type Env = Readonly<z.infer<typeof envSchema>>;

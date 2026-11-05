@@ -65,6 +65,7 @@ Sur `/dev/ui`, en développement seulement : la galerie des composants d'interfa
 | `npm run db:check`         | Vérifie les migrations : synchronisées avec le schéma et non destructives  |
 | `npm run db:migrate`       | Applique les migrations en attente                                         |
 | `npm run db:seed`          | Données de développement. Refusé en production                             |
+| `npm run db:seed:staging`  | Données fictives en volume, base `nuera_os_staging` uniquement             |
 | `npm run db:studio`        | Explorateur de base Drizzle Studio                                         |
 | `npm run user:create`      | Crée un compte (`--email`, `--name`, `--role`)                             |
 | `npm run twenty:bootstrap` | Prépare une instance Twenty : étapes, clé d'API locale, webhook            |

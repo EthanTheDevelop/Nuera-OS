@@ -233,6 +233,7 @@ export const AUDIT_ACTIONS = {
   "notification_preference.updated": "Préférences de notification modifiées",
   "user_preference.updated": "Préférences modifiées",
   "export.run": "Export des données",
+  "data_seed.applied": "Jeu de données fictives chargé",
 } as const;
 
 export type AuditAction = keyof typeof AUDIT_ACTIONS;
@@ -295,5 +296,6 @@ export const AUDIT_ENTITY_TYPES = [
   "user_preference",
   "export",
   "crm_sync",
+  "data_seed",
 ] as const;
 export type AuditEntityType = (typeof AUDIT_ENTITY_TYPES)[number];
