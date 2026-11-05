@@ -27,15 +27,15 @@ Règles du système (nœud `5:4`) : aucune valeur en dur ; on écrit des rôles 
 
 ### Rôles (mode clair, valeurs relevées)
 
-| CSS                | Valeur    | Remarque                                                                                 |
-| ------------------ | --------- | ---------------------------------------------------------------------------------------- |
-| `--text`           | `#233353` | Texte principal                                                                          |
-| `--accent`         | `#4368B1` | Liens, boutons, jauges. Devient `#A6B9DD` en contexte sombre                             |
-| `--muted`          | `#645E78` | Texte secondaire                                                                         |
-| `--border`         | `#D9DADE` | Bordures et filets                                                                       |
-| `--bg`             | `#FFFFFF` | Fond de page et de tuile                                                                 |
-| `--surface-raised` | `#FFFFFF` | Fond du badge Neutre et rail des jauges : blanc sur blanc, donc invisibles sur une carte |
-| `--btn-edge`       | `#141830` | Socle et contour du bouton                                                               |
+| CSS                | Valeur    | Remarque                                                                                                           |
+| ------------------ | --------- | ------------------------------------------------------------------------------------------------------------------ |
+| `--text`           | `#233353` | Texte principal                                                                                                    |
+| `--accent`         | `#4368B1` | Liens, boutons, jauges. Devient `#A6B9DD` en contexte sombre                                                       |
+| `--muted`          | `#645E78` | Texte secondaire                                                                                                   |
+| `--border`         | `#D9DADE` | Bordures et filets                                                                                                 |
+| `--bg`             | `#FFFFFF` | Fond de page et de tuile                                                                                           |
+| `--surface-raised` | `#ECEEF3` | Fond du badge Neutre et rail des jauges. Écart à Figma (`#FFFFFF`, blanc sur blanc, donc invisibles sur une carte) |
+| `--btn-edge`       | `#141830` | Socle et contour du bouton                                                                                         |
 
 ### Variantes sur fond sombre
 

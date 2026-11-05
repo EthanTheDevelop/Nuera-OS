@@ -58,7 +58,7 @@ npm run twenty:bootstrap -- --webhook-url=https://nuera.exemple.fr/api/webhooks/
 
 Crée ou met à jour le webhook (`company`, `person`, `opportunity`, `note`, `task`, `noteTarget`,
 `taskTarget`) et écrit `TWENTY_WEBHOOK_SECRET` dans `.env`, à recopier dans l'environnement de
-déploiement. La route, à venir, appelle `receiveTwentyWebhook()` sur le **corps brut**.
+déploiement. La route `src/app/api/webhooks/twenty/route.ts` appelle `receiveTwentyWebhook()` sur le **corps brut**.
 
 Format vérifié sur des livraisons réelles (il diffère de la documentation) :
 

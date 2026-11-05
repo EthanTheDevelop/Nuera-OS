@@ -10,10 +10,11 @@ Reprise après interruption : lire ce fichier, `CLAUDE.md`, puis `docs/domain-mo
 - Socle données : schéma, migration, rôles, permissions, événements.
 - Socle interface : tokens, mouvement, composants, barre latérale, connexion.
 - Lots métier, chacun construit puis audité : Messages, Documents, Temps et équipe, Projets, CRM et ventes, Devis, Contrats, Sites, Support, Finances.
+- Stabilisation (`docs/progress/stabilisation.md`) : tests fiables, formulaires d'authentification en POST, migration d'archivage, factures, avenants, kit d'interface, 404.
 
 ## En cours
 
-- Stabilisation : demandes croisées entre lots, migration d'archivage, correctifs du kit d'interface.
+- Rien : prochain lot, le premier de la liste ci-dessous.
 
 ## Restant, dans l'ordre
 

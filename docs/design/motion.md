@@ -176,16 +176,16 @@ aux entrées et à l'arrière-plan des fenêtres, jamais à un défilement.
 
 ## 4. Où ça va dans Nuera OS
 
-| Écran (Figma « Nuera OS »)     | Effets                                                                                                                    |
-| ------------------------------ | ------------------------------------------------------------------------------------------------------------------------- |
-| 01 Tableau de bord (tuiles)    | 2.1 à l'arrivée, 2.2 sur les KPI, 2.3 dans les tuiles, 2.6 quand une tuile s'agrandit                                     |
-| 16 Reporting                   | **2.4 en entier** : onglets KPI sous le graphique principal, un type de graphique par mesure ; 2.5 au survol              |
-| 21 Finances                    | 2.2 (CA, trésorerie, MRR), 2.3 (barres mensuelles), 2.5 (info-bulle avec la part de chaque associé)                       |
-| 18 Temps et capacité           | 2.3 sur les jauges de charge ; frise du jour avec un trait « maintenant », comme l'« activity map » de la troisième vidéo |
-| 19 Site (Coolify)              | 2.6 : « Détails » ouvre la santé du site (disponibilité, temps de réponse, erreurs) en jauges hachurées                   |
-| 11 Support, 17 Projet          | 2.6 (fiche de la demande ou de la tâche en fenêtre), 2.7 (fil de commentaires, mentions `@Ethan` / `@Nezar`)              |
-| 02 Messages                    | 2.7 (envoi, mention), arrivée d'un message en fondu et glissement                                                         |
-| Portail client (C3 mon projet) | 2.1 et 2.3 seulement, plus sobres : la progression en 4 étapes qui se remplit. Pas de compteur qui roule côté client      |
+| Écran (Figma « Nuera OS »)     | Effets                                                                                                                  |
+| ------------------------------ | ----------------------------------------------------------------------------------------------------------------------- |
+| 01 Tableau de bord (tuiles)    | 2.1 à l'arrivée, 2.2 sur les KPI, 2.3 dans les tuiles, 2.6 quand une tuile s'agrandit                                   |
+| 16 Reporting                   | **2.4 en entier** : onglets KPI sous le graphique principal, un type de graphique par mesure ; 2.5 au survol            |
+| 21 Finances                    | 2.2 (CA, trésorerie, MRR), 2.3 (barres mensuelles), 2.5 (info-bulle avec la part de chaque associé)                     |
+| 18 Temps et capacité           | 2.3 sur les jauges de charge. Frise du jour : **non livrée** (absente de Figma, et `time_entries` ne porte pas d'heure) |
+| 19 Site (Coolify)              | 2.6 : « Détails » ouvre la santé du site (disponibilité, temps de réponse, erreurs) en jauges hachurées                 |
+| 11 Support, 17 Projet          | 2.6 (fiche de la demande ou de la tâche en fenêtre), 2.7 (fil de commentaires, mentions `@Ethan` / `@Nezar`)            |
+| 02 Messages                    | 2.7 (envoi, mention), arrivée d'un message en fondu et glissement                                                       |
+| Portail client (C3 mon projet) | 2.1 et 2.3 seulement, plus sobres : la progression en 4 étapes qui se remplit. Pas de compteur qui roule côté client    |
 
 ---
 

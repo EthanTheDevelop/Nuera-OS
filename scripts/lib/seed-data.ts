@@ -1926,6 +1926,7 @@ export async function runSeed(
         status: "in_progress",
         assigneeMemberId: member.hugo,
         dueAt: at(1),
+        createdAt: at(-1, 8),
         firstResponseAt: at(-1),
         coverage: "covered",
         openedByUserId: uid("marc"),
@@ -1942,6 +1943,7 @@ export async function runSeed(
         severity: "low",
         status: "closed",
         assigneeMemberId: member.malik,
+        createdAt: at(-30, 8),
         firstResponseAt: at(-30),
         resolvedAt: at(-28),
         closedAt: at(-27),
@@ -1989,6 +1991,7 @@ export async function runSeed(
         severity: "low",
         status: "resolved",
         assigneeMemberId: member.hugo,
+        createdAt: at(-10, 8),
         firstResponseAt: at(-10),
         resolvedAt: at(-9),
         coverage: "overage",
@@ -3049,6 +3052,7 @@ export async function runSeed(
           channel: "Visio",
           memberIds: [member.camille],
           source: "manual",
+          clientVisible: true,
         },
         {
           id: seedId("appointment:faure"),
@@ -3076,6 +3080,7 @@ export async function runSeed(
           channel: "Téléphone",
           memberIds: [member.malik],
           status: "done",
+          clientVisible: true,
         },
       ])
       .onConflictDoNothing();

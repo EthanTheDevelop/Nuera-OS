@@ -57,15 +57,15 @@ Colonnes **(T)** : maîtres dans Twenty, écrites via `CrmGateway`, jamais modif
 ### Production (`schema/projects.ts`)
 
 - `projects` : `number`, `company_id`, `opportunity_id`, `quote_id` unique partiel (un devis accepté donne un seul projet), `name`, `activity`, `objective`, `scope`, `status` (preparation, active, blocked, in_validation, delivered, closed), `priority`, `owner_member_id`, `start_on`, `due_on`, `delivered_on`, `budget_cents`, `estimated_minutes`, `client_step_label`, `archived_at`.
-- `project_phases` : `project_id`, `name`, `position`, `due_on`, `status` (todo, in_progress, done), `client_visible`.
+- `project_phases` : `project_id`, `name`, `position`, `due_on`, `status` (todo, in_progress, done), `client_visible`, `archived_at`.
 - `tasks` : `number`, `project_id`, `phase_id`, `parent_task_id`, `title`, `description`, `status` (todo, in_progress, blocked, done), `priority`, `assignee_member_id`, `due_on`, `estimated_minutes`, `position`, `completed_at`.
 - `task_dependencies` : `task_id`, `depends_on_task_id`. Cycle refusé en service.
-- `deliverables` : `project_id`, `phase_id`, `title`, `status` (draft, to_validate, validated, changes_requested), `version`, `document_id`, `requires_client_validation`, `feedback_rounds_included`.
+- `deliverables` : `project_id`, `phase_id`, `title`, `status` (draft, to_validate, validated, changes_requested), `version`, `document_id`, `requires_client_validation`, `feedback_rounds_included`, `archived_at`.
 - `deliverable_reviews` : `deliverable_id`, `version`, `decision` (validated, changes_requested), `comment`, `reviewer_user_id`, `at`.
 - `project_blockers` : `project_id`, `title`, `consequence`, `decision`, `raised_at`, `resolved_at`.
-- `change_requests` : `company_id`, `project_id`, `ticket_id`, `title`, `description`, `status` (open, accepted, refused, converted), `estimated_minutes`, `amount_cents`, `quote_id`.
-- `client_requirements` : `project_id`, `label`, `status` (expected, received), `due_on`, `received_at`, `document_id`. (« Contenus attendus »)
-- `handover_checklist_items` : `project_id`, `label`, `done_at`, `position`.
+- `change_requests` : `company_id`, `project_id`, `ticket_id`, `title`, `description`, `status` (open, accepted, refused, converted), `estimated_minutes`, `amount_cents`, `quote_id`, `budget_applied_at` (le budget et le temps prévus du projet ont déjà été augmentés de cette demande).
+- `client_requirements` : `project_id`, `label`, `status` (expected, received), `due_on`, `received_at`, `document_id`, `archived_at`. (« Contenus attendus »)
+- `handover_checklist_items` : `project_id`, `label`, `done_at`, `position`, `archived_at`.
 - `project_members` : `project_id`, `member_id`, `role`.
 
 ### Temps et équipe (`schema/team.ts`)
@@ -80,7 +80,7 @@ Colonnes **(T)** : maîtres dans Twenty, écrites via `CrmGateway`, jamais modif
 - `sites` : `company_id`, `project_id`, `contract_id`, `name`, `primary_domain`, `kind`, `status` (planned, staging, live, paused, archived), `technology`, `cms_kind`, `cms_admin_url`, `repo_url`, `hosting_label`, `server_label`, `owner_member_id`, `live_on`, `coolify_project_uuid`, `monitor_id`, `archived_at`. Unique `(id, company_id)`.
 - `site_environments` : `site_id`, `kind` (development, staging, production), `url`, `coolify_app_uuid`, `status` (running, stopped, error, unknown), `status_checked_at`. Unique `(site_id, kind)`.
 - `deployments` : `environment_id`, `external_id` unique, `status` (queued, running, succeeded, failed, cancelled), `commit_sha`, `commit_message`, `triggered_by_user_id`, `started_at`, `finished_at`, `duration_seconds`, `source` (coolify, nuera).
-- `domains` : `company_id`, `site_id`, `name` unique, `registrar`, `expires_on`, `auto_renew`, `tls_status`, `tls_expires_on`, `checked_at`.
+- `domains` : `company_id`, `site_id`, `name` unique parmi les non archivés, `registrar`, `expires_on`, `auto_renew`, `tls_status`, `tls_expires_on`, `checked_at`, `archived_at`.
 - `site_uptime_samples` : `site_id`, `day`, `uptime_ratio`, `avg_response_ms`, `checked_at`. Unique `(site_id, day)`.
 - `site_backups` : `site_id`, `environment_id`, `external_id`, `status`, `taken_at`, `size_bytes`, `off_site`, `source`.
 
@@ -101,8 +101,8 @@ Colonnes **(T)** : maîtres dans Twenty, écrites via `CrmGateway`, jamais modif
 ### Finances (`schema/finance.ts`)
 
 - `financial_documents` : `company_id`, `project_id`, `contract_id`, `quote_id`, `kind` (invoice, credit_note), `source` (indy_csv, manual, indy_api), `external_ref`, `issuer_member_id`, `issued_on`, `due_on`, `amount_cents`, `tax_cents`, `status` (issued, overdue, paid, cancelled), `paid_on`, `document_id`, `client_visible`, `imported_at`. Unique `(source, external_ref)`. Aucune facture créée ici n'a de valeur légale.
-- `payment_schedule_items` : `company_id`, `project_id`, `quote_id`, `contract_id`, `label`, `due_on`, `amount_cents`, `status` (planned, invoiced, paid), `financial_document_id`.
-- `direct_costs` : `company_id`, `project_id`, `site_id`, `contract_id`, `member_id`, `label`, `category` (subcontracting, hosting, license, purchase, other), `amount_cents`, `incurred_on`, `recurring_period`, `nature` (forecast, actual).
+- `payment_schedule_items` : `company_id`, `project_id`, `quote_id`, `contract_id`, `label`, `due_on`, `amount_cents`, `status` (planned, invoiced, paid), `financial_document_id`, `archived_at`. Seule une échéance sans facture s'archive.
+- `direct_costs` : `company_id`, `project_id`, `site_id`, `contract_id`, `member_id`, `label`, `category` (subcontracting, hosting, license, purchase, other), `amount_cents`, `incurred_on`, `recurring_period`, `nature` (forecast, actual), `archived_at`.
 - `finance_imports` : `source`, `filename`, `rows_total`, `rows_created`, `rows_updated`, `rows_rejected`, `errors jsonb`, `actor_id`, `at`.
 
 ### Documents (`schema/documents.ts`)
@@ -119,7 +119,7 @@ Colonnes **(T)** : maîtres dans Twenty, écrites via `CrmGateway`, jamais modif
 - `messages` : `conversation_id`, `author_user_id`, `author_contact_id`, `direction` (inbound, outbound, internal), `body`, `mentions uuid[]`, `document_id`, `at`.
 - `reply_suggestions` : `conversation_id`, `message_id`, `body`, `status` (ready, used, dismissed, failed), `tone`, `context_summary`, `requested_by`, `error`. Jamais d'envoi automatique.
 - `comments` : `entity_type` (task, project, ticket, deliverable), `entity_id`, `parent_id`, `author_user_id`, `body`, `mentions uuid[]`, `document_id`, `archived_at`. Index `(entity_type, entity_id)`.
-- `appointments` : `company_id`, `contact_id`, `project_id`, `opportunity_id`, `title`, `kind`, `starts_at`, `duration_minutes`, `channel`, `location`, `member_ids uuid[]`, `source` (manual, cal), `external_id` unique, `status`.
+- `appointments` : `company_id`, `contact_id`, `project_id`, `opportunity_id`, `title`, `kind`, `starts_at`, `duration_minutes`, `channel`, `location`, `member_ids uuid[]`, `source` (manual, cal), `external_id` unique, `status`, `client_visible` (faux par défaut, Cal.diy compris : le portail ne lit que les rendez-vous cochés).
 
 ### Portail (`schema/portal.ts`)
 
@@ -180,14 +180,14 @@ getMargin(db, { scope: 'project' | 'client' | 'site' | 'contract'; id; period? }
 attachDocument(ctx, input): Promise<Document>
 assertDocumentReadable(ctx | portalCtx, documentId): Promise<Document>
 // src/modules/platform/events.ts
-emitEvent(tx, { type, entityType, entityId, companyId, payload, actorId, dedupeKey? }): Promise<void>
+emitEvent(tx, { type, entityType, entityId, companyId, payload, actorId, dedupeKey? }): Promise<boolean> // faux si `dedupeKey` existait déjà
 // src/modules/platform/notifications.service.ts
 notify(tx, { userIds | role, kind, severity, title, body, href, dedupeKey }): Promise<void>
 ```
 
 **Marge** : `marge HT = revenus HT attribués − coûts directs attribués`, coût du temps inclus (`minutes × hourly_cost_cents` figé). Prévisionnel et réalisé sont séparés. Tableau de bord, projet, fiche client et finances appellent `getMargin` et rien d'autre.
 
-**Événements** (`domain_events.type`) : `opportunity.created|stage_changed|won|lost`, `quote.sent|accepted|refused|expired`, `project.created|status_changed|delivered`, `task.overdue`, `deliverable.submitted|validated|changes_requested`, `site.live|down|up`, `deployment.finished`, `backup.failed`, `domain.expiring`, `contract.expiring|quota_80|quota_exceeded|terminated`, `ticket.created|critical|closed`, `budget.threshold_80`, `invoice.overdue|paid`, `message.received`.
+**Événements** (`domain_events.type`) : `opportunity.created|stage_changed|won|lost`, `quote.sent|accepted|refused|expired`, `project.created|status_changed|delivered|budget_raised`, `task.overdue`, `deliverable.submitted|validated|changes_requested`, `site.live|down|up`, `deployment.finished`, `backup.failed`, `domain.expiring`, `contract.expiring|quota_80|quota_exceeded|terminated`, `ticket.created|critical|closed`, `budget.threshold_80`, `invoice.overdue|paid`, `message.received`.
 
 Intégrations : `src/integrations/<service>/`. Chaque adaptateur a un `isConfigured`, lève `ServiceUnavailableError` (message français « connexion requise ») s'il ne l'est pas, et n'est appelé que par les services. Toute lecture externe porte sa date ; une donnée périmée s'affiche comme telle.
 
@@ -227,6 +227,12 @@ Un lot qui a besoin d'une évolution hors de ses chemins l'écrit dans son rappo
 Choix faits en construisant le schéma, là où le texte ci-dessus laissait une impasse. Ils font référence.
 
 **Transitions.** Devis : `sent → accepted/refused` direct (une signature DocuSeal ne passe pas par la négociation). Projet : `active ⇄ in_validation`. Contrat : `suspended → active/terminated`. Opportunité : `LOST` depuis toute étape ouverte, `WON` aussi depuis `QUOTE_SENT`. Machines : `src/modules/<domaine>/<x>.status.ts`, helper `src/server/status-machine.ts`.
+
+**Archivage.** Une échéance, un coût, un domaine, un jalon, un livrable, un contenu attendu ou un point de passation retiré garde sa ligne avec `archived_at` : toute lecture l'exclut, l'opération est auditée. Refus (`ConflictError`) quand quelque chose en dépend : échéance avec facture, jalon démarré ou portant tâches et livrables, livrable soumis ou relu, contenu reçu, point validé.
+
+**Documents de type facture.** Lisibles avec `finance:read` ou par la personne qui en a déposé une version ; sinon 404, en lecture comme en écriture. Le client lit ses factures partagées par le portail.
+
+**Avenant signé.** `raiseProjectBudgetFromAmendment`, dans la transaction de l'acceptation, augmente le budget et le temps prévus du projet du devis d'origine : une fois par devis (clé `project.budget_raised:<quoteId>`), sauf si `change_requests.budget_applied_at` dit que la demande liée les a déjà augmentés.
 
 **Échéances et factures.** Une échéance peut porter plusieurs factures (A12) : `financial_documents.schedule_item_id` fait foi, `payment_schedule_items.financial_document_id` désigne le document principal.
 

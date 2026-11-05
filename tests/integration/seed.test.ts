@@ -90,6 +90,20 @@ describe("seed", () => {
     }
   }, 120_000);
 
+  it("ne date aucune première réponse d'avant la création de la demande", async () => {
+    const rows = await db
+      .select({
+        createdAt: schema.tickets.createdAt,
+        firstResponseAt: schema.tickets.firstResponseAt,
+      })
+      .from(schema.tickets);
+    const answered = rows.filter((row) => row.firstResponseAt !== null);
+    expect(answered.length).toBeGreaterThan(0);
+    for (const row of answered) {
+      expect(row.firstResponseAt?.getTime()).toBeGreaterThanOrEqual(row.createdAt.getTime());
+    }
+  });
+
   it("donne à chaque étape, statut et catégorie de quoi tester les écrans", async () => {
     const stages = await db
       .select({ stage: schema.opportunities.stage })
