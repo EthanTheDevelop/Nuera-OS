@@ -34,8 +34,8 @@ Anomalies de maquette :
 - **15** : le bouton « Se connecter » est déclaré 392 px de large mais rendu en largeur du contenu. Le PNG fait foi.
 - **M2** : un graphique « Comparaison » reste dans les calques (`138:6547`) sous la courbe, sans être visible.
 
-Écran prototype : `59:481`, `C:\Users\nezar\AppData\Local\Temp\claude\4e43ccf3a5271a65\bbab9ebe-76a4-40f0-a57b-73707f412d28\scratchpad\figma\P1-prototype-tableau-de-bord-vivant.png`.
-Planches de composants : `C:\Users\nezar\AppData\Local\Temp\claude\4e43ccf3a5271a65\bbab9ebe-76a4-40f0-a57b-73707f412d28\scratchpad\figma\_components-app.png` et `C:\Users\nezar\AppData\Local\Temp\claude\4e43ccf3a5271a65\bbab9ebe-76a4-40f0-a57b-73707f412d28\scratchpad\figma\_components-tuiles-vivantes.png`.
+Écran prototype : `59:481`, `figma/P1-prototype-tableau-de-bord-vivant.png`.
+Planches de composants : `figma/_components-app.png` et `figma/_components-tuiles-vivantes.png`.
 
 ## 2. Cadres communs
 
@@ -153,7 +153,7 @@ Tous, sauf 15 : barre latérale 248 + contenu 1192. Largeurs de colonnes en px ;
 
 ### 01 · Tableau de bord (`58:152`)
 
-PNG : `C:\Users\nezar\AppData\Local\Temp\claude\4e43ccf3a5271a65\bbab9ebe-76a4-40f0-a57b-73707f412d28\scratchpad\figma\01-tableau-de-bord.png`
+PNG : `figma/01-tableau-de-bord.png`
 Route : `/`. Rôle : vue de l'agence, en tuiles redimensionnables.
 
 En-tête (`58:242`) : `ex. Bonjour Nezar` ; `ex. Mardi 3 novembre 2026 · l'agence aujourd'hui` ; badge Neutre « Données d'exemple » (à retirer en production). Actions : cloche → panneau de notifications (sans écran) ; « Modifier le tableau » → 06 ; « + Nouvelle affaire » → formulaire (sans écran).
@@ -180,7 +180,7 @@ Clic sur une tuile : vers l'écran du module (déduit). État mouvement : M1.
 
 ### 02 · Messages (`63:398`)
 
-PNG : `C:\Users\nezar\AppData\Local\Temp\claude\4e43ccf3a5271a65\bbab9ebe-76a4-40f0-a57b-73707f412d28\scratchpad\figma\02-messages.png`
+PNG : `figma/02-messages.png`
 Route : `/messages/[conversationId]`. Rôle : boîte unique avec réponses préparées par ChatGPT. Structure : 3 colonnes 340 + 552 + 300, plein hauteur.
 
 - **Conversations** (`63:497`) : titre « Messages », recherche « Chercher un client, un message… », filtres `Tous · ex. 4` (Accent), Clients, Prospects, `Réponse prête · ex. 3` (ChatGPT). Ligne : avatar, `ex. Claire · Atelier Lune`, heure mono, extrait, sparkle « Réponse suggérée » si prête (77 de haut, sinon 60). Ligne active : fond `--accent-pale`.
@@ -193,7 +193,7 @@ Règle produit : jamais d'envoi sans relecture (voir 05 et 12). Saisir `@` ouvre
 
 ### 03 · Pipeline (`65:542`)
 
-PNG : `C:\Users\nezar\AppData\Local\Temp\claude\4e43ccf3a5271a65\bbab9ebe-76a4-40f0-a57b-73707f412d28\scratchpad\figma\03-pipeline.png`
+PNG : `figma/03-pipeline.png`
 Route : `/pipeline`. Rôle : Kanban des affaires, cartes glissables.
 
 En-tête : « Pipeline », `ex. 21 affaires ouvertes · 85 800 € HT en jeu · glissez une carte pour changer d'étape`. Actions : « Filtrer » (panneau sans écran), « + Nouvelle affaire » (formulaire sans écran). Filtres : Tout (Accent), Ethan, Nezar, Origine : réseau, Origine : mini-audit, Origine : site.
@@ -212,7 +212,7 @@ Carte (172 de large) : client 14/600 ; offre 12 ; montant mono 13 (`ex. 7 800 �
 
 ### 04 · Fiche client (`66:704`)
 
-PNG : `C:\Users\nezar\AppData\Local\Temp\claude\4e43ccf3a5271a65\bbab9ebe-76a4-40f0-a57b-73707f412d28\scratchpad\figma\04-fiche-client.png`
+PNG : `figma/04-fiche-client.png`
 Route : `/clients/[id]`. Rôle : vue 360° d'un client. Structure : 768 + 20 + 340.
 
 Fil d'Ariane mono `Clients / ex. Atelier Lune`. En-tête : avatar 64, nom, badges `ex. Client · signé` (Succes), `ex. Fleuriste · Rouen` et `ex. Origine : réseau` (Neutre), `ex. Suivi par Ethan et Nezar` (Accent). Actions : « Inviter dans son espace » → envoi de C1 ; « Écrire » → 02.
@@ -225,7 +225,7 @@ Fil d'Ariane mono `Clients / ex. Atelier Lune`. En-tête : avatar 64, nom, badge
 
 ### 05 · Réglages · Connexions (`67:845`)
 
-PNG : `C:\Users\nezar\AppData\Local\Temp\claude\4e43ccf3a5271a65\bbab9ebe-76a4-40f0-a57b-73707f412d28\scratchpad\figma\05-reglages-connexions.png`
+PNG : `figma/05-reglages-connexions.png`
 Route : `/reglages/connexions`. Rôle : état des intégrations.
 
 Sous-titre : « Les outils branchés à Nuera OS. Tout tourne sur notre serveur, sauf ce que la loi impose (facturation, paiement) et ChatGPT. » Onglets : Agence, Associés, **Connexions** (actif), Modèles de messages, Espace client. Seul Connexions est dessiné.
@@ -249,7 +249,7 @@ Ces états doivent être réels : voir §7.
 
 ### 06 · Tableau de bord · mode édition (`67:1104`)
 
-PNG : `C:\Users\nezar\AppData\Local\Temp\claude\4e43ccf3a5271a65\bbab9ebe-76a4-40f0-a57b-73707f412d28\scratchpad\figma\06-tableau-de-bord-edition.png`
+PNG : `figma/06-tableau-de-bord-edition.png`
 Route : état de `/`. Rôle : réorganiser les tuiles.
 
 Différences avec 01 : sous-titre « Mode édition · glissez pour déplacer, la poignée change la taille, le rond retire la tuile » ; tuiles à bordure 2 px `--accent`, poignée bleue ; rond « Retirer » 24 en haut à gauche de chaque tuile (12 instances, `150:6913` à `150:6946`).
@@ -260,14 +260,14 @@ Le contenu de ces 8 tuiles n'est pas dessiné. Les boutons de l'en-tête (`67:11
 
 ### 07 · Clients (`87:1921`)
 
-PNG : `C:\Users\nezar\AppData\Local\Temp\claude\4e43ccf3a5271a65\bbab9ebe-76a4-40f0-a57b-73707f412d28\scratchpad\figma\07-clients.png`
+PNG : `figma/07-clients.png`
 Route : `/clients`. En-tête : « Clients », `ex. 12 clients · 4 prospects actifs · 3 abonnés`. Actions : « Importer », « + Nouveau client » (sans écran). Filtres : recherche + Tous, Clients, Prospects, Abonnés, Anciens.
 
 Tableau (`87:2049`, lignes 66) : CLIENT `flex` (avatar 32, société, contact · activité), STATUT 140, PROJET 170, MONTANT 130, ORIGINE 120, ASSOCIÉ 80. Statuts : Client (Succes), Abonné (Accent), Devis envoyé (Alerte), Prospect (Neutre). Ligne → 04.
 
 ### 08 · Projets (`87:2215`)
 
-PNG : `C:\Users\nezar\AppData\Local\Temp\claude\4e43ccf3a5271a65\bbab9ebe-76a4-40f0-a57b-73707f412d28\scratchpad\figma\08-projets.png`
+PNG : `figma/08-projets.png`
 Route : `/projets`. En-tête : « Projets », `ex. 4 projets · 1 en retard · charge 14 / 18 journées`. Actions : « Vue calendrier » (sans écran), « + Nouveau projet » (sans écran). Filtres : recherche + En cours (actif), À venir, Livrés, En retard.
 
 Tableau (`87:2341`, lignes 66) : PROJET `flex` (avatar, client, offre · durée), ÉTAPE 170 `ex. 2 · On démarre`, AVANCEMENT 150 (jauge + `ex. 5 / 12 j`), MISE EN LIGNE 110, STATUT 170, ÉQUIPE 80. Statuts : Contenus attendus (Alerte), Dans les temps (Succes), En retard · `ex. 2 j` (Danger), En attente (Neutre). Ligne → 17.
@@ -276,7 +276,7 @@ Carte « Charge sur 6 semaines · `ex.` 18 journées par semaine à deux » (`87
 
 ### 09 · Devis (`87:2469`)
 
-PNG : `C:\Users\nezar\AppData\Local\Temp\claude\4e43ccf3a5271a65\bbab9ebe-76a4-40f0-a57b-73707f412d28\scratchpad\figma\09-devis.png`
+PNG : `figma/09-devis.png`
 Route : `/devis/[id]`, liste + détail côte à côte. Structure : 668 + 20 + 440. En-tête : « Devis », `ex. 2 à signer · 3 signés ce mois · 35 750 € HT`. Action : « + Nouveau devis ». Filtres : recherche + Tous, Brouillons, Envoyés, Signés, Refusés.
 
 Tableau (`87:2595`, lignes 66) : DEVIS 280 (avatar, référence, client · offre), MONTANT 90, STATUT 130, ENVOYÉ 80. Statuts : Signé (Succes), Relance J+3 (Alerte), Brouillon (Neutre).
@@ -287,14 +287,14 @@ Aucun champ de saisie n'est dessiné, malgré le nom « Éditeur ».
 
 ### 10 · Sites et CMS (`87:2699`)
 
-PNG : `C:\Users\nezar\AppData\Local\Temp\claude\4e43ccf3a5271a65\bbab9ebe-76a4-40f0-a57b-73707f412d28\scratchpad\figma\10-sites-cms.png`
+PNG : `figma/10-sites-cms.png`
 Route : `/sites`. En-tête : « Sites et CMS », `ex. 4 sites · 3 en ligne · 1 en préproduction`. Actions : « Ouvrir Coolify » (console externe), « + Nouveau site » (sans écran). Filtres : recherche + Tous, En ligne, Préprod, Hébergés par nous.
 
 Grille 2 colonnes de cartes 552 × 319, gap 24. Carte : aperçu 504 × 120 `--accent-pale` avec domaine mono (pas de vraie capture) ; domaine ; `ex. Atelier Lune · Payload · 12 pages` ; badge En ligne (Succes) ou Préprod (Alerte) ; `icon/server` Disponibilité ; `icon/link` hébergement. Actions : « Ouvrir le CMS », « Voir le site ». Clic sur la carte → 19.
 
 ### 11 · Support (`88:2147`)
 
-PNG : `C:\Users\nezar\AppData\Local\Temp\claude\4e43ccf3a5271a65\bbab9ebe-76a4-40f0-a57b-73707f412d28\scratchpad\figma\11-support.png`
+PNG : `figma/11-support.png`
 Route : `/support`. En-tête : « Demandes et support », `ex. 2 ouvertes · 1 à valider · délai moyen de réponse 4 h`. Action : « + Nouvelle demande ».
 
 Kanban 4 colonnes 264 × 983, gap 24, sans défilement : Reçue (point `--accent`), En cours (`warn`), À valider (`chatgpt`), Faite (`success`), avec compteur.
@@ -303,7 +303,7 @@ Carte (230) : client ; badge de gravité (Gravité faible Neutre, moyenne Alerte
 
 ### 12 · Automatisations (`88:2315`)
 
-PNG : `C:\Users\nezar\AppData\Local\Temp\claude\4e43ccf3a5271a65\bbab9ebe-76a4-40f0-a57b-73707f412d28\scratchpad\figma\12-automatisations.png`
+PNG : `figma/12-automatisations.png`
 Route : `/automatisations`. En-tête : « Automatisations », « Ce que Nuera OS fait toute seule · Twenty d'abord, n8n quand plusieurs outils sont en jeu ». Action : « + Nouvelle règle » (sans écran).
 
 7 cartes 1128 × 88, gap 24 : pastille d'icône, « Quand » / « Alors » (mono), badge d'outil, compteur, interrupteur.
@@ -320,7 +320,7 @@ Route : `/automatisations`. En-tête : « Automatisations », « Ce que Nuera OS
 
 ### 13 · Menu du profil, ouvert (`88:2543`)
 
-PNG : `C:\Users\nezar\AppData\Local\Temp\claude\4e43ccf3a5271a65\bbab9ebe-76a4-40f0-a57b-73707f412d28\scratchpad\figma\13-menu-profil.png`
+PNG : `figma/13-menu-profil.png`
 Route : aucune, s'ouvre au-dessus de l'écran courant depuis le bloc utilisateur. Voile `--near-black` 25 %, clic = fermeture.
 
 Menu (`88:2784`, 300 × 406, à `x=16, y=608`) : avatar, `ex. Nezar Zakaria`, `ex. nezar@nuera.studio · associé`, puis :
@@ -338,7 +338,7 @@ Menu (`88:2784`, 300 × 406, à `x=16, y=608`) : avatar, `ex. Nezar Zakaria`, `e
 
 ### 14 · Personnaliser son profil (`88:2840`)
 
-PNG : `C:\Users\nezar\AppData\Local\Temp\claude\4e43ccf3a5271a65\bbab9ebe-76a4-40f0-a57b-73707f412d28\scratchpad\figma\14-personnaliser-profil.png`
+PNG : `figma/14-personnaliser-profil.png`
 Route : `/profil`. Titre affiché « Mon profil », « Ce que vous voyez, et comment Nuera OS vous prévient ». Action : « Enregistrer ». Structure : 688 + 20 + 420.
 
 - **Identité** (`88:2950`) : avatar, nom, `ex. Co-fondateur · business, international, technique`, « Changer la photo ».
@@ -349,7 +349,7 @@ Route : `/profil`. Titre affiché « Mon profil », « Ce que vous voyez, et com
 
 ### 15 · Connexion de l'équipe (`88:3060`)
 
-PNG : `C:\Users\nezar\AppData\Local\Temp\claude\4e43ccf3a5271a65\bbab9ebe-76a4-40f0-a57b-73707f412d28\scratchpad\figma\15-connexion-equipe.png`
+PNG : `figma/15-connexion-equipe.png`
 Route : `/login` (existe déjà). Fond `--near-black` plein écran, sans barre latérale.
 
 Carte blanche `88:3061` (440 × 475, rayon ≈ 20, centrée) : logo papier dans un cartouche sombre 200 × 52 ; « Espace de l'agence » ; « Réservé à Ethan et Nezar. » ; champs E-mail, Mot de passe ; bouton Accent « Se connecter » → `/` ; note « Double authentification demandée à chaque nouvel appareil. »
@@ -358,7 +358,7 @@ Non dessinés : écran du second facteur, mot de passe oublié, erreur d'identif
 
 ### 16 · Reporting (`100:4397`)
 
-PNG : `C:\Users\nezar\AppData\Local\Temp\claude\4e43ccf3a5271a65\bbab9ebe-76a4-40f0-a57b-73707f412d28\scratchpad\figma\16-reporting.png`
+PNG : `figma/16-reporting.png`
 Route : `/reporting`. En-tête : « Reporting », `ex. Novembre 2026 comparé à octobre` + « données d'exemple » (à retirer). Actions : « Ce mois ▾ » (sélecteur), « Exporter ». Structure : KPI puis 748 + 20 + 360.
 
 **4 cartes KPI qui sont des onglets** [note] (trait actif 3 px `--text` en bas, `142:6898`) : Chiffre d'affaires, Revenus récurrents → M2 [note], Marge estimée, Conversion.
@@ -370,7 +370,7 @@ Route : `/reporting`. En-tête : « Reporting », `ex. Novembre 2026 comparé à
 
 ### 17 · Projet · Atelier Lune (`100:4782`)
 
-PNG : `C:\Users\nezar\AppData\Local\Temp\claude\4e43ccf3a5271a65\bbab9ebe-76a4-40f0-a57b-73707f412d28\scratchpad\figma\17-projet-detail.png`
+PNG : `figma/17-projet-detail.png`
 Route : `/projets/[id]`. En-tête : `ex. Atelier Lune · Site vitrine`, `ex. Projet P-2026-007 · 7 800 € HT · Ethan et Nezar · mise en ligne prévue le 18 nov.` Actions : « Ouvrir l'espace client » → C3 vu par l'agence ; « Ajouter une tâche » (sans écran). Badges : `ex. En cours` (Accent), `ex. Bloqué · contenus attendus` (Alerte), `ex. Offre D-2026-014 acceptée` (Neutre, → 09).
 
 - **Jalons** (`100:4951`, pleine largeur, `ex. 5 étapes`) : Cadrage, Design, Développement, Recette, Mise en ligne, avec date · état. Case verte fait, bleue en cours, sans fond à venir.
@@ -383,7 +383,7 @@ Route : `/projets/[id]`. En-tête : `ex. Atelier Lune · Site vitrine`, `ex. Pro
 
 ### 18 · Temps et capacité (`100:5170`)
 
-PNG : `C:\Users\nezar\AppData\Local\Temp\claude\4e43ccf3a5271a65\bbab9ebe-76a4-40f0-a57b-73707f412d28\scratchpad\figma\18-temps-capacite.png`
+PNG : `figma/18-temps-capacite.png`
 Route : `/temps`. En-tête : « Temps et capacité », `ex. Semaine 45 · 18 journées disponibles par semaine à deux`. Actions : « Saisir du temps » (sans écran), « Simuler un projet » (→ carte Simuler). Structure : KPI puis 728 + 20 + 380.
 
 KPI : Temps saisi cette semaine, Charge du mois, Prévu / réel, Non facturable.
@@ -396,7 +396,7 @@ KPI : Temps saisi cette semaine, Charge du mois, Prévu / réel, Non facturable.
 
 ### 19 · Site · kine-rive-gauche.fr (`100:5562`)
 
-PNG : `C:\Users\nezar\AppData\Local\Temp\claude\4e43ccf3a5271a65\bbab9ebe-76a4-40f0-a57b-73707f412d28\scratchpad\figma\19-site-detail.png`
+PNG : `figma/19-site-detail.png`
 Route : `/sites/[id]`. En-tête : domaine, `ex. Kiné Rive Gauche · site vitrine · Payload · hébergé par Nuera (NUERA-PROD-01)`. Actions : « Ouvrir dans Coolify » (externe), « Déployer ». Badges : `ex. Production · opérationnel` (Succes), `ex. Staging · kine.staging.nuera.studio`, `ex. Dépôt GitHub · main` (Neutre). Structure : KPI puis 728 + 20 + 380.
 
 KPI : Disponibilité 30 jours, Dernier déploiement, Dernière sauvegarde, Domaine · expiration.
@@ -411,7 +411,7 @@ KPI : Disponibilité 30 jours, Dernier déploiement, Dernière sauvegarde, Domai
 
 ### 20 · Contrats et abonnements (`100:5932`)
 
-PNG : `C:\Users\nezar\AppData\Local\Temp\claude\4e43ccf3a5271a65\bbab9ebe-76a4-40f0-a57b-73707f412d28\scratchpad\figma\20-contrats-abonnements.png`
+PNG : `figma/20-contrats-abonnements.png`
 Route : `/contrats`. En-tête : « Contrats et abonnements », `ex. 3 contrats actifs · 1 398 € par mois · 1 renouvellement dans 30 jours`. Action : « + Nouveau contrat » (sans écran).
 
 KPI : Revenus récurrents, Contrats actifs, À renouveler (30 j), Forfaits consommés.
@@ -424,7 +424,7 @@ Tableau (`100:6105`, 1128, lignes 45) : CONTRAT 358, TYPE 170, PRIX 120, PÉRIOD
 
 ### 21 · Finances et rentabilité (`101:5299`)
 
-PNG : `C:\Users\nezar\AppData\Local\Temp\claude\4e43ccf3a5271a65\bbab9ebe-76a4-40f0-a57b-73707f412d28\scratchpad\figma\21-finances-rentabilite.png`
+PNG : `figma/21-finances-rentabilite.png`
 Route : `/finances`. En-tête : « Finances et rentabilité », « Les factures officielles restent dans Indy · Nuera OS lit leurs références et leurs états ». Actions : « Ouvrir Indy » (externe), « Exporter ». Structure : KPI puis 728 + 20 + 380.
 
 KPI : Encaissé ce mois, À encaisser, En retard, Marge réelle moyenne.
@@ -435,7 +435,7 @@ KPI : Encaissé ce mois, À encaisser, En retard, Marge réelle moyenne.
 
 ### 22 · Équipe (`101:5672`)
 
-PNG : `C:\Users\nezar\AppData\Local\Temp\claude\4e43ccf3a5271a65\bbab9ebe-76a4-40f0-a57b-73707f412d28\scratchpad\figma\22-equipe.png`
+PNG : `figma/22-equipe.png`
 Route : `/equipe`. En-tête : « Équipe », « Deux associés · qui fait quoi, et qui est disponible ». Action : « Affecter une mission » (sans écran).
 
 - 2 cartes 552 × 214 : avatar 56, nom, fonction, 4 badges de compétence (Accent), Disponibilité, jauge (`warn` si pleine), `ex. Ce mois : 4 / 4 j vendues`.
@@ -444,7 +444,7 @@ Route : `/equipe`. En-tête : « Équipe », « Deux associés · qui fait quoi,
 
 ### 23 · Documents et connaissances (`101:5945`)
 
-PNG : `C:\Users\nezar\AppData\Local\Temp\claude\4e43ccf3a5271a65\bbab9ebe-76a4-40f0-a57b-73707f412d28\scratchpad\figma\23-documents-connaissances.png`
+PNG : `figma/23-documents-connaissances.png`
 Route : `/documents`. En-tête : « Documents et connaissances », « Documents clients et projets, modèles, procédures · recherche par client, projet ou contrat ». Actions : « Nouveau modèle », « + Ajouter un document » (sans écran). Recherche pleine largeur. Structure : 728 + 20 + 380.
 
 - **Documents** (`101:6112`, lignes 45) : DOCUMENT 154, LIÉ À 150, VERSION 90, PARTAGE 120, MODIFIÉ 110. Partage : Interne (Neutre), Partagé client (Accent).
@@ -454,7 +454,7 @@ Route : `/documents`. En-tête : « Documents et connaissances », « Documents 
 
 ### 24 · Administration et sécurité (`101:6288`)
 
-PNG : `C:\Users\nezar\AppData\Local\Temp\claude\4e43ccf3a5271a65\bbab9ebe-76a4-40f0-a57b-73707f412d28\scratchpad\figma\24-administration-securite.png`
+PNG : `figma/24-administration-securite.png`
 Route : `/administration`. En-tête : « Administration et sécurité », « Comptes, rôles, journal des actions sensibles, connexions et export des données ». Actions : « Exporter les données », « + Inviter un utilisateur » (sans écran). Structure : 728 + 20 + 380.
 
 - **Utilisateurs** (`101:6450`, lignes 49) : UTILISATEUR 210, RÔLE 150 (Associé · admin Accent, Client · portail Neutre), DOUBLE AUTH. 130 (Activée Succes, Lien e-mail Neutre), DERNIÈRE CONNEXION 150.
@@ -477,14 +477,14 @@ Route : `/administration`. En-tête : « Administration et sécurité », « Com
 
 ### C1 · E-mail d'invitation (`68:1215`, 1000 × 1120)
 
-PNG : `C:\Users\nezar\AppData\Local\Temp\claude\4e43ccf3a5271a65\bbab9ebe-76a4-40f0-a57b-73707f412d28\scratchpad\figma\C1-email-invitation.png`
+PNG : `figma/C1-email-invitation.png`
 Pas de route : modèle d'e-mail. Le haut du cadre (objet, De, À) n'est qu'une présentation.
 
 Objet : « Votre espace projet Nuera est prêt ». De : `Nuera Studio <bonjour@nuera.studio>`. Corps 600 de large (`68:1220`), bordure, rayon ≈ 20 : bandeau `--near-black` + logo papier ; « Bonjour `ex. Claire`, » ; texte d'accueil ; bouton Accent « Accéder à mon espace » → C3, connexion directe ; « Pas de mot de passe à retenir : ce bouton vous connecte directement. Il reste valable 24 heures ; ensuite, demandez un nouveau lien depuis la page de connexion. » ; avatars, « Ethan et Nezar », « Nuera Studio · les deux mêmes personnes, du début à la fin » ; pied « Vous recevez ce message parce qu'un projet est en cours avec Nuera Studio. app.nuera.studio ». Lien expiré → C9.
 
 ### C2 · Connexion (`68:1252`)
 
-PNG : `C:\Users\nezar\AppData\Local\Temp\claude\4e43ccf3a5271a65\bbab9ebe-76a4-40f0-a57b-73707f412d28\scratchpad\figma\C2-connexion.png`
+PNG : `figma/C2-connexion.png`
 Route : `/espace/connexion`. Structure : 620 + 820.
 
 - Gauche, `--near-black` : logo papier ; « Votre projet, au même endroit. » ; texte ; 3 puces.
@@ -494,7 +494,7 @@ Non dessinés : erreur de format, adresse inconnue. Ne pas révéler si une adre
 
 ### C3 · Mon projet (`69:1290`, 1440 × 1286)
 
-PNG : `C:\Users\nezar\AppData\Local\Temp\claude\4e43ccf3a5271a65\bbab9ebe-76a4-40f0-a57b-73707f412d28\scratchpad\figma\C3-mon-projet.png`
+PNG : `figma/C3-mon-projet.png`
 Route : `/espace`. Capsule : Mon projet.
 
 - **En-tête** (`155:6966`) : `ex. Bonjour Claire` 44/700 ; chapô écrit selon l'étape ; à droite « Mise en ligne prévue », `ex. 18 novembre` 36/700, point `success` `ex. Dans 15 jours · dans les temps`.
@@ -508,7 +508,7 @@ Route : `/espace`. Capsule : Mon projet.
 
 ### C4 · Messages (`69:1456`)
 
-PNG : `C:\Users\nezar\AppData\Local\Temp\claude\4e43ccf3a5271a65\bbab9ebe-76a4-40f0-a57b-73707f412d28\scratchpad\figma\C4-messages.png`
+PNG : `figma/C4-messages.png`
 Route : `/espace/messages`. Capsule : Messages. Structure : 1016 + 24 + 320.
 
 - **Conversation** (`69:1487`) : avatars, « Ethan et Nezar », « Réponse en général dans la journée ouvrée » ; séparateurs de jour (badge Neutre) ; messages reçus à gauche (avatar, bulle à bordure, pièce jointe, signature), envoyés à droite (bulle `--accent`, « Vous · heure »).
@@ -517,14 +517,14 @@ Route : `/espace/messages`. Capsule : Messages. Structure : 1016 + 24 + 320.
 
 ### C5 · Menu du profil (`89:2847`, 1440 × 1286)
 
-PNG : `C:\Users\nezar\AppData\Local\Temp\claude\4e43ccf3a5271a65\bbab9ebe-76a4-40f0-a57b-73707f412d28\scratchpad\figma\C5-menu-profil.png`
+PNG : `figma/C5-menu-profil.png`
 Route : aucune, au-dessus de C3. Menu `89:2923`, 300 × 285, à `x=1100, y=96`.
 
 Avatar, nom, e-mail ; Mon profil → C8 ; Notifications par e-mail (badge Succes `ex. Activées`) → C8 ; Mon site en ligne → site public ; Écrire à Ethan et Nezar → C4 ; Se déconnecter (`danger`) → C2.
 
 ### C6 · Documents (`89:2959`, 1440 × 764)
 
-PNG : `C:\Users\nezar\AppData\Local\Temp\claude\4e43ccf3a5271a65\bbab9ebe-76a4-40f0-a57b-73707f412d28\scratchpad\figma\C6-documents.png`
+PNG : `figma/C6-documents.png`
 Route : `/espace/documents`. Titre « Vos documents », « Tout ce que nous avons échangé, au même endroit ». Action : « Tout télécharger » (Secondaire). Filtres : Tous, Devis et contrats, Factures, Maquettes, Vos fichiers.
 
 Grille 4 colonnes de cartes 322 × 203, gap 24 : icône, titre, détail, badge. Clic → téléchargement (déduit).
@@ -540,7 +540,7 @@ Grille 4 colonnes de cartes 322 × 203, gap 24 : icône, titre, détail, badge. 
 
 ### C7 · Mon site (`89:3099`, 1440 × 745)
 
-PNG : `C:\Users\nezar\AppData\Local\Temp\claude\4e43ccf3a5271a65\bbab9ebe-76a4-40f0-a57b-73707f412d28\scratchpad\figma\C7-mon-site.png`
+PNG : `figma/C7-mon-site.png`
 Route : `/espace/mon-site`. Titre « Mon site », `ex. atelier-lune.fr · en préproduction · mise en ligne le 18 novembre`. Action : « Voir mon site » (Principal). Structure : 856 + 24 + 480.
 
 - **Modifier mon site** (`89:3160`) : « Cliquez sur un texte ou une photo de votre site, proposez le changement, et nous l'appliquons. Le design reste protégé. » Illustration (`89:3163`) : élément à contour pointillé bleu, bulle « Votre nouvelle version », « Envoyer la demande » (Principal), « Annuler » (Discret). Puis « Ouvrir le mode Modifier » (Secondaire).
@@ -551,7 +551,7 @@ Une demande envoyée crée une carte « Reçue » dans 11. Le mode Modifier sur 
 
 ### C8 · Mon profil (`89:3204`, 1440 × 811)
 
-PNG : `C:\Users\nezar\AppData\Local\Temp\claude\4e43ccf3a5271a65\bbab9ebe-76a4-40f0-a57b-73707f412d28\scratchpad\figma\C8-mon-profil.png`
+PNG : `figma/C8-mon-profil.png`
 Route : `/espace/profil`. Capsule : Aucun. Titre « Mon profil », « Vos informations et la façon dont nous vous prévenons ». Action : « Enregistrer » (Principal). Structure : 856 + 24 + 480.
 
 - **Mes informations** (`89:3265`) : avatar 64, « Changer la photo » ; champs Nom, Entreprise, E-mail de connexion, Téléphone.
@@ -560,7 +560,7 @@ Route : `/espace/profil`. Capsule : Aucun. Titre « Mon profil », « Vos inform
 
 ### C9 · Lien expiré (`89:3326`)
 
-PNG : `C:\Users\nezar\AppData\Local\Temp\claude\4e43ccf3a5271a65\bbab9ebe-76a4-40f0-a57b-73707f412d28\scratchpad\figma\C9-lien-expire.png`
+PNG : `figma/C9-lien-expire.png`
 Route : `/espace/lien-expire`. Fond blanc, sans capsule. Carte centrée `89:3327`, 480 × 423, bordure : logo encre, horloge `warn`, « Ce lien a expiré », « Pour votre sécurité, un lien de connexion n'est valable que 24 heures. Demandez-en un nouveau : il arrive en quelques secondes. », « Recevoir un nouveau lien » (Principal), « Vous avez été déconnectée ? Même chemin : un nouveau lien suffit. » Le texte est genré : à neutraliser.
 
 ## 6. Mouvement
@@ -569,12 +569,12 @@ Sous-titre de la section (`142:6909`) : « Chaque écran M montre un instant d'u
 
 ### Instants figés
 
-| Écran                                                           | Node       | PNG                                                                                                                                                   |
-| --------------------------------------------------------------- | ---------- | ----------------------------------------------------------------------------------------------------------------------------------------------------- |
-| M1 · 01 Tableau de bord · arrivée, instant 0,9 s                | `138:6073` | `C:\Users\nezar\AppData\Local\Temp\claude\4e43ccf3a5271a65\bbab9ebe-76a4-40f0-a57b-73707f412d28\scratchpad\figma\M1-tableau-de-bord-arrivee.png`      |
-| M2 · 16 Reporting · onglet Revenus récurrents, survol d'octobre | `138:6515` | `C:\Users\nezar\AppData\Local\Temp\claude\4e43ccf3a5271a65\bbab9ebe-76a4-40f0-a57b-73707f412d28\scratchpad\figma\M2-reporting-revenus-recurrents.png` |
-| M3 · 19 Site · fenêtre Santé du site ouverte                    | `141:6485` | `C:\Users\nezar\AppData\Local\Temp\claude\4e43ccf3a5271a65\bbab9ebe-76a4-40f0-a57b-73707f412d28\scratchpad\figma\M3-site-sante-fenetre.png`           |
-| M4 · 17 Projet · tâche ouverte, commentaire avec mention        | `141:6999` | `C:\Users\nezar\AppData\Local\Temp\claude\4e43ccf3a5271a65\bbab9ebe-76a4-40f0-a57b-73707f412d28\scratchpad\figma\M4-projet-tache-commentaire.png`     |
+| Écran                                                           | Node       | PNG                                         |
+| --------------------------------------------------------------- | ---------- | ------------------------------------------- |
+| M1 · 01 Tableau de bord · arrivée, instant 0,9 s                | `138:6073` | `figma/M1-tableau-de-bord-arrivee.png`      |
+| M2 · 16 Reporting · onglet Revenus récurrents, survol d'octobre | `138:6515` | `figma/M2-reporting-revenus-recurrents.png` |
+| M3 · 19 Site · fenêtre Santé du site ouverte                    | `141:6485` | `figma/M3-site-sante-fenetre.png`           |
+| M4 · 17 Projet · tâche ouverte, commentaire avec mention        | `141:6999` | `figma/M4-projet-tache-commentaire.png`     |
 
 Ces cadres contiennent aussi les **seuls dessins** de ces éléments :
 
