@@ -10,6 +10,7 @@
   "scripts": {
     "dev": "next dev",
     "build": "next build",
+    "build:cli": "node scripts/build-cli.mjs",
     "start": "next start",
     "lint": "eslint .",
     "typecheck": "tsc --noEmit",
@@ -21,6 +22,7 @@
     "test:live": "vitest run --mode live",
     "check": "npm run format:check && npm run lint && npm run typecheck && npm run test",
     "db:generate": "drizzle-kit generate",
+    "db:check": "drizzle-kit check && node scripts/check-migrations.mjs",
     "db:migrate": "tsx --conditions=react-server --env-file-if-exists=.env scripts/db-migrate.ts",
     "db:seed": "tsx --conditions=react-server --env-file-if-exists=.env scripts/db-seed.ts",
     "db:studio": "drizzle-kit studio",
@@ -53,6 +55,7 @@
     "@types/react": "19.3.0",
     "@types/react-dom": "19.3.0",
     "drizzle-kit": "0.31.11",
+    "esbuild": "0.28.2",
     "eslint": "9.39.5",
     "eslint-config-next": "16.4.2",
     "prettier": "3.9.10",

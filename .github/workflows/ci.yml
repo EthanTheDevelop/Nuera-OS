@@ -1,4 +1,5 @@
-# Contrôles qualité à chaque push sur main et à chaque pull request.
+# Contrôles qualité à chaque push sur main / staging et à chaque pull request.
+# Le déploiement n'est PAS fait ici : Coolify construit l'image à partir de la branche.
 #
 # Sécurité de la chaîne logicielle : la politique impose détection de secrets
 # (Gitleaks) et SBOM / analyse de vulnérabilités (Grype), avec règles de blocage
@@ -9,7 +10,7 @@ name: CI
 
 on:
   push:
-    branches: [main]
+    branches: [main, staging]
   pull_request:
 
 permissions:
@@ -38,6 +39,17 @@ jobs:
       - run: npm run lint
       - run: npm run typecheck
       - run: npm test
-      - name: Vérifier que le schéma et les migrations sont synchronisés
-        run: npx drizzle-kit check
+      - name: Vérifier les migrations (synchronisées avec le schéma, non destructives)
+        run: npm run db:check
       - run: npm run build
+      - run: npm run build:cli
+
+  # Même image que celle construite par Coolify : détecte au plus tôt un Dockerfile cassé.
+  docker:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803 # v6.1.0
+        with:
+          persist-credentials: false
+      - run: docker build --tag nuera-os:ci .
