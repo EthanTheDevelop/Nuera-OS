@@ -1,6 +1,8 @@
 import "server-only";
+import { eq } from "drizzle-orm";
 import { betterAuth } from "better-auth";
 import { drizzleAdapter } from "better-auth/adapters/drizzle";
+import { APIError, createAuthMiddleware, getSessionFromCtx, isAPIError } from "better-auth/api";
 import { nextCookies } from "better-auth/next-js";
 import { createAccessControl } from "better-auth/plugins/access";
 import { admin } from "better-auth/plugins/admin";
@@ -61,6 +63,53 @@ const CLOSED_ADMIN_PATHS = [
   "update-user",
 ].map((path) => `/admin/${path}`);
 
+/**
+ * Tout ce que l'interface n'appelle pas est fermé, pour qu'une session ne puisse pas s'en servir :
+ * `/update-user` écrivait un nom et une image sans validation ni journal, `/list-sessions` et
+ * `/get-session` rendaient au script les jetons que le cookie `HttpOnly` protège. La lecture de la
+ * session passe par `auth.api`, que `disabledPaths` ne filtre pas. `tests/integration/security`
+ * échoue si une mise à jour de better-auth ajoute une route qui n'est classée nulle part.
+ *
+ * `/callback/:id` n'est pas fermable ainsi (`disabledPaths` compare le chemin exact) : sans fournisseur
+ * configuré, cette route ne fait que renvoyer vers la page d'erreur.
+ */
+const CLOSED_UNUSED_PATHS = [
+  "/account-info",
+  "/change-email",
+  "/delete-user",
+  "/delete-user/callback",
+  "/get-access-token",
+  "/get-session",
+  "/link-social",
+  "/list-accounts",
+  "/list-sessions",
+  "/refresh-token",
+  "/revoke-other-sessions",
+  "/revoke-session",
+  "/revoke-sessions",
+  "/send-verification-email",
+  "/sign-in/social",
+  "/sign-up/email",
+  "/two-factor/generate-backup-codes",
+  "/two-factor/get-totp-uri",
+  "/two-factor/send-otp",
+  "/two-factor/verify-otp",
+  "/unlink-account",
+  "/update-session",
+  "/update-user",
+  "/verify-email",
+  "/verify-password",
+];
+
+export const CLOSED_AUTH_PATHS = [...CLOSED_ADMIN_PATHS, ...CLOSED_UNUSED_PATHS];
+
+/** Échecs de connexion comptés dans les journaux : un pic se voit, sans l'adresse visée. */
+const CREDENTIAL_PATHS = new Set([
+  "/sign-in/email",
+  "/two-factor/verify-totp",
+  "/two-factor/verify-backup-code",
+]);
+
 const authRoles = Object.fromEntries(
   ROLES.map((role) => [role, role === "admin" ? accountAdministrator : noAccountAdministration]),
 ) as Record<Role, typeof noAccountAdministration>;
@@ -73,6 +122,11 @@ export interface AuthOptions {
   sendMagicLink?: MagicLinkSender;
   /** Appelé après le dépôt d'un e-mail de connexion, pour ne pas attendre la tâche planifiée. */
   onMailQueued?: () => void;
+  /**
+   * Un client entre par son lien, jamais par un mot de passe : refus par défaut. Vrai seulement hors
+   * production, où les comptes clients du seed ont un mot de passe pour les parcours de test.
+   */
+  allowClientPassword?: boolean;
 }
 
 /** Journal d'une opération de sécurité : une erreur est tracée, jamais propagée à la connexion. */
@@ -84,7 +138,14 @@ async function auditQuietly(db: Database, event: Parameters<typeof recordAudit>[
   }
 }
 
-export function buildAuth({ db, secret, baseURL, sendMagicLink, onMailQueued }: AuthOptions) {
+export function buildAuth({
+  db,
+  secret,
+  baseURL,
+  sendMagicLink,
+  onMailQueued,
+  allowClientPassword = false,
+}: AuthOptions) {
   const outboxSender = createOutboxMagicLinkSender(db);
   const magicLinkSender: MagicLinkSender =
     sendMagicLink ??
@@ -98,7 +159,43 @@ export function buildAuth({ db, secret, baseURL, sendMagicLink, onMailQueued }: 
     baseURL,
     secret,
     trustedOrigins: [baseURL],
-    disabledPaths: CLOSED_ADMIN_PATHS,
+    disabledPaths: CLOSED_AUTH_PATHS,
+    hooks: {
+      before: createAuthMiddleware(async (ctx) => {
+        if (ctx.path === "/sign-out") {
+          const current = await getSessionFromCtx(ctx);
+          if (current) {
+            await auditQuietly(db, {
+              actorId: current.user.id,
+              action: "auth.signed_out",
+              entityType: "user",
+              entityId: current.user.id,
+            });
+          }
+          return;
+        }
+        if (ctx.path !== "/sign-in/email" || allowClientPassword) return;
+        const { email, password } = (ctx.body ?? {}) as { email?: unknown; password?: unknown };
+        if (typeof email !== "string" || typeof password !== "string") return;
+        const [user] = await db
+          .select({ role: users.role })
+          .from(users)
+          .where(eq(users.email, email.trim().toLowerCase()))
+          .limit(1);
+        if (user?.role !== "client") return;
+        // Même réponse et même coût qu'un mauvais mot de passe : l'adresse n'est pas révélée.
+        await ctx.context.password.hash(password);
+        throw new APIError("UNAUTHORIZED", {
+          message: "Invalid email or password",
+          code: "INVALID_EMAIL_OR_PASSWORD",
+        });
+      }),
+      after: createAuthMiddleware(async (ctx) => {
+        if (CREDENTIAL_PATHS.has(ctx.path) && isAPIError(ctx.context.returned)) {
+          logger.warn("auth.sign_in_failed", { path: ctx.path });
+        }
+      }),
+    },
     database: drizzleAdapter(db, {
       provider: "pg",
       schema: {
@@ -239,6 +336,7 @@ export function getAuth(): Auth {
       secret: env.BETTER_AUTH_SECRET,
       baseURL: env.BETTER_AUTH_URL,
       onMailQueued: () => kickEmailOutbox(getDb()),
+      allowClientPassword: env.NODE_ENV !== "production",
     });
   }
   return globalForAuth.__nueraAuth;
