@@ -89,7 +89,7 @@ export const config = {
   matcher: [
     {
       // Tout sauf l'API (auth, healthcheck), les fichiers statiques, le logo et les icônes.
-      source: "/((?!api|_next/static|_next/image|brand/|favicon.ico).*)",
+      source: "/((?!api|_next/static|_next/image|brand/|favicon.ico|icon.svg).*)",
       missing: [
         { type: "header", key: "next-router-prefetch" },
         { type: "header", key: "purpose", value: "prefetch" },
