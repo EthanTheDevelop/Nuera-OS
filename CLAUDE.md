@@ -41,6 +41,10 @@ Node 24 obligatoire (`engine-strict`). Docker pour PostgreSQL et Twenty en local
 - Twenty : une fiche archivée garde son domaine ou son e-mail réservé. Sur `CrmDuplicateError`, proposer la restauration ou la fusion, jamais une recréation.
 - Twenty : téléphones au format E.164. Fusion irréversible pour la fiche perdante : confirmation explicite et audit.
 - Tests de service : `tests/helpers/fake-crm-gateway.ts`, contrôlé contre la vraie instance par `npm run test:live`.
+- Image Docker : `wget` sans `curl`, et `http://localhost:3000` y répond « connexion refusée ». Sondes et tâches sur `127.0.0.1`.
+- Migrations : `npm run db:check` refuse toute instruction destructive sans `-- migration-destructive: <raison>`. Ne jamais modifier une migration déjà appliquée.
+- Restauration : `scripts/restore.sh` en root sur un volume, sinon l'application ne peut plus y déposer de fichier. Essai jetable uniquement, jamais la base de développement.
+- Déploiement : `docs/deployment-coolify.md` fait foi. Sauvegarde : `docs/ops/sauvegarde-restauration.md`.
 
 Formulaires :
 

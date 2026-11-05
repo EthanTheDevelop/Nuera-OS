@@ -1,6 +1,6 @@
 # État d'avancement
 
-Reprise après interruption : lire ce fichier, `CLAUDE.md`, puis `docs/domain-model.md`. Branche : `feat/create-nuera-os`, locale, rien n'est poussé. Détail par lot : `docs/progress/<lot>.md`.
+Reprise après interruption : lire ce fichier, `CLAUDE.md`, puis `docs/domain-model.md`. Branche : `feat/create-nuera-os`, sur GitHub à `10afe57`, les commits suivants sont locaux. Elle intègre `origin/staging` (`72a6693`). Détail par lot : `docs/progress/<lot>.md`.
 
 ## Fait
 
@@ -11,17 +11,18 @@ Reprise après interruption : lire ce fichier, `CLAUDE.md`, puis `docs/domain-mo
 - Socle interface : tokens, mouvement, composants, barre latérale, connexion.
 - Lots métier, chacun construit puis audité : Messages, Documents, Temps et équipe, Projets, CRM et ventes, Devis, Contrats, Sites, Support, Finances.
 - Stabilisation (`docs/progress/stabilisation.md`) : tests fiables, formulaires d'authentification en POST, migration d'archivage, factures, avenants, kit d'interface, 404.
+- Portail client, Pilotage, Automatisations et administration. Les six parcours : `tests/journeys/`, `tests/e2e/journeys.spec.ts`.
+- Revue de sécurité (`docs/security-review.md`).
+- Exploitation : image vérifiée dans Docker, volume des documents, sondes de santé, sauvegarde et restauration essayées pour de vrai (`docs/ops/sauvegarde-restauration.md`), guide de déploiement (`docs/deployment-coolify.md`), README.
 
 ## En cours
 
-- Rien : prochain lot, le premier de la liste ci-dessous.
+- Rien.
 
 ## Restant, dans l'ordre
 
-1. Portail client, Pilotage (tableau de bord, reporting, recherche), Automatisations et administration.
-2. Revue de sécurité (permissions, cloisonnement du portail, 2FA). Les six parcours sont livrés : `tests/journeys/`, `tests/e2e/journeys.spec.ts`.
-3. Déploiement et exploitation : Coolify, Docker, sauvegarde et restauration, sondes de santé.
-4. README, documentation, vérification complète (`npm run check`, build, e2e), rapport final.
+1. Vérification complète finale (e2e sur le code fusionné) et rapport final.
+2. Par le responsable, avec ses accès : déploiement Coolify, base hébergée, destination de sauvegarde chiffrée, planification des tâches et de la sauvegarde, Twenty de production.
 
 ## Arbitrages du responsable après la vague métier
 
@@ -36,6 +37,8 @@ Reprise après interruption : lire ce fichier, `CLAUDE.md`, puis `docs/domain-mo
 - Les verrous `FOR UPDATE` ne sont pas couverts par les tests PGlite. Ils ont été éprouvés par des scripts ponctuels sur PostgreSQL.
 - Aucun appel réel à DocuSeal, Coolify, Uptime Kuma, OpenAI ni Cal : adaptateurs vérifiés contre des bouchons locaux et la documentation officielle.
 - Migrations automatiques de Twenty en production : chemin non exercé.
+- Sauvegarde : rclone essayé vers un dossier local seulement. Rien n'a été exécuté sur Coolify ni sur un serveur réel.
+- Image de base `node:24-alpine` non épinglée par digest, contrairement à la recommandation du `Dockerfile` : à trancher.
 
 ## Environnement local
 
