@@ -11,7 +11,7 @@ export default function ContractsLoading() {
         ))}
       </KpiGrid>
       <TableSkeleton rows={4} columns={6} label="Chargement des contrats" />
-      <div className="grid gap-5 lg:grid-cols-(--cols-main-side)">
+      <div className="grid gap-5 xl:grid-cols-(--cols-main-side)">
         <TileSkeleton lines={2} label="Chargement des forfaits" />
         <TileSkeleton lines={2} label="Chargement des renouvellements" />
       </div>

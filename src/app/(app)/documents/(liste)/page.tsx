@@ -86,7 +86,7 @@ const columns: readonly DataTableColumn<DocumentRow>[] = [
     width: 136,
     cell: (row) => <StatusBadge kind="document" status={row.visibility} />,
   },
-  { key: "modifie", header: "Modifié", cell: (row) => formatDateShort(row.updatedAt) },
+  { key: "modifie", header: "Modifié", width: 110, cell: (row) => formatDateShort(row.updatedAt) },
 ];
 
 /** Filtre de contexte, posé par un lien depuis une fiche client, projet, contrat, site ou demande. */

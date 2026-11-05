@@ -220,7 +220,7 @@ export default async function AdministrationPage({
           </>
         }
       />
-      <div className="grid items-start gap-5 lg:grid-cols-(--cols-main-side)">
+      <div className="grid items-start gap-5 xl:grid-cols-(--cols-main-side)">
         <div className="flex min-w-0 flex-col gap-5">
           <DataTable
             caption="Utilisateurs"

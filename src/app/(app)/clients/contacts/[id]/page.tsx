@@ -139,7 +139,7 @@ export default async function ContactPage({ params }: { params: Promise<{ id: st
         <Alert tone="warn">Contact archivé : son historique reste consultable.</Alert>
       ) : null}
 
-      <div className="grid gap-5 lg:grid-cols-[minmax(0,1fr)_340px]">
+      <div className="grid gap-5 xl:grid-cols-[minmax(0,1fr)_340px]">
         <Tile
           icon="clock"
           title="Historique relationnel"

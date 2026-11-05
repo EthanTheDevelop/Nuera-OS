@@ -14,7 +14,7 @@ export default function TimeLoading() {
           <KpiSkeleton key={index} />
         ))}
       </KpiGrid>
-      <div className="grid items-start gap-5 xl:grid-cols-(--cols-main-side)">
+      <div className="grid items-start gap-5 min-[1400px]:grid-cols-(--cols-main-side)">
         <div className="flex flex-col gap-(--grid-gap)">
           <TableSkeleton rows={5} columns={7} label="Chargement de la feuille de temps" />
           <TileSkeleton lines={1} label="Chargement de la capacité" />

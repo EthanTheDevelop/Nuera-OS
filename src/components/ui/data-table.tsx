@@ -36,6 +36,9 @@ export interface DataTablePage {
 
 const ROW_HEIGHT = { sm: "--row-h-sm", md: "--row-h-md", lg: "--row-h-lg" } as const;
 
+/** Largeur minimale d'une colonne sans largeur : au-delà, le tableau défile dans son cadre. */
+const FLEX_COLUMN_MIN = 140;
+
 export const SORT_PARAM = "tri";
 export const SORT_DIRECTION_PARAM = "sens";
 export const PAGE_PARAM = "page";
@@ -80,11 +83,17 @@ export function DataTable<Row>({
   const sortKey = paramValue(query?.searchParams, SORT_PARAM);
   const sortDirection =
     paramValue(query?.searchParams, SORT_DIRECTION_PARAM) === "desc" ? "desc" : "asc";
+  // En disposition fixe, une colonne sans largeur tombe à zéro si les autres prennent toute la place.
+  const minWidth = columns.reduce((sum, column) => sum + (column.width ?? FLEX_COLUMN_MIN), 0);
 
   return (
     <div className={cn("anim-content h-fit rounded-lg bg-surface shadow-soft", className)}>
-      <div className="overflow-hidden rounded-lg [container:data-table/inline-size]">
-        <table role="table" className="nu-table w-full table-fixed border-collapse text-left">
+      <div className="overflow-x-auto overflow-y-hidden rounded-lg [container:data-table/inline-size]">
+        <table
+          role="table"
+          style={{ "--table-min": `${minWidth}px` } as CSSProperties}
+          className="nu-table w-full table-fixed border-collapse text-left"
+        >
           <caption className="sr-only">{caption}</caption>
           <colgroup>
             {columns.map((column) => (

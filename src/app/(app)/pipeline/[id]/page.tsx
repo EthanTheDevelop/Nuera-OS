@@ -235,7 +235,7 @@ export default async function OpportunityPage({ params }: { params: Promise<{ id
         </Alert>
       ) : null}
 
-      <div className="grid gap-5 lg:grid-cols-[minmax(0,1fr)_340px]">
+      <div className="grid gap-5 xl:grid-cols-[minmax(0,1fr)_340px]">
         <div className="flex min-w-0 flex-col gap-5">
           <Tile icon="pipeline" title="Étapes" className="rounded-lg p-6">
             <StepTimeline label="Étapes de l'affaire" steps={stageSteps(opportunity.stage)} />

@@ -326,7 +326,7 @@ export default async function ProjectPage({
 
       <PhaseTimeline projectId={project.id} phases={project.phases} editable={capabilities.edit} />
 
-      <div className="grid items-start gap-5 lg:grid-cols-[minmax(0,1fr)_360px]">
+      <div className="grid items-start gap-5 xl:grid-cols-[minmax(0,1fr)_360px]">
         <div className="flex min-w-0 flex-col gap-5">
           {showTaskFilters ? (
             <FilterBar searchParam="q" searchPlaceholder="Rechercher une tâche…" label="Statut">

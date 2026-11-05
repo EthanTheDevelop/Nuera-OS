@@ -280,7 +280,7 @@ export default async function ContractPage({
         )}
       </KpiGrid>
 
-      <div className="grid grid-cols-1 items-start gap-5 lg:grid-cols-(--cols-main-side)">
+      <div className="grid grid-cols-1 items-start gap-5 xl:grid-cols-(--cols-main-side)">
         <div className="flex min-w-0 flex-col gap-5">
           <InfoCard icon="clock" title="Consommation de la période">
             {measured ? (

@@ -10,7 +10,7 @@ export default function FinancesLoading() {
           <KpiSkeleton key={index} />
         ))}
       </KpiGrid>
-      <div className="grid grid-cols-1 items-start gap-5 lg:grid-cols-(--cols-main-side)">
+      <div className="grid grid-cols-1 items-start gap-5 xl:grid-cols-(--cols-main-side)">
         <div className="flex min-w-0 flex-col gap-6">
           <TableSkeleton rows={5} columns={5} label="Chargement des factures" />
           <TableSkeleton rows={3} columns={5} label="Chargement de la rentabilité" />
