@@ -39,6 +39,7 @@ export default async function AppLayout({ children }: { children: ReactNode }) {
         <Sidebar
           sections={sections}
           counters={shell.counters}
+          externalLinks={shell.externalLinks}
           userBlock={
             <ProfileMenu
               user={{ name: actor.name, email: actor.email, roleLabel }}

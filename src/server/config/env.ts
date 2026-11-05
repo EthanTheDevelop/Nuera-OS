@@ -34,6 +34,9 @@ const envSchema = z.object({
   TWENTY_API_KEY: optional(z.string()),
   TWENTY_WEBHOOK_SECRET: optional(z.string().min(32)),
 
+  // Lien « Base de données » du groupe Outils, pour les associés. Absent : pas de lien.
+  DB_ADMIN_URL: optional(z.url({ protocol: /^https?$/ })),
+
   // Coolify et Uptime Kuma : facultatifs, les sites affichent « connexion requise » si absents.
   COOLIFY_API_URL: optional(z.url({ protocol: /^https?$/ })),
   COOLIFY_API_TOKEN: optional(z.string()),

@@ -1,0 +1,26 @@
+# Interface web de la base (CloudBeaver Community, Apache 2.0) sur Coolify :
+# Projet → Add Resource → Docker Compose Empty, coller ce fichier.
+# Le compte admin est créé au démarrage : son mot de passe est la variable
+# SERVICE_PASSWORD_CBADMIN du service dans Coolify. Ne pas le retirer, sinon l'écran de première
+# configuration reste ouvert à tout visiteur.
+# Adapter le réseau à l'environnement : ici, celui de la base de staging.
+services:
+  cloudbeaver:
+    image: dbeaver/cloudbeaver:26.2.3
+    restart: unless-stopped
+    mem_limit: 1000m
+    environment:
+      - SERVICE_URL_CLOUDBEAVER_8978
+      - CB_SERVER_NAME=Nuera OS
+      - CB_SERVER_URL=$SERVICE_URL_CLOUDBEAVER
+      - CB_ADMIN_NAME=nueraadmin
+      - CB_ADMIN_PASSWORD=$SERVICE_PASSWORD_CBADMIN
+    volumes:
+      - cloudbeaver-workspace:/opt/cloudbeaver/workspace
+    networks:
+      - default
+      - nuera-staging
+
+networks:
+  nuera-staging:
+    external: true

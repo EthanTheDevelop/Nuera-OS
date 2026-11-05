@@ -3,6 +3,7 @@ import { getUnreadCount } from "@/modules/messaging/message.service";
 import { getSupportOverview } from "@/modules/support/ticket.service";
 import { listAssignableMembers, type MemberOption } from "@/modules/team/team.lookup";
 import { can, canAny, type Actor } from "@/server/auth/permissions";
+import { getEnv } from "@/server/config/env";
 import type { ServiceContext } from "@/server/context";
 import { getDb } from "@/server/db/client";
 import { logger } from "@/server/logger";
@@ -17,6 +18,8 @@ export interface ShellData {
   title?: string;
   detail?: string;
   chatgptLabel?: string;
+  /** Accès directs au CRM et à la base, réservés aux associés. */
+  externalLinks?: { label: string; href: string; icon: "clients" | "book" }[];
   /** Apparence enregistrée : appliquée sur un navigateur qui ne l'a pas encore. */
   appearance?: { theme: string; accent: string | null; density: string } | null;
 }
@@ -41,6 +44,19 @@ function firstNames(partners: readonly MemberOption[]): string {
  * Données de la coque, lues en parallèle à chaque rendu du layout. Un compte ne voit que ses
  * compteurs : `getUnreadCount` et `getSupportOverview` appliquent eux-mêmes droits et périmètre.
  */
+function toolLinks(actor: Actor): NonNullable<ShellData["externalLinks"]> {
+  if (!can(actor, "users:manage")) return [];
+  const { TWENTY_API_URL, DB_ADMIN_URL } = getEnv();
+  return [
+    ...(TWENTY_API_URL
+      ? [{ label: "CRM Twenty", href: TWENTY_API_URL, icon: "clients" as const }]
+      : []),
+    ...(DB_ADMIN_URL
+      ? [{ label: "Base de données", href: DB_ADMIN_URL, icon: "book" as const }]
+      : []),
+  ];
+}
+
 export async function getShellData(ctx: ServiceContext): Promise<ShellData> {
   const { db, actor } = ctx;
   const [unread, support, center, members, appearance] = await Promise.all([
@@ -78,6 +94,7 @@ export async function getShellData(ctx: ServiceContext): Promise<ShellData> {
     notifications: center.items,
     appearance,
     chatgptLabel,
+    externalLinks: toolLinks(ctx.actor),
     ...(isPartner && partners.length > 1
       ? {
           people: partners.map((partner) => ({ name: partner.fullName })),
