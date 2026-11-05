@@ -225,19 +225,19 @@ export function TileFigure({
   );
 }
 
-const HANDLE_PATH =
-  "M18 6V10C18 12.1217 17.1571 14.1566 15.6569 15.6569C14.1566 17.1571 12.1217 18 10 18H6";
+/** Arc de même centre que l'angle de la tuile (`--radius-xl`, 28) : il épouse son bord. */
+const HANDLE_PATH = "M25.6 6.86A26.5 26.5 0 0 1 6.86 25.6";
 
 function HandleGlyph() {
   return (
-    <svg width="22" height="22" viewBox="0 0 22 22" fill="none" aria-hidden="true">
+    <svg width="28" height="28" viewBox="0 0 28 28" fill="none" aria-hidden="true">
       <path d={HANDLE_PATH} stroke="currentColor" strokeWidth="3" strokeLinecap="round" />
     </svg>
   );
 }
 
 /**
- * Poignée de taille (Figma 57:127), 22 × 22, en bas à droite de la tuile.
+ * Poignée de taille, 28 × 28, posée sur l'angle bas droit de la tuile.
  * Le tableau de bord la pose en édition seulement et la branche sur le glisser et les flèches :
  * un simple clic ne change rien. `touch-none` : au doigt, le geste tire la poignée sans défiler.
  */
@@ -252,7 +252,7 @@ export function TileResizeHandle({
       type="button"
       aria-label={`Redimensionner la tuile ${tileName}`}
       className={cn(
-        "hit-44 absolute right-1.5 bottom-1.5 z-10 flex size-[22px] cursor-nwse-resize touch-none items-center justify-center rounded-sm",
+        "hit-44 absolute right-0 bottom-0 z-10 flex size-7 cursor-nwse-resize touch-none items-center justify-center rounded-sm",
         editing ? "text-accent" : "text-muted",
         className,
       )}
