@@ -6,6 +6,7 @@ import {
 } from "@/integrations/n8n/n8n.client";
 import { processN8nWebhook } from "@/modules/platform/n8n.webhook";
 import { getEnv } from "@/server/config/env";
+import { readBodyWithin } from "@/server/http/limited-body";
 
 const MAX_BODY_BYTES = 64 * 1024;
 
@@ -14,10 +15,8 @@ export async function POST(request: NextRequest) {
   const secret = getEnv().N8N_WEBHOOK_SECRET;
   if (!secret) return new NextResponse(null, { status: 404 });
 
-  const raw = await request.text();
-  if (Buffer.byteLength(raw) > MAX_BODY_BYTES) {
-    return NextResponse.json({ error: "too_large" }, { status: 413 });
-  }
+  const raw = await readBodyWithin(request, MAX_BODY_BYTES);
+  if (raw === null) return NextResponse.json({ error: "too_large" }, { status: 413 });
   const signed = checkN8nSignature({
     secret,
     body: raw,

@@ -2,6 +2,7 @@ import { NextResponse, type NextRequest } from "next/server";
 import { isValidWebhookToken, parseCoolifyWebhook } from "@/integrations/coolify/coolify.webhook";
 import { processCoolifyWebhook } from "@/modules/sites/coolify-sync.service";
 import { getEnv } from "@/server/config/env";
+import { readBodyWithin } from "@/server/http/limited-body";
 
 /**
  * Notifications de Coolify. Elles ne sont pas signées : le secret est dans l'URL configurée dans le
@@ -19,10 +20,8 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({ error: "unauthorized" }, { status: 401 });
   }
 
-  const raw = await request.text();
-  if (Buffer.byteLength(raw) > MAX_BODY_BYTES) {
-    return NextResponse.json({ error: "too_large" }, { status: 413 });
-  }
+  const raw = await readBodyWithin(request, MAX_BODY_BYTES);
+  if (raw === null) return NextResponse.json({ error: "too_large" }, { status: 413 });
   let body: unknown;
   try {
     body = JSON.parse(raw);
