@@ -59,7 +59,7 @@ export default async function CatalogueItemPage({ params }: { params: Promise<{ 
           )
         }
       />
-      <div className="grid items-start gap-5 xl:grid-cols-[minmax(0,1fr)_360px]">
+      <div className="grid items-start gap-5 xl:grid-cols-[minmax(0,1fr)_360px] 2xl:grid-cols-[minmax(0,920px)_360px] 2xl:justify-center">
         {canManage ? (
           <Tile className="rounded-lg p-6">
             <CatalogItemForm

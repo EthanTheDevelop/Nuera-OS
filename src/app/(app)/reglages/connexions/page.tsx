@@ -189,7 +189,7 @@ export default async function ConnectionsPage() {
         <h2 className="anim-header font-mono text-table-head font-normal text-muted uppercase">
           Outils branchés
         </h2>
-        <div className="grid gap-6 sm:grid-cols-2 xl:grid-cols-4">
+        <div className="grid gap-6 sm:grid-cols-2 xl:grid-cols-4 2xl:grid-cols-[repeat(auto-fit,minmax(380px,1fr))]">
           {tools.map((connection, index) => (
             <ToolCard
               key={connection.service}

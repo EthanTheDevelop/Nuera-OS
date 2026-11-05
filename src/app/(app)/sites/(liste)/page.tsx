@@ -226,7 +226,7 @@ export default async function SitesPage({
         <div className="rounded-lg bg-surface shadow-soft">{empty}</div>
       ) : (
         <>
-          <div className="grid gap-(--grid-gap) lg:grid-cols-2">
+          <div className="grid gap-(--grid-gap) lg:grid-cols-2 2xl:grid-cols-(--cols-cards)">
             {sites.items.map((site) => (
               <SiteCard key={site.id} site={site} now={now} />
             ))}

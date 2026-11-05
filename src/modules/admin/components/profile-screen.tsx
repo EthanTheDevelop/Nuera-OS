@@ -116,7 +116,7 @@ export function ProfileScreen({
           </Button>
         }
       />
-      <div className="grid items-start gap-5 lg:grid-cols-[minmax(0,688fr)_minmax(0,420fr)]">
+      <div className="grid items-start gap-5 lg:grid-cols-[minmax(0,1fr)_min(37.9%,420px)] 2xl:grid-cols-[minmax(0,800px)_minmax(0,560px)] 2xl:justify-center">
         <div className="flex min-w-0 flex-col gap-5">
           <section
             aria-label="Identité"

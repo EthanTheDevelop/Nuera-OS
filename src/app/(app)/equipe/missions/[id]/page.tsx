@@ -103,7 +103,7 @@ export default async function MissionPage({ params }: { params: Promise<{ id: st
         }
       />
 
-      <div className="grid items-start gap-5 xl:grid-cols-[minmax(0,728fr)_minmax(0,380fr)]">
+      <div className="grid items-start gap-5 xl:grid-cols-(--cols-main-side)">
         <InfoCard icon="flag" title="Affectation" rows={rows} />
         <div className="flex min-w-0 flex-col gap-(--grid-gap)">
           <InfoCard

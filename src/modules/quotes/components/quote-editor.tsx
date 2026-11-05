@@ -252,7 +252,10 @@ export function QuoteEditor(props: QuoteEditorProps) {
   const taxError = fieldError(state, "taxPercent");
 
   return (
-    <form action={action} className="grid items-start gap-5 xl:grid-cols-[minmax(0,1fr)_380px]">
+    <form
+      action={action}
+      className="grid items-start gap-5 xl:grid-cols-[minmax(0,1fr)_380px] 2xl:grid-cols-[minmax(0,1040px)_380px] 2xl:justify-center"
+    >
       <input type="hidden" name="quoteId" value={props.quoteId} />
       <input type="hidden" name="lines" value={serialized} />
 

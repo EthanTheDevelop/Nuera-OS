@@ -60,7 +60,7 @@ export default async function ArticlePage({
         actions={canManage ? <ArticleHeaderActions article={article} /> : undefined}
       />
 
-      <div className="grid grid-cols-1 gap-5 xl:grid-cols-[minmax(0,728fr)_minmax(0,380fr)]">
+      <div className="grid grid-cols-1 gap-5 xl:grid-cols-(--cols-main-side) 2xl:grid-cols-[minmax(0,880px)_380px] 2xl:justify-center">
         <InfoCard
           icon="book"
           title={isOldVersion ? `Contenu · version ${viewed.version}` : "Contenu"}

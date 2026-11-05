@@ -104,7 +104,7 @@ export function RecurrenceView({
           12 mois
         </FilterChip>
       </div>
-      <div className="grid gap-(--grid-gap) lg:grid-cols-2">
+      <div className="grid gap-(--grid-gap) lg:grid-cols-2 2xl:grid-cols-(--cols-cards)">
         <RecurrenceTile
           title="Clients les plus demandeurs"
           icon="clients"

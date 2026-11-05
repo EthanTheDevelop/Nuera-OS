@@ -76,6 +76,11 @@
   --content-margin: 32px;
   --tap-min: 44px;
   --wrap-vast-w: 1560px;
+  /* Colonne principale extensible, panneau latéral fixe : proportions de la maquette jusqu'à 1440 px. */
+  --cols-main-side: minmax(0, 1fr) min(33.7%, 380px);
+  --cols-main-side-lg: minmax(0, 1fr) min(39.7%, 440px);
+  /* Grilles de cartes : gagnent des colonnes sur grand écran. */
+  --cols-cards: repeat(auto-fit, minmax(min(100%, 460px), 1fr));
   --client-capsule-h: 104px;
 
   /* Ombres */
@@ -376,6 +381,7 @@
   --breakpoint-md: 48rem;
   --breakpoint-lg: 64rem;
   --breakpoint-xl: 80rem;
+  --breakpoint-2xl: 113rem;
 }
 
 @theme inline {
@@ -903,5 +909,181 @@
       opacity, color, background-color, border-color, box-shadow, stroke, fill !important;
     transition-duration: var(--dur-reduced) !important;
     transition-delay: 0ms !important;
+  }
+}
+
+/*
+ * Tuile du tableau de bord : sa hauteur vient de la grille, jamais du contenu. Le corps est un
+ * conteneur de taille : ce qu'il montre dépend de la place réelle, à tout format et sur toute grille.
+ * Les débords ne se coupent pas : ce qui ne tient pas passe à la ligne ou en colonne suivante, hors cadre.
+ */
+.tile-header {
+  display: flex;
+  flex: none;
+  flex-wrap: wrap;
+  align-items: center;
+  align-content: flex-start;
+  height: 1.75rem;
+  overflow: clip;
+}
+
+.tile-header-main {
+  display: flex;
+  flex: 1 1 auto;
+  align-items: center;
+  min-width: 0;
+  max-width: 100%;
+  height: 1.75rem;
+}
+
+.tile-body {
+  container: tile-body / size;
+  display: flex;
+  flex: 1 1 0;
+  flex-direction: column;
+  min-width: 0;
+  min-height: 0;
+  overflow: clip;
+}
+
+.tile-stack {
+  display: flex;
+  flex: 1 1 0;
+  flex-direction: column;
+  gap: 0.5rem;
+  min-width: 0;
+  min-height: 0;
+}
+
+.tile-primary {
+  display: flex;
+  flex: none;
+  flex-direction: column;
+  gap: 0.5rem;
+  min-width: 0;
+}
+
+.tile-figure > p:first-child {
+  height: 1lh;
+  overflow: clip;
+}
+
+.tile-rows {
+  display: flex;
+  flex: 1 1 0;
+  flex-flow: column wrap;
+  align-content: flex-start;
+  min-width: 0;
+  min-height: 0;
+  overflow: clip;
+}
+
+.tile-rows > li {
+  flex: none;
+  width: 100%;
+}
+
+.tile-rows > [data-clipped] {
+  visibility: hidden;
+}
+
+.tile-chart {
+  position: relative;
+  z-index: 10;
+  display: flex;
+  flex: 1 1 0;
+  flex-direction: column;
+  min-width: 0;
+  min-height: 0;
+}
+
+.tile-state {
+  gap: 0.5rem;
+  width: 100%;
+}
+
+.tile-state > div:nth-child(2) {
+  max-width: 100%;
+  min-width: 0;
+}
+
+.tile-state > div:nth-child(2) > p:first-child,
+.tile-state > div:nth-child(2) > div {
+  display: -webkit-box;
+  overflow: hidden;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 3;
+}
+
+@container tile-body (max-height: 10rem) {
+  .tile-stack,
+  .tile-primary {
+    gap: 0.25rem;
+  }
+
+  .tile-note {
+    -webkit-line-clamp: 1;
+  }
+
+  .tile-chart [data-chart-legend] {
+    display: none;
+  }
+
+  .tile-state {
+    gap: 0.25rem;
+  }
+
+  .tile-state > span {
+    display: none;
+  }
+
+  .tile-state > div:nth-child(2) > p:first-child,
+  .tile-state > div:nth-child(2) > div {
+    -webkit-line-clamp: 2;
+  }
+}
+
+/* Large et basse : le chiffre à gauche, les lignes ou le graphique à droite. */
+@container tile-body (max-height: 10rem) and (min-width: 18rem) {
+  .tile-stack--split {
+    flex-direction: row;
+    gap: 1rem;
+  }
+
+  .tile-stack--split > .tile-primary {
+    flex: 0 0 38%;
+    justify-content: center;
+  }
+
+  .tile-stack--split > .tile-primary:only-child {
+    flex: 1 1 auto;
+  }
+
+  .tile-state > div:nth-child(2) > p:first-child,
+  .tile-state > div:nth-child(2) > div {
+    -webkit-line-clamp: 1;
+  }
+}
+
+/* Beaucoup de place : le chiffre prend sa grande taille. */
+@container tile-body (min-width: 28rem) and (min-height: 14rem) {
+  .tile-figure > p:first-child {
+    font-size: var(--text-figure-hero);
+    line-height: var(--text-figure-hero--line-height);
+  }
+}
+
+@container tile-body (min-width: 18rem) and (min-height: 24rem) {
+  .tile-figure > p:first-child {
+    font-size: var(--text-figure-hero);
+    line-height: var(--text-figure-hero--line-height);
+  }
+}
+
+/* Une seule colonne : le libellé passe avant les compléments, l'axe du graphique s'efface. */
+@container tile-body (max-width: 14rem) {
+  .tile-rows [data-tile-wide],
+  .tile-chart [data-chart-axis] {
+    display: none;
   }
 }

@@ -60,7 +60,7 @@ function MessageBubble({
   return (
     <div
       className={cn(
-        "flex max-w-[92%] flex-col gap-1.5 rounded-[20px] px-4 py-3 text-sm leading-[1.4]",
+        "flex max-w-[min(92%,760px)] flex-col gap-1.5 rounded-[20px] px-4 py-3 text-sm leading-[1.4]",
         inbound && "self-start border border-border bg-surface text-text",
         message.direction === "outbound" && "self-end bg-accent text-on-accent",
         internal && "self-end border border-warn/40 bg-warn-pale text-text",

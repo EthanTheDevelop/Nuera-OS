@@ -48,7 +48,7 @@ export default async function ScheduleItemPage({ params }: { params: Promise<{ i
         }
       />
 
-      <div className="grid grid-cols-1 items-start gap-5 lg:grid-cols-[minmax(0,728fr)_minmax(0,380fr)]">
+      <div className="grid grid-cols-1 items-start gap-5 lg:grid-cols-(--cols-main-side)">
         <InvoiceTable
           rows={invoices}
           empty={

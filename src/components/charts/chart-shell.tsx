@@ -92,7 +92,8 @@ export interface ChartShellProps {
   showYAxis?: boolean;
   /** `band` : barres centrées dans leur case. `edge` : courbe du bord gauche au bord droit. */
   xMode?: "band" | "edge";
-  height?: number;
+  /** En pixels, ou `fill` : le tracé prend la hauteur que son parent lui laisse. */
+  height?: number | "fill";
   legend?: readonly { label: string; color: string }[];
   /** Ligne verticale aimantée : pointillée par défaut (M2). */
   showCrosshair?: boolean;
@@ -203,9 +204,11 @@ export function ChartShell({
   }, [activePoint, activeRows, valueFormat]);
 
   const preset = useMotionPreset();
+  const fill = height === "fill";
+  const plotHeight = fill ? undefined : height;
 
   return (
-    <figure className={cn("m-0 flex min-w-0 flex-col gap-3", className)}>
+    <figure className={cn("m-0 flex min-w-0 flex-col gap-3", fill && "h-full min-h-0", className)}>
       <figcaption className="sr-only">
         {title}
         {summary ? `. ${summary}` : ""}
@@ -215,7 +218,11 @@ export function ChartShell({
         <div className="flex flex-wrap items-end justify-between gap-x-4 gap-y-2">
           <div className="min-w-0">{header}</div>
           {legend && legend.length > 0 ? (
-            <ul aria-hidden="true" className="flex flex-wrap justify-end gap-x-3 gap-y-1">
+            <ul
+              aria-hidden="true"
+              data-chart-legend
+              className="flex flex-wrap justify-end gap-x-3 gap-y-1"
+            >
               {legend.map((item) => (
                 <li
                   key={item.label}
@@ -230,7 +237,7 @@ export function ChartShell({
         </div>
       ) : null}
 
-      <div className="flex min-w-0 gap-2">
+      <div className={cn("flex min-w-0 gap-2", fill && "min-h-0 flex-1")}>
         {showYAxis ? (
           <AnimatePresence mode="popLayout" initial={false}>
             <motion.div
@@ -239,7 +246,7 @@ export function ChartShell({
               initial={preset.swapIn.initial}
               animate={preset.swapIn.animate}
               exit={preset.leave}
-              style={{ height }}
+              style={{ height: plotHeight }}
               className="relative w-12 shrink-0"
             >
               {ticks.map((tick, index) => (
@@ -257,7 +264,7 @@ export function ChartShell({
           </AnimatePresence>
         ) : null}
 
-        <div className="min-w-0 flex-1">
+        <div className={cn("min-w-0 flex-1", fill && "flex min-h-0 flex-col")}>
           <div
             ref={plot}
             tabIndex={0}
@@ -268,8 +275,11 @@ export function ChartShell({
             onPointerLeave={() => setActive(null)}
             onKeyDown={onKeyDown}
             onBlur={() => setActive(null)}
-            style={{ height }}
-            className="relative touch-pan-y rounded-sm outline-none focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-focus"
+            style={{ height: plotHeight }}
+            className={cn(
+              "relative touch-pan-y rounded-sm outline-none focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-focus",
+              fill && "min-h-0 flex-1",
+            )}
           >
             {/* Repères recessifs, derrière le dessin. */}
             <div aria-hidden="true" className="pointer-events-none absolute inset-0">
@@ -343,7 +353,7 @@ export function ChartShell({
           </div>
 
           {/* Axe X : le libellé actif passe en gras. */}
-          <div aria-hidden="true" className="relative mt-3 h-[15px]">
+          <div aria-hidden="true" data-chart-axis className="relative mt-3 h-[15px] shrink-0">
             {points.map((point, index) =>
               index % xLabelEvery === 0 || index === points.length - 1 ? (
                 <span

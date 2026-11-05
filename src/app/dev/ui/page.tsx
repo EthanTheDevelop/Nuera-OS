@@ -220,7 +220,7 @@ export default async function DevUiPage({
           <Tile
             icon="euro"
             title="Chiffre d’affaires"
-            size="4x2"
+            size="3x2"
             aside={<Badge tone="success">+12 % vs octobre</Badge>}
             handle={<TileResizeHandle tileName="Chiffre d’affaires" />}
           >

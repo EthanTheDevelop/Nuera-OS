@@ -300,7 +300,7 @@ export default async function DocumentPage({ params }: { params: Promise<{ id: s
         </Alert>
       ) : null}
 
-      <div className="grid grid-cols-1 gap-5 xl:grid-cols-[minmax(0,728fr)_minmax(0,380fr)]">
+      <div className="grid grid-cols-1 gap-5 xl:grid-cols-(--cols-main-side)">
         <div className="flex min-w-0 flex-col gap-6">
           <DataTable
             caption="Versions du document"

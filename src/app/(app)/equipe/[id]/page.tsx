@@ -148,7 +148,7 @@ export default async function MemberPage({
         }
       />
 
-      <div className="grid items-start gap-5 xl:grid-cols-[minmax(0,728fr)_minmax(0,380fr)]">
+      <div className="grid items-start gap-5 xl:grid-cols-(--cols-main-side)">
         <div className="flex min-w-0 flex-col gap-(--grid-gap)">
           <MissionTable
             missions={missions.items}

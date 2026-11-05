@@ -52,7 +52,7 @@ export default async function TemplatePage({ params }: { params: Promise<{ id: s
         }
       />
 
-      <div className="max-w-[728px]">
+      <div className="max-w-[728px] 2xl:mx-auto">
         <InfoCard
           icon={template.kind === "checklist" ? "check" : "edit"}
           title={TEMPLATE_KIND_LABELS[template.kind]}

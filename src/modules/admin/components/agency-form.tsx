@@ -13,7 +13,11 @@ export function AgencyForm({ profile, canEdit }: { profile: AgencyProfile; canEd
   const [state, action] = useActionState(saveAgencyProfileAction, IDLE_ACTION_STATE);
   useActionToast(state);
   return (
-    <InfoCard icon="reglages" title="Fiche de l'agence" className="max-w-[688px]">
+    <InfoCard
+      icon="reglages"
+      title="Fiche de l'agence"
+      className="max-w-[688px] 2xl:mx-auto 2xl:w-full"
+    >
       <form action={action} className="flex flex-col gap-4">
         <FormAlert state={state} />
         <TextField

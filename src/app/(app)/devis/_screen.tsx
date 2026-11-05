@@ -128,7 +128,7 @@ export async function DevisScreen({
         <QuoteFilters />
       </PageHeader>
 
-      <div className="grid items-start gap-5 xl:grid-cols-[minmax(0,668fr)_minmax(0,440fr)]">
+      <div className="grid items-start gap-5 xl:grid-cols-(--cols-main-side-lg)">
         <QuoteList
           rows={list.items}
           pagination={{ page: list.page, pageSize: list.pageSize, total: list.total }}

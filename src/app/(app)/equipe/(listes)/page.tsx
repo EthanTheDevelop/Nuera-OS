@@ -112,7 +112,7 @@ export default async function TeamPage({
           </div>
         ) : (
           <>
-            <div className="grid gap-(--grid-gap) lg:grid-cols-2">
+            <div className="grid gap-(--grid-gap) lg:grid-cols-2 2xl:grid-cols-(--cols-cards)">
               {overview.members.items.map((card, index) => (
                 <MemberCard key={card.member.id} card={card} index={index} />
               ))}

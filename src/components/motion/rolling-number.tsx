@@ -21,8 +21,8 @@ const SIGN_WIDTH_EM = 0.6;
  * NumberFlow ne passe pas à la ligne : un long montant réduit sa police pour tenir dans le conteneur
  * le plus proche (`@container`), sans jamais grandir ni descendre sous 60 % de sa taille.
  */
-const fittedFontSize = (length: number) =>
-  `clamp(0.6em, calc(100cqi / ${Math.max(length, 1) * SIGN_WIDTH_EM}), 1em)`;
+export const fittedFontSize = (length: number, floor = 0.6) =>
+  `clamp(${floor}em, calc(100cqi / ${Math.max(length, 1) * SIGN_WIDTH_EM}), 1em)`;
 
 /**
  * Chiffre qui roule (motion.md §2.2) : chaque chiffre à sa place, les unités à la fin.

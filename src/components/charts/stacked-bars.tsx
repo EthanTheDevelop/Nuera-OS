@@ -37,7 +37,7 @@ export function StackedBars({
   valueFormat?: ChartValueFormat;
   /** Point en couleur pleine (le mois courant). `-1` : aucun. */
   highlightIndex?: number;
-  height?: number;
+  height?: number | "fill";
   showYAxis?: boolean;
   className?: string;
 }) {

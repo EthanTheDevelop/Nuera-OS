@@ -8,7 +8,7 @@ export default function TeamLoading() {
         <span className="anim-pulse block h-7 w-32 rounded-sm bg-surface-raised" />
         <span className="anim-pulse block h-3.5 w-80 max-w-full rounded-sm bg-surface-raised" />
       </div>
-      <div className="grid gap-(--grid-gap) lg:grid-cols-2">
+      <div className="grid gap-(--grid-gap) lg:grid-cols-2 2xl:grid-cols-(--cols-cards)">
         <TileSkeleton lines={2} label="Chargement des fiches" />
         <TileSkeleton lines={2} label="Chargement des fiches" />
       </div>

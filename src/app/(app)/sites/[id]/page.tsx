@@ -421,7 +421,7 @@ export default async function SitePage({
         />
       </KpiGrid>
 
-      <div className="grid gap-5 lg:grid-cols-[minmax(0,728fr)_minmax(0,380fr)]">
+      <div className="grid gap-5 lg:grid-cols-(--cols-main-side)">
         <div className="flex min-w-0 flex-col gap-5">
           <InfoCard
             icon="server"

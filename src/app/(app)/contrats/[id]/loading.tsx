@@ -10,7 +10,7 @@ export default function ContractLoading() {
           <KpiSkeleton key={index} />
         ))}
       </KpiGrid>
-      <div className="grid gap-5 lg:grid-cols-[minmax(0,728fr)_minmax(0,380fr)]">
+      <div className="grid gap-5 lg:grid-cols-(--cols-main-side)">
         <div className="flex flex-col gap-5">
           <TileSkeleton lines={2} label="Chargement de la consommation" />
           <TableSkeleton rows={4} columns={3} label="Chargement du journal" />

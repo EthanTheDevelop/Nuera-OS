@@ -367,7 +367,7 @@ export default async function TimePage({
           />
         </KpiGrid>
 
-        <div className="grid items-start gap-5 xl:grid-cols-[minmax(0,728fr)_minmax(0,380fr)]">
+        <div className="grid items-start gap-5 xl:grid-cols-(--cols-main-side)">
           <div className="flex min-w-0 flex-col gap-(--grid-gap)">
             <div className="flex flex-col gap-3">
               <div className="anim-content flex flex-wrap items-center justify-between gap-x-4 gap-y-2">

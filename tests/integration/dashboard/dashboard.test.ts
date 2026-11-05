@@ -6,6 +6,7 @@ import {
   emptyCells,
   moveTile,
   packTiles,
+  TILE_SIZES,
   nearestTileSize,
   stepTileSize,
   tileSpan,
@@ -119,6 +120,9 @@ describe("disposition du tableau de bord", () => {
       { tiles: [{ key: "inconnue", size: "1x1" }] },
       { tiles: [{ key: "pipeline", size: "9x9" }] },
       { tiles: [{ key: "pipeline", size: "4x2" }] },
+      { tiles: [{ key: "pipeline", size: "0x1" }] },
+      { tiles: [{ key: "pipeline", size: "1x4" }] },
+      { tiles: [{ key: "pipeline", size: 2 }] },
       {
         tiles: [
           { key: "pipeline", size: "1x1" },
@@ -180,41 +184,108 @@ describe("disposition du tableau de bord", () => {
     expect((await getDashboardLayout(ctx)).tiles).toEqual([{ key: "support", size: "1x1" }]);
   });
 
+  it("un ancien format enregistré se lit encore, et tout format de 1 à 3 s'enregistre", async () => {
+    const ctx = await createTestContext(db, "admin");
+    const stored = {
+      tiles: [
+        { key: "revenue", size: "4x2" },
+        { key: "pipeline", size: "2x2" },
+        { key: "load", size: "2x1" },
+        { key: "mrr", size: "1x1" },
+        { key: "support", size: "9x9" },
+        { key: "alerts", size: "grand" },
+        { key: "overview" },
+      ],
+    };
+    await db
+      .insert(schema.userPreferences)
+      .values({ userId: ctx.actor.userId, dashboardLayout: stored })
+      .onConflictDoUpdate({
+        target: schema.userPreferences.userId,
+        set: { dashboardLayout: stored },
+      });
+    expect((await getDashboardLayout(ctx)).tiles).toEqual([
+      { key: "revenue", size: "3x2" },
+      { key: "pipeline", size: "2x2" },
+      { key: "load", size: "2x1" },
+      { key: "mrr", size: "1x1" },
+      { key: "support", size: "3x3" },
+      { key: "alerts", size: "2x2" },
+      { key: "overview", size: "2x2" },
+    ]);
+
+    for (const size of TILE_SIZES) {
+      const layout = { tiles: [{ key: "revenue", size }] };
+      await saveDashboardLayout(ctx, layout);
+      expect((await getDashboardLayout(ctx)).tiles).toEqual(layout.tiles);
+    }
+    await expect(
+      saveDashboardLayout(ctx, { tiles: [{ key: "revenue", size: "4x2" }] }),
+    ).rejects.toBeInstanceOf(ValidationError);
+  });
+
+  it("le catalogue ne propose que des formats valides, tuiles larges bornées à la grille", () => {
+    for (const { size } of TILE_CATALOG) expect(TILE_SIZES).toContain(size);
+    const board = TILE_SIZES.map((size, index) => ({ key: TILE_CATALOG[index]!.key, size }));
+    for (const gridColumns of [2, 4, 6]) {
+      const packed = packTiles(board, gridColumns);
+      const taken = new Set<string>();
+      for (const { column, row, columns, rows } of packed.values()) {
+        expect(column + columns - 1).toBeLessThanOrEqual(gridColumns);
+        for (let y = row; y < row + rows; y += 1) {
+          for (let x = column; x < column + columns; x += 1) {
+            expect(taken.has(`${x}:${y}`)).toBe(false);
+            taken.add(`${x}:${y}`);
+          }
+        }
+      }
+      for (const cell of emptyCells(packed, gridColumns)) {
+        expect(taken.has(`${cell.column}:${cell.row}`)).toBe(false);
+      }
+    }
+  });
+
   it("les flèches changent de format sans boucler, le glisser se cale sur le format le plus proche", () => {
-    expect(stepTileSize("pipeline", "1x1", 1)).toBe("2x1");
-    expect(stepTileSize("pipeline", "2x2", 1)).toBe("2x2");
-    expect(stepTileSize("pipeline", "1x1", -1)).toBe("1x1");
-    expect(stepTileSize("revenue", "2x2", 1)).toBe("4x2");
-    expect(stepTileSize("revenue", "4x2", -1)).toBe("2x2");
+    expect(stepTileSize("1x1", "columns", 1)).toBe("2x1");
+    expect(stepTileSize("1x1", "rows", 1)).toBe("1x2");
+    expect(stepTileSize("2x2", "columns", 1)).toBe("3x2");
+    expect(stepTileSize("2x3", "rows", 1)).toBe("2x3");
+    expect(stepTileSize("3x1", "columns", 1)).toBe("3x1");
+    expect(stepTileSize("1x1", "columns", -1)).toBe("1x1");
+    expect(stepTileSize("1x1", "rows", -1)).toBe("1x1");
+    expect(stepTileSize("3x3", "rows", -1)).toBe("3x2");
 
     // Sans déplacement, le format reste, même quand il est borné par la grille.
-    expect(nearestTileSize("revenue", "2x1", { columns: 2, rows: 1 }, 6)).toBe("2x1");
-    expect(nearestTileSize("revenue", "4x2", { columns: 2, rows: 2 }, 2)).toBe("4x2");
-    expect(nearestTileSize("pipeline", "1x1", { columns: 1.4, rows: 1 }, 6)).toBe("1x1");
-    expect(nearestTileSize("pipeline", "1x1", { columns: 1.6, rows: 1 }, 6)).toBe("2x1");
-    expect(nearestTileSize("pipeline", "1x1", { columns: 2, rows: 1.8 }, 6)).toBe("2x2");
-    // Un format que la tuile n'a pas n'est jamais choisi.
-    expect(nearestTileSize("pipeline", "2x2", { columns: 4, rows: 2 }, 6)).toBe("2x2");
-    expect(nearestTileSize("revenue", "2x2", { columns: 3.6, rows: 2 }, 6)).toBe("4x2");
-    expect(tileSpan("4x2", 2)).toEqual({ columns: 2, rows: 2 });
+    expect(nearestTileSize("2x1", { columns: 2, rows: 1 }, 6)).toBe("2x1");
+    expect(nearestTileSize("3x2", { columns: 2, rows: 2 }, 2)).toBe("3x2");
+    expect(nearestTileSize("1x1", { columns: 1.4, rows: 1 }, 6)).toBe("1x1");
+    expect(nearestTileSize("1x1", { columns: 1.6, rows: 1 }, 6)).toBe("2x1");
+    expect(nearestTileSize("1x1", { columns: 2, rows: 1.8 }, 6)).toBe("2x2");
+    expect(nearestTileSize("1x1", { columns: 1, rows: 2.8 }, 6)).toBe("1x3");
+    // Au-delà de 3, la poignée reste sur le plus grand format.
+    expect(nearestTileSize("2x2", { columns: 4, rows: 2 }, 6)).toBe("3x2");
+    expect(nearestTileSize("2x2", { columns: 9, rows: 9 }, 6)).toBe("3x3");
+    expect(tileSpan("3x2", 2)).toEqual({ columns: 2, rows: 2 });
 
-    // Placement dense : le 1×1 passe sous le 2×1, dans le trou à droite du 4×2.
+    // Placement dense : le 2×1 se pose à droite du 3×2, le 1×1 juste après.
     const board = [
-      { key: "revenue", size: "4x2" },
+      { key: "revenue", size: "3x2" },
       { key: "load", size: "2x1" },
       { key: "mrr", size: "1x1" },
     ] as const;
     const packed = packTiles(board, 6);
-    expect(packed.get("load")).toMatchObject({ column: 5, row: 1 });
-    expect(packed.get("mrr")).toMatchObject({ column: 5, row: 2 });
-    // Le trou de la deuxième rangée, puis la rangée en réserve.
+    expect(packed.get("load")).toMatchObject({ column: 4, row: 1 });
+    expect(packed.get("mrr")).toMatchObject({ column: 6, row: 1 });
+    // Les trous de la deuxième rangée, puis la rangée en réserve.
     expect(emptyCells(packed, 6)).toEqual([
+      { column: 4, row: 2 },
+      { column: 5, row: 2 },
       { column: 6, row: 2 },
       ...[1, 2, 3, 4, 5, 6].map((column) => ({ column, row: 3 })),
     ]);
     // Visée de la case libre : la tuile s'y pose au dernier rang. En haut à gauche : premier rang.
     const others = board.slice(0, 2);
-    expect(closestInsertion(others, board[2], { column: 5, row: 2 }, 6, 2)).toBe(2);
+    expect(closestInsertion(others, board[2], { column: 6, row: 1 }, 6, 2)).toBe(2);
     expect(closestInsertion(others, board[2], { column: 1, row: 1 }, 6, 2)).toBe(0);
 
     const tiles = [

@@ -50,7 +50,7 @@ export default async function DuplicatesPage() {
           <h2 id="duplicate-companies" className="text-tile-title text-ink">
             Clients
           </h2>
-          <div className="grid gap-5 lg:grid-cols-2">
+          <div className="grid gap-5 lg:grid-cols-2 2xl:grid-cols-(--cols-cards)">
             {companies.map((group) => (
               <Tile
                 key={`${group.reason}-${group.key}`}
@@ -90,7 +90,7 @@ export default async function DuplicatesPage() {
           <h2 id="duplicate-contacts" className="text-tile-title text-ink">
             Contacts
           </h2>
-          <div className="grid gap-5 lg:grid-cols-2">
+          <div className="grid gap-5 lg:grid-cols-2 2xl:grid-cols-(--cols-cards)">
             {contacts.map((group) => (
               <Tile
                 key={`${group.reason}-${group.key}`}
