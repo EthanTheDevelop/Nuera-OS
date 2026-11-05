@@ -9,15 +9,15 @@ Plateforme interne de pilotage de l'agence **Nuera Studio**.
 
 ## Stack
 
-| Rôle                | Choix                                                                      |
-| ------------------- | -------------------------------------------------------------------------- |
-| Application         | Next.js 16 (App Router) · React 19 · TypeScript 6 (strict)                 |
-| Base de données     | PostgreSQL 17 · Drizzle ORM · migrations SQL versionnées                   |
-| Authentification    | better-auth (sessions en base, plugin admin) + RBAC applicatif             |
-| Validation          | Zod 4 (messages en français)                                               |
-| Interface           | Tailwind CSS 4 (tokens provisoires, à remplacer par les maquettes)         |
-| Qualité             | ESLint 9 · Prettier · Vitest · PGlite (PostgreSQL embarqué pour les tests) |
-| Déploiement (prévu) | Image Docker `standalone` sur Coolify                                      |
+| Rôle             | Choix                                                                        |
+| ---------------- | ---------------------------------------------------------------------------- |
+| Application      | Next.js 16 (App Router) · React 19 · TypeScript 6 (strict)                   |
+| Base de données  | PostgreSQL 17 · Drizzle ORM · migrations SQL versionnées                     |
+| Authentification | better-auth (sessions en base, plugin admin) + RBAC applicatif               |
+| Validation       | Zod 4 (messages en français)                                                 |
+| Interface        | Tailwind CSS 4 (tokens provisoires, à remplacer par les maquettes)           |
+| Qualité          | ESLint 9 · Prettier · Vitest · PGlite (PostgreSQL embarqué pour les tests)   |
+| Déploiement      | Image Docker `standalone` sur Coolify (production `main`, staging `staging`) |
 
 Le détail et la justification des choix sont dans [docs/architecture.md](docs/architecture.md).
 
@@ -49,9 +49,11 @@ L'inscription publique est désactivée : les comptes se créent avec `npm run u
 | ------------------------- | -------------------------------------------------------------------------- |
 | `npm run dev`             | Serveur de développement                                                   |
 | `npm run build` / `start` | Build et serveur de production                                             |
+| `npm run build:cli`       | Compile les outils d'exploitation de l'image (`dist/cli`)                  |
 | `npm run check`           | Format + lint + types + tests (à lancer avant chaque PR)                   |
 | `npm test`                | Tests (unitaires + intégration sur PostgreSQL embarqué, sans Docker)       |
 | `npm run db:generate`     | Génère une migration SQL depuis le schéma (`drizzle/`) — **relire le SQL** |
+| `npm run db:check`        | Vérifie les migrations : synchronisées avec le schéma et non destructives  |
 | `npm run db:migrate`      | Applique les migrations en attente                                         |
 | `npm run db:studio`       | Explorateur de base Drizzle Studio                                         |
 | `npm run user:create`     | Crée un compte (`--email`, `--name`, `--role admin\|member`)               |
@@ -87,11 +89,14 @@ service, actions) → pages dans `src/app/(app)/<domaine>/` → entrée dans `sr
 
 ## Déploiement (Coolify)
 
-Non effectué : aucune opération n'a été réalisée sur l'infrastructure. Le `Dockerfile`
-fournit une image `standalone` non privilégiée avec healthcheck (`/api/health`).
-Variables à définir dans Coolify : `DATABASE_URL`, `BETTER_AUTH_SECRET`, `BETTER_AUTH_URL`
-(URL publique HTTPS), `DB_MIGRATE_ON_START=true`. L'application doit être exposée
-**uniquement via le reverse proxy** (Traefik) : l'IP cliente est lue dans `X-Forwarded-For`.
+Deux applications Coolify indépendantes sur `NUERA-PROD-01`, construites depuis le
+`Dockerfile` (Build Pack « Dockerfile », port interne `3000`) : `main` → production,
+`staging` → préproduction, chacune avec sa propre base PostgreSQL 17 (`DATABASE_URL`).
+Les migrations sont appliquées au démarrage (`DB_MIGRATE_ON_START=true`) ; aucune base
+n'est créée par le déploiement. Le `docker-compose.yml` sert uniquement au développement local.
+
+Guide complet (paramètres Coolify, variables, réseau, healthcheck, migrations, premier
+administrateur) : [docs/deployment-coolify.md](docs/deployment-coolify.md).
 
 ## Sécurité
 
