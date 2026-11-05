@@ -371,8 +371,9 @@ const LOADERS: Record<TileKey, (sources: Sources) => Promise<TileView>> = {
         ? {
             title: "Aucune affaire pour l’instant",
             description: "Les affaires de Twenty et celles créées ici apparaîtront par étape.",
-            actionHref: "/pipeline?nouvelle=NEW",
-            actionLabel: "Créer une affaire",
+            ...(can(ctx.actor, "sales:create")
+              ? { actionHref: "/pipeline?nouvelle=NEW", actionLabel: "Créer une affaire" }
+              : {}),
           }
         : undefined,
     };
@@ -577,8 +578,9 @@ const LOADERS: Record<TileKey, (sources: Sources) => Promise<TileView>> = {
         items.length === 0
           ? {
               title: "Aucun rendez-vous à venir",
-              actionHref: "/messages/rendez-vous",
-              actionLabel: "Planifier un rendez-vous",
+              ...(can(ctx.actor, "messages:send")
+                ? { actionHref: "/messages/rendez-vous", actionLabel: "Planifier un rendez-vous" }
+                : {}),
             }
           : undefined,
     };
@@ -1359,8 +1361,16 @@ export async function getDashboard(
   };
 }
 
-/** Cloche de l'en-tête : les dernières notifications de ce compte, et de lui seul. */
+/**
+ * Cloche de l'en-tête : les dernières notifications de ce compte, et de lui seul. NULL si elles ne se
+ * lisent pas : la cloche manque, le tableau de bord reste.
+ */
 export async function getDashboardNotifications(ctx: ServiceContext) {
   assertCan(ctx.actor, "dashboard:read");
-  return getNotificationCenter(ctx.db, ctx.actor.userId);
+  try {
+    return await getNotificationCenter(ctx.db, ctx.actor.userId);
+  } catch (error) {
+    logger.error("dashboard.notifications_failed", { error });
+    return null;
+  }
 }

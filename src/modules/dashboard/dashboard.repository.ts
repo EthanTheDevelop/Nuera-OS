@@ -408,6 +408,9 @@ export async function listUpcomingInterventions(db: Database, range: DayRange, l
     .where(
       and(
         isNull(maintenanceInterventions.doneOn),
+        // Un contrat résilié, expiré, suspendu ou archivé n'appelle plus d'intervention.
+        isNull(contracts.archivedAt),
+        inArray(contracts.status, ["to_start", "active", "to_review"]),
         sql`${maintenanceInterventions.plannedOn} between ${range.from}::date and ${range.to}::date`,
       ),
     )

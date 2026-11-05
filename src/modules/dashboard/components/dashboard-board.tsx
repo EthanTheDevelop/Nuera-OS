@@ -4,6 +4,7 @@ import { motion, useDragControls, type PanInfo } from "motion/react";
 import { useRouter } from "next/navigation";
 import {
   useCallback,
+  useEffect,
   useMemo,
   useRef,
   useState,
@@ -18,6 +19,7 @@ import { Button, ButtonLink } from "@/components/ui/button";
 import { Icon } from "@/components/ui/icon";
 import { AddTile, Tile, TileRemoveButton, TileResizeHandle } from "@/components/ui/tile";
 import { useToast } from "@/components/ui/toast";
+import type { ActionState } from "@/lib/action-state";
 import { cn } from "@/lib/cn";
 import { saveDashboardLayoutAction } from "../dashboard.actions";
 import {
@@ -51,6 +53,18 @@ const sizeLabel = (size: DashboardTileSize) => size.replace("x", "×");
  */
 function settlePageBuild() {
   document.documentElement.toggleAttribute("data-page-seen", true);
+}
+
+/** Réseau coupé : l'appel lève côté navigateur. Le tableau en cours d'édition ne doit pas se perdre. */
+async function saveLayout(tiles: LayoutTile[]): Promise<ActionState> {
+  try {
+    return await saveDashboardLayoutAction({ tiles });
+  } catch {
+    return {
+      status: "error",
+      message: "Enregistrement impossible. Vérifiez votre connexion, puis réessayez.",
+    };
+  }
 }
 
 /** La tuile sous le pointeur, en ignorant celle qu'on déplace. */
@@ -202,6 +216,7 @@ function GalleryItem({
   return (
     <motion.button
       type="button"
+      data-gallery-item
       drag
       dragControls={controls}
       dragListener={false}
@@ -264,10 +279,18 @@ export function DashboardBoard({ data, editing }: { data: DashboardData; editing
     return TILE_CATALOG.filter(({ key }) => allowed.has(key) && !placed.has(key));
   }, [data, tiles]);
 
+  // Le focus du clavier survit à ce qui vient de quitter le DOM : tuile retirée, entrée de galerie.
+  const pendingFocus = useRef<(() => HTMLElement | null | undefined) | null>(null);
+  useEffect(() => {
+    const target = pendingFocus.current?.();
+    pendingFocus.current = null;
+    target?.focus();
+  }, [tiles]);
+
   const persist = useCallback(
     (next: LayoutTile[], previous: LayoutTile[]) => {
       startSaving(async () => {
-        const result = await saveDashboardLayoutAction({ tiles: next });
+        const result = await saveLayout(next);
         if (result.status === "error") {
           setTiles(previous);
           toast({ tone: "danger", message: result.message });
@@ -291,6 +314,12 @@ export function DashboardBoard({ data, editing }: { data: DashboardData; editing
   }
 
   function removeTile(key: TileKey) {
+    const index = tiles.findIndex((tile) => tile.key === key);
+    const neighbour = tiles[index + 1] ?? tiles[index - 1];
+    pendingFocus.current = () =>
+      neighbour
+        ? document.querySelector<HTMLElement>(`[data-tile-key="${neighbour.key}"]`)
+        : panel.current?.querySelector("button");
     setTiles((current) => current.filter((tile) => tile.key !== key));
     setAnnounce(`${tileDefinition(key).title} retirée du tableau.`);
   }
@@ -298,6 +327,14 @@ export function DashboardBoard({ data, editing }: { data: DashboardData; editing
   function addTile(key: TileKey, at?: number) {
     settlePageBuild();
     const { size } = tileDefinition(key);
+    const place = available.findIndex((definition) => definition.key === key);
+    pendingFocus.current = () => {
+      const entries = panel.current?.querySelectorAll<HTMLElement>("[data-gallery-item]");
+      return (
+        entries?.[Math.min(place, entries.length - 1)] ??
+        document.querySelector<HTMLElement>(`[data-tile-key="${key}"]`)
+      );
+    };
     setTiles((current) => {
       if (current.some((tile) => tile.key === key)) return current;
       const next = [...current];
@@ -338,7 +375,7 @@ export function DashboardBoard({ data, editing }: { data: DashboardData; editing
 
   function finish() {
     startSaving(async () => {
-      const result = await saveDashboardLayoutAction({ tiles });
+      const result = await saveLayout(tiles);
       if (result.status === "error") {
         toast({ tone: "danger", message: result.message });
         return;

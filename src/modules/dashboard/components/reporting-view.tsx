@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { useRouter, useSearchParams } from "next/navigation";
-import { useState, type ReactNode } from "react";
+import { useState, useTransition, type ReactNode } from "react";
 import { ComparedBars } from "@/components/charts/compared-bars";
 import { AreaLine, StepLine } from "@/components/charts/line-charts";
 import { WonLostBars } from "@/components/charts/won-lost-bars";
@@ -15,6 +15,7 @@ import { Icon } from "@/components/ui/icon";
 import { Menu } from "@/components/ui/popover";
 import { KpiTabs, type KpiTabItem } from "@/components/ui/tabs";
 import { TileHeader } from "@/components/ui/tile";
+import { useToast } from "@/components/ui/toast";
 import { cn } from "@/lib/cn";
 import { centsToEuros } from "@/lib/money";
 import { hrefWith } from "@/lib/url-state";
@@ -144,8 +145,9 @@ export function ReportingView({ data, aside }: { data: ReportingData; aside?: Re
       ) : (
         "—"
       ),
-      note:
-        delta === null
+      note: !revenue
+        ? undefined
+        : delta === null
           ? `Rien à comparer en ${data.previousLabel}`
           : `${delta >= 0 ? "+" : "−"}${Math.abs(delta)} % vs ${data.previousLabel}`,
       noteTone: delta === null ? "muted" : delta >= 0 ? "success" : "danger",
@@ -281,7 +283,8 @@ export function ReportingView({ data, aside }: { data: ReportingData; aside?: Re
           label="Mesures du reporting"
           className="contents [&>*:first-child]:lg:col-span-full"
           panelClassName="min-w-0"
-          defaultValue={measure || tabs[0]?.id}
+          // `?mesure=` d'un lien partagé peut viser une mesure que ce rôle n'a pas.
+          defaultValue={tabs.some((tab) => tab.id === measure) ? measure : tabs[0]?.id}
           onValueChange={(id) => {
             setMeasure(id);
             const next = hrefWith(PATH, params, { mesure: id === tabs[0]?.id ? null : id });
@@ -340,6 +343,37 @@ export function ReportingFilters({ data }: { data: ReportingData }) {
     ? `${PERIOD_LABELS[data.periodKey]} · ${REVENUE_ACTIVITY_LABELS[data.activity]}`
     : PERIOD_LABELS[data.periodKey];
   const activities = Object.keys(REVENUE_ACTIVITY_LABELS) as RevenueActivity[];
+  const toast = useToast();
+  const [exporting, startExport] = useTransition();
+
+  function exportCsv() {
+    startExport(async () => {
+      const failed = (message = "L’export n’a pas pu être généré. Réessayez dans un instant.") =>
+        toast({ tone: "danger", message });
+      try {
+        const response = await fetch(hrefWith(EXPORT_PATH, params, { mesure: null }));
+        // Un compte à enrôler est redirigé : suivre, ne pas enregistrer sa page comme un CSV.
+        if (response.redirected) {
+          window.location.assign(response.url);
+          return;
+        }
+        if (!response.ok) {
+          const body = (await response.json().catch(() => null)) as { error?: string } | null;
+          failed(body?.error);
+          return;
+        }
+        const disposition = response.headers.get("Content-Disposition") ?? "";
+        const href = URL.createObjectURL(await response.blob());
+        const link = document.createElement("a");
+        link.href = href;
+        link.download = /filename="([^"]+)"/.exec(disposition)?.[1] ?? "nuera-reporting.csv";
+        link.click();
+        URL.revokeObjectURL(href);
+      } catch {
+        failed();
+      }
+    });
+  }
 
   return (
     <>
@@ -383,12 +417,7 @@ export function ReportingFilters({ data }: { data: ReportingData }) {
         ]}
       />
       {data.canExport ? (
-        <Button
-          icon="download"
-          onClick={() => {
-            window.location.assign(hrefWith(EXPORT_PATH, params, { mesure: null }));
-          }}
-        >
+        <Button icon="download" loading={exporting} onClick={exportCsv}>
           Exporter
         </Button>
       ) : null}
