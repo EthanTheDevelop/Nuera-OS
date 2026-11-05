@@ -15,6 +15,8 @@ Reprise après interruption : lire ce fichier, `CLAUDE.md`, puis `docs/domain-mo
 - Revue de sécurité (`docs/security-review.md`).
 - Exploitation : image vérifiée dans Docker, volume des documents, sondes de santé, sauvegarde et restauration essayées pour de vrai (`docs/ops/sauvegarde-restauration.md`), guide de déploiement (`docs/deployment-coolify.md`), README.
 
+- Données fictives de staging : `npm run db:seed:staging`, `cli/db-seed-staging.mjs` dans l'image, garde-fous `SEED_ALLOWED=true` et base `nuera_os_staging` (`docs/ops/donnees-staging.md`). Essayé sur PostgreSQL 16 local, production refusée.
+
 ## En cours
 
 - Rien.

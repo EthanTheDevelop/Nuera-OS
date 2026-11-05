@@ -25,6 +25,7 @@
     "db:check": "drizzle-kit check && node scripts/check-migrations.mjs",
     "db:migrate": "tsx --conditions=react-server --env-file-if-exists=.env scripts/db-migrate.ts",
     "db:seed": "tsx --conditions=react-server --env-file-if-exists=.env scripts/db-seed.ts",
+    "db:seed:staging": "tsx --conditions=react-server --env-file-if-exists=.env scripts/db-seed-staging.ts",
     "db:studio": "drizzle-kit studio",
     "user:create": "tsx --conditions=react-server --env-file-if-exists=.env scripts/user-create.ts",
     "twenty:bootstrap": "tsx --conditions=react-server --env-file-if-exists=.env scripts/twenty-bootstrap.ts"
@@ -47,6 +48,7 @@
   },
   "devDependencies": {
     "@electric-sql/pglite": "0.5.10",
+    "@faker-js/faker": "10.6.0",
     "@playwright/test": "1.64.1",
     "@tailwindcss/postcss": "4.3.3",
     "@types/node": "24.19.2",

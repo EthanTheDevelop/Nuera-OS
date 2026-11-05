@@ -3,7 +3,8 @@
  * `npm run build:cli` → `dist/cli/*.mjs`.
  *
  * L'image de production ne contient ni `tsx` ni les sources : ces bundles permettent
- * d'appliquer les migrations ou de créer un compte depuis le terminal du conteneur
+ * d'appliquer les migrations, de créer un compte ou de charger les données fictives de staging
+ * (`docs/ops/donnees-staging.md`) depuis le terminal du conteneur
  * (ex. `node cli/user-create.mjs …` dans Coolify), avec la même configuration
  * (`DATABASE_URL`, `BETTER_AUTH_*`) que l'application.
  */
@@ -13,6 +14,7 @@ await build({
   entryPoints: {
     "db-migrate": "scripts/db-migrate.ts",
     "user-create": "scripts/user-create.ts",
+    "db-seed-staging": "scripts/db-seed-staging.ts",
   },
   outdir: "dist/cli",
   outExtension: { ".js": ".mjs" },

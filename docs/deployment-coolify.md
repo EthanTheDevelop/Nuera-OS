@@ -42,7 +42,8 @@ Internet ──HTTPS──▶ Proxy Coolify (Traefik/Caddy, TLS Let's Encrypt)
    commande `node server.js`.
 
 Contenu de `/app` dans l'image : `server.js` (serveur Next.js), `.next/static`, `public/`,
-`drizzle/` (migrations SQL) et `cli/` (`db-migrate.mjs`, `user-create.mjs`). `/data/storage`
+`drizzle/` (migrations SQL) et `cli/` (`db-migrate.mjs`, `user-create.mjs`,
+`db-seed-staging.mjs`). `/data/storage`
 appartient à `nextjs`, pour accueillir le volume des documents.
 
 ### Comportement au démarrage
@@ -233,7 +234,11 @@ version en service.
    `scripts/user-create.ts`.
 
 5. Activer la double authentification de ce compte (voir § 8), puis planifier les tâches (§ 9).
-6. Répéter pour la production.
+6. Facultatif, **staging seulement** : charger des données fictives en volume avec
+   `SEED_ALLOWED=true node cli/db-seed-staging.mjs --volume medium` (Terminal de l'application
+   staging). Refusé sur toute base autre que `nuera_os_staging`. Procédure complète :
+   [docs/ops/donnees-staging.md](ops/donnees-staging.md).
+7. Répéter pour la production, sans l'étape 6.
 
 ### 8. Double authentification
 
