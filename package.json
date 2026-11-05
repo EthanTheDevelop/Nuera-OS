@@ -20,6 +20,7 @@
     "test:watch": "vitest",
     "check": "npm run format:check && npm run lint && npm run typecheck && npm run test",
     "db:generate": "drizzle-kit generate",
+    "db:check": "drizzle-kit check && node scripts/check-migrations.mjs",
     "db:migrate": "tsx --conditions=react-server --env-file-if-exists=.env scripts/db-migrate.ts",
     "db:studio": "drizzle-kit studio",
     "user:create": "tsx --conditions=react-server --env-file-if-exists=.env scripts/user-create.ts"
