@@ -104,7 +104,7 @@ describe.skipIf(!process.env.TEST_DATABASE_URL)("numéros sur PostgreSQL réel",
 
 describe("événements", () => {
   it("couvre le catalogue du contrat", () => {
-    expect(DOMAIN_EVENT_TYPES).toHaveLength(32);
+    expect(DOMAIN_EVENT_TYPES).toHaveLength(33);
     for (const type of [
       "opportunity.created",
       "opportunity.stage_changed",

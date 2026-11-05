@@ -200,6 +200,15 @@ function isScopedToAssignedWork(ctx: ServiceContext): boolean {
   return !can(ctx.actor, "projects:read");
 }
 
+/** Même refus que `logTicketTime` : le temps d'une demande clôturée est déjà imputé. */
+async function assertTicketOpen(tx: Database, ticketId: string | null): Promise<void> {
+  if (!ticketId) return;
+  const ticket = await timeRepository.getTicketLink(tx, ticketId);
+  if (ticket?.status === "closed") {
+    throw new ConflictError("Le temps d'une demande clôturée est déjà imputé.");
+  }
+}
+
 async function resolveWork(
   tx: Database,
   ctx: ServiceContext,
@@ -367,6 +376,7 @@ export async function createTimeEntry(
   return ctx.db.transaction(async (tx) => {
     const member = await resolveEntryMember(tx, ctx, data.memberId);
     const work = await resolveWork(tx, ctx, member.id, data);
+    await assertTicketOpen(tx, work.ticketId);
     await lockMemberDay(tx, member.id, data.workOn);
 
     const duplicate = await timeRepository.findRecentDuplicate(
@@ -452,6 +462,8 @@ export async function updateTimeEntry(
     if (!member) throw new NotFoundError("Membre introuvable.");
 
     const work = await resolveWork(tx, ctx, member.id, data);
+    // Une saisie déjà sur la demande clôturée se corrige ; l'y déplacer est refusé.
+    if (work.ticketId !== entry.ticketId) await assertTicketOpen(tx, work.ticketId);
     await lockMemberDay(tx, member.id, data.workOn);
     const note = data.note ?? null;
     const same =

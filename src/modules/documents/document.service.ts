@@ -90,7 +90,11 @@ const READ_PERMISSIONS = ["documents:read", "documents:read_assigned"] as const;
 /** Périmètre de lecture du rôle. Le `read_assigned` d'un prestataire se résout dans la requête. */
 async function readScope(ctx: ServiceContext): Promise<repository.DocumentScope> {
   assertCanAny(ctx.actor, READ_PERMISSIONS);
-  if (can(ctx.actor, "documents:read")) return { kind: "all" };
+  if (can(ctx.actor, "documents:read")) {
+    return can(ctx.actor, "finance:read")
+      ? { kind: "all" }
+      : { kind: "all", invoicesOfUserId: ctx.actor.userId };
+  }
   return {
     kind: "assigned",
     projectIds: await getAssignedProjectIds(ctx.db, ctx.actor),
@@ -98,9 +102,20 @@ async function readScope(ctx: ServiceContext): Promise<repository.DocumentScope>
   };
 }
 
-async function requireDocument(db: Database, id: string): Promise<Document> {
-  const document = await repository.lockDocument(db, id);
+/**
+ * Verrouille un document à modifier. Une facture est réservée à `finance:read` et à la personne qui
+ * l'a déposée : pour les autres, elle n'existe pas, en écriture comme en lecture.
+ */
+async function requireDocument(ctx: ServiceContext, tx: Database, id: string): Promise<Document> {
+  const document = await repository.lockDocument(tx, id);
   if (!document) throw new NotFoundError("Ce document n'existe pas.");
+  if (
+    document.kind === "invoice" &&
+    !can(ctx.actor, "finance:read") &&
+    !(await repository.hasUploadedVersion(tx, id, ctx.actor.userId))
+  ) {
+    throw new NotFoundError("Ce document n'existe pas.");
+  }
   return document;
 }
 
@@ -403,7 +418,7 @@ export async function uploadDocumentVersion(
   const file = await ingestFile(storage, source, { filename: data.filename, maxBytes });
   try {
     const result = await ctx.db.transaction(async (tx): Promise<UploadResult> => {
-      const document = await requireDocument(tx, data.documentId);
+      const document = await requireDocument(ctx, tx, data.documentId);
       if (document.archivedAt) {
         throw new ConflictError("Restaurez ce document avant de le modifier.");
       }
@@ -734,7 +749,7 @@ export async function updateDocument(
   const links = await resolveLinks(ctx.db, linkInput, before);
 
   return ctx.db.transaction(async (tx) => {
-    const document = await requireDocument(tx, id);
+    const document = await requireDocument(ctx, tx, id);
     if (document.archivedAt) throw new ConflictError("Restaurez ce document avant de le modifier.");
     if (document.companyId !== links.companyId) {
       if (document.uploadedByClient) {
@@ -766,7 +781,7 @@ export async function setDocumentVisibility(
   const { id, visibility } = parseInput(documentVisibilitySchema, input);
 
   return ctx.db.transaction(async (tx) => {
-    const document = await requireDocument(tx, id);
+    const document = await requireDocument(ctx, tx, id);
     if (document.visibility === visibility) return document;
     if (document.archivedAt) throw new ConflictError("Restaurez ce document avant de le modifier.");
     if (document.uploadedByClient) {
@@ -794,7 +809,7 @@ export async function setDocumentStatus(
   const { id, status } = parseInput(documentStatusSchema, input);
 
   return ctx.db.transaction(async (tx) => {
-    const document = await requireDocument(tx, id);
+    const document = await requireDocument(ctx, tx, id);
     if (document.status === status) return document;
     if (document.archivedAt) throw new ConflictError("Restaurez ce document avant de le modifier.");
     assertDocumentTransition(document.status, status);
@@ -819,7 +834,7 @@ export async function setReferenceVersion(
   const { id, versionId } = parseInput(documentReferenceSchema, input);
 
   return ctx.db.transaction(async (tx) => {
-    const document = await requireDocument(tx, id);
+    const document = await requireDocument(ctx, tx, id);
     if (document.currentVersionId === versionId) return document;
     if (document.archivedAt) throw new ConflictError("Restaurez ce document avant de le modifier.");
     const version = await repository.findVersionById(tx, id, versionId);
@@ -851,7 +866,7 @@ export async function archiveDocument(ctx: ServiceContext, documentId: string): 
   const { id } = parseInput(documentIdSchema, { id: documentId });
 
   return ctx.db.transaction(async (tx) => {
-    const document = await requireDocument(tx, id);
+    const document = await requireDocument(ctx, tx, id);
     if (document.archivedAt) return document;
     const updated = await repository.updateDocument(tx, id, { archivedAt: new Date() });
     await recordAudit(tx, {
@@ -870,7 +885,7 @@ export async function restoreDocument(ctx: ServiceContext, documentId: string): 
   const { id } = parseInput(documentIdSchema, { id: documentId });
 
   return ctx.db.transaction(async (tx) => {
-    const document = await requireDocument(tx, id);
+    const document = await requireDocument(ctx, tx, id);
     if (!document.archivedAt) return document;
     const updated = await repository.updateDocument(tx, id, { archivedAt: null });
     await recordAudit(tx, {

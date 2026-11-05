@@ -361,6 +361,75 @@ async function assertDeliverable(tx: Database, project: Project): Promise<void> 
   }
 }
 
+/**
+ * Avenant signé : le budget et le temps prévus du projet du devis d'origine augmentent d'autant,
+ * une seule fois par devis (clé d'événement, dans la transaction de l'acceptation). Rien si l'avenant
+ * vient d'une demande dont l'acceptation les a déjà augmentés. Un projet clôturé ou archivé compte
+ * aussi : c'est de la comptabilité du vendu, pas une modification du projet.
+ */
+export async function raiseProjectBudgetFromAmendment(
+  ctx: ServiceContext,
+  tx: Database,
+  input: {
+    quoteId: string;
+    parentQuoteId: string;
+    versionId: string;
+    companyId: string;
+    auditActorId: string | null;
+  },
+): Promise<Project | null> {
+  assertCanAny(ctx.actor, ["projects:create", "quotes:update"]);
+  const origin = await repository.findProjectByQuote(tx, input.parentQuoteId);
+  if (!origin) return null;
+  const project = await lockExistingProject(tx, origin.id);
+
+  const changeRequest = await production.findChangeRequestOfQuote(tx, input.quoteId);
+  if (changeRequest?.budgetAppliedAt) return project;
+
+  const source = await repository.findQuoteSource(tx, {
+    quoteId: input.quoteId,
+    versionId: input.versionId,
+  });
+  if (!source || source.versionQuoteId !== input.quoteId) {
+    throw new NotFoundError("Devis introuvable.");
+  }
+  const amountCents = source.totalCents ?? 0;
+  const minutes = source.estimatedMinutes ?? 0;
+  if (amountCents === 0 && minutes === 0) return project;
+
+  const first = await emitEvent(tx, {
+    type: "project.budget_raised",
+    entityType: "project",
+    entityId: project.id,
+    companyId: input.companyId,
+    payload: { quoteId: input.quoteId, amountCents, minutes },
+    actorId: input.auditActorId,
+    dedupeKey: `project.budget_raised:${input.quoteId}`,
+  });
+  if (!first) return project;
+
+  const updated = await repository.updateProject(tx, project.id, {
+    budgetCents: (project.budgetCents ?? 0) + amountCents || null,
+    estimatedMinutes: (project.estimatedMinutes ?? 0) + minutes || null,
+  });
+  await recordAudit(tx, {
+    actorId: input.auditActorId,
+    action: "project.budget_raised",
+    entityType: "project",
+    entityId: project.id,
+    metadata: {
+      quoteId: input.quoteId,
+      amountCents,
+      minutes,
+      fromBudgetCents: project.budgetCents,
+      toBudgetCents: updated.budgetCents,
+      fromEstimatedMinutes: project.estimatedMinutes,
+      toEstimatedMinutes: updated.estimatedMinutes,
+    },
+  });
+  return updated;
+}
+
 /** Passage à « Livré » : statut, date, jalons, journal et événements, dans la transaction reçue. */
 async function deliverProject(
   ctx: ServiceContext,
@@ -912,8 +981,9 @@ export async function getProjectDetail(
     production.listRequirements(ctx.db, projectId),
     production.listHandover(ctx.db, projectId),
     seeBudget ? repository.listSitesOfProject(ctx.db, projectId) : Promise.resolve([]),
-    // Un prestataire lit les documents de ses projets, jamais les pièces commerciales.
-    seeBudget
+    // Un prestataire lit les documents de ses projets, jamais les pièces commerciales. Sans
+    // `finance:read`, le périmètre des documents masque aussi les factures des autres.
+    seeBudget && can(ctx.actor, "finance:read")
       ? repository.listDocumentsOfProject(ctx.db, projectId)
       : listDocumentsFor(ctx, { projectId, limit: 200 }),
   ]);

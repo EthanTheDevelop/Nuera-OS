@@ -595,6 +595,7 @@ export async function getTicketLink(db: Database, id: string) {
       projectId: tickets.projectId,
       contractId: tickets.contractId,
       assigneeMemberId: tickets.assigneeMemberId,
+      status: tickets.status,
     })
     .from(tickets)
     .where(and(eq(tickets.id, id), isNull(tickets.archivedAt)))

@@ -9,6 +9,7 @@ import {
   isNotNull,
   isNull,
   max,
+  ne,
   notInArray,
   or,
   sql,
@@ -62,12 +63,19 @@ export function matchesSearch(
  * documents de ses projets et de ses demandes, un client ceux partagés avec son entreprise.
  */
 export type DocumentScope =
-  | { kind: "all" }
+  /** `invoicesOfUserId` : sans `finance:read`, seules les factures que cette personne a déposées. */
+  | { kind: "all"; invoicesOfUserId?: string }
   | { kind: "assigned"; projectIds: string[]; memberId: string | null }
   | { kind: "portal"; companyId: string };
 
 function scopeCondition(scope: DocumentScope): SQL | undefined {
-  if (scope.kind === "all") return undefined;
+  if (scope.kind === "all") {
+    if (!scope.invoicesOfUserId) return undefined;
+    return or(
+      ne(documents.kind, "invoice"),
+      sql`exists (select 1 from ${documentVersions} where ${documentVersions.documentId} = ${documents.id} and ${documentVersions.uploadedByUserId} = ${scope.invoicesOfUserId})`,
+    );
+  }
   if (scope.kind === "portal") {
     return and(
       eq(documents.companyId, scope.companyId),
@@ -241,6 +249,25 @@ export async function findDocumentRow(
     .where(and(eq(documents.id, id), scopeCondition(scope)))
     .limit(1);
   return row ?? null;
+}
+
+/** Cette personne a-t-elle déposé une version de ce document ? */
+export async function hasUploadedVersion(
+  db: Database,
+  documentId: string,
+  userId: string,
+): Promise<boolean> {
+  const [row] = await db
+    .select({ id: documentVersions.id })
+    .from(documentVersions)
+    .where(
+      and(
+        eq(documentVersions.documentId, documentId),
+        eq(documentVersions.uploadedByUserId, userId),
+      ),
+    )
+    .limit(1);
+  return Boolean(row);
 }
 
 export async function lockDocument(tx: Database, id: string): Promise<Document | null> {

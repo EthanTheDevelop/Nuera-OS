@@ -501,8 +501,9 @@ export async function getTaskDetail(ctx: ServiceContext, taskId: string): Promis
             excludeTaskId: taskId,
           })
         : Promise.resolve([]),
-      // Un prestataire lit les documents de ses projets, jamais les pièces commerciales.
-      scope.assignedOnly
+      // Un prestataire lit les documents de ses projets, jamais les pièces commerciales. Sans
+      // `finance:read`, le périmètre des documents masque aussi les factures des autres.
+      scope.assignedOnly || !can(ctx.actor, "finance:read")
         ? listDocumentsFor(ctx, { projectId: task.projectId, limit: 200 })
         : repository.listDocumentsOfProject(ctx.db, task.projectId),
       canComment ? listMentionCandidates(ctx) : Promise.resolve([]),

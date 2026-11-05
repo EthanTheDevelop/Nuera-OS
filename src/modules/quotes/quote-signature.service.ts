@@ -3,7 +3,10 @@ import type { DocusealWebhookEvent } from "@/integrations/docuseal/docuseal.webh
 import { recordAudit } from "@/modules/audit/audit.service";
 import { listContactOptions } from "@/modules/crm/company.lookup";
 import { emitEvent } from "@/modules/platform/events";
-import { createProjectFromQuote } from "@/modules/projects/project.service";
+import {
+  createProjectFromQuote,
+  raiseProjectBudgetFromAmendment,
+} from "@/modules/projects/project.service";
 import { markOpportunityWon, markQuoteSent } from "@/modules/sales/opportunity.service";
 import { assertCan, type Actor } from "@/server/auth/permissions";
 import type { ServiceContext } from "@/server/context";
@@ -277,7 +280,8 @@ async function lockAndFindRival(tx: Database, quote: Quote) {
  * Cœur de l'acceptation, à appeler avec le devis verrouillé. C'est la dernière version envoyée qui
  * est acceptée : une version en préparation n'a jamais été vue par le client.
  *
- * Un avenant ne crée ni projet ni gain d'affaire : il modifie un projet déjà lancé.
+ * Un avenant ne crée ni projet ni gain d'affaire : il augmente le budget et le temps prévus du projet
+ * déjà lancé, une seule fois.
  */
 async function acceptInTransaction(
   ctx: ServiceContext,
@@ -350,6 +354,14 @@ async function acceptInTransaction(
       versionId: version.id,
     });
     projectId = project.id;
+  } else {
+    await raiseProjectBudgetFromAmendment(ctx, tx, {
+      quoteId: quote.id,
+      parentQuoteId: quote.parentQuoteId,
+      versionId: version.id,
+      companyId: quote.companyId,
+      auditActorId: options.auditActorId,
+    });
   }
 
   await emitEvent(tx, {

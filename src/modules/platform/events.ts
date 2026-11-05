@@ -20,6 +20,7 @@ export const DOMAIN_EVENT_ENTITY_TYPES = {
   "project.created": "project",
   "project.status_changed": "project",
   "project.delivered": "project",
+  "project.budget_raised": "project",
   "task.overdue": "task",
   "deliverable.submitted": "deliverable",
   "deliverable.validated": "deliverable",
@@ -65,6 +66,7 @@ export interface DomainEventPayloads {
   "project.created": { number: string; name: string; quoteId: string | null };
   "project.status_changed": { fromStatus: string; toStatus: string };
   "project.delivered": { number: string; deliveredOn: string };
+  "project.budget_raised": { quoteId: string; amountCents: number; minutes: number };
   "task.overdue": {
     projectId: string;
     title: string;
@@ -129,11 +131,12 @@ export interface EmitEventInput<TType extends DomainEventType> {
 }
 
 /** À appeler avec la transaction de l'opération : annulée, elle n'émet rien. */
+/** Vrai si l'événement est nouveau, faux si sa clé `dedupeKey` existait déjà. */
 export async function emitEvent<TType extends DomainEventType>(
   tx: Database,
   input: EmitEventInput<TType>,
-): Promise<void> {
-  await tx
+): Promise<boolean> {
+  const inserted = await tx
     .insert(domainEvents)
     .values({
       type: input.type,
@@ -145,5 +148,7 @@ export async function emitEvent<TType extends DomainEventType>(
       dedupeKey: input.dedupeKey ?? null,
       occurredAt: input.occurredAt ?? new Date(),
     })
-    .onConflictDoNothing({ target: domainEvents.dedupeKey });
+    .onConflictDoNothing({ target: domainEvents.dedupeKey })
+    .returning({ id: domainEvents.id });
+  return inserted.length > 0;
 }

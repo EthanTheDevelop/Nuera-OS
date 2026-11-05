@@ -168,8 +168,8 @@ describe("documents et connaissances : régressions", () => {
         await expect(getDocumentDetail(contractor, id)).rejects.toThrow(NotFoundError);
         await expect(openDocumentDownload(contractor, id, {}, deps)).rejects.toThrow(NotFoundError);
       }
-      // L'équipe interne les voit toujours.
-      expect((await searchDocuments(member, { projectId: project.id })).total).toBe(6);
+      // Une personne avec `finance:read` les voit tous.
+      expect((await searchDocuments(admin, { projectId: project.id })).total).toBe(6);
     });
   });
 
