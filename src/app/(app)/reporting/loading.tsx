@@ -10,7 +10,7 @@ export default function ReportingLoading() {
           <KpiSkeleton key={index} />
         ))}
       </KpiGrid>
-      <div className="grid grid-cols-1 items-start gap-5 lg:grid-cols-[minmax(0,1fr)_360px]">
+      <div className="grid grid-cols-1 items-start gap-5 min-[1340px]:grid-cols-[minmax(0,1fr)_360px]">
         <div className="flex min-w-0 flex-col gap-6">
           <TileSkeleton lines={4} className="min-h-[280px]" label="Chargement du graphique" />
           <TableSkeleton rows={5} columns={5} label="Chargement des activités" />

@@ -274,14 +274,15 @@ export function ReportingView({ data, aside }: { data: ReportingData; aside?: Re
     <div
       className={cn(
         "grid grid-cols-1 gap-x-5 gap-y-6",
-        aside && "lg:grid-cols-[minmax(0,1fr)_360px]",
+        // En deçà de 1340 px, le tableau passerait en fiches à côté du panneau : le panneau descend dessous.
+        aside && "min-[1340px]:grid-cols-[minmax(0,1fr)_360px]",
       )}
     >
       {tabs.length > 0 ? (
         <KpiTabs
           items={tabs}
           label="Mesures du reporting"
-          className="contents [&>*:first-child]:lg:col-span-full"
+          className="contents [&>*:first-child]:min-[1340px]:col-span-full"
           panelClassName="min-w-0"
           // `?mesure=` d'un lien partagé peut viser une mesure que ce rôle n'a pas.
           defaultValue={tabs.some((tab) => tab.id === measure) ? measure : tabs[0]?.id}
@@ -299,7 +300,11 @@ export function ReportingView({ data, aside }: { data: ReportingData; aside?: Re
         />
       )}
 
-      {aside ? <aside className="flex min-w-0 flex-col gap-6 lg:row-span-2">{aside}</aside> : null}
+      {aside ? (
+        <aside className="order-last grid min-w-0 items-start gap-6 min-[1340px]:order-none min-[1340px]:row-span-2 min-[1340px]:flex min-[1340px]:flex-col md:grid-cols-2">
+          {aside}
+        </aside>
+      ) : null}
 
       {data.activities ? (
         <div className="min-w-0">

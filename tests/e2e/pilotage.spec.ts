@@ -217,12 +217,18 @@ test.describe("en associé", () => {
     const label = () => handleOf(page, key).getAttribute("aria-label");
 
     await handleOf(page, key).focus();
+    // Gauche et droite changent la largeur, haut et bas la hauteur : l'un sans toucher à l'autre.
     for (let press = 0; press < 5; press += 1) await page.keyboard.press("ArrowLeft");
+    for (let press = 0; press < 5; press += 1) await page.keyboard.press("ArrowUp");
     await expect.poll(label).toContain("format 1×1");
     await page.keyboard.press("ArrowRight");
     await expect.poll(label).toContain("format 2×1");
     await expect(handleOf(page, key)).toBeFocused();
+    await page.keyboard.press("ArrowDown");
+    await expect.poll(label).toContain("format 2×2");
     await page.keyboard.press("ArrowLeft");
+    await expect.poll(label).toContain("format 1×2");
+    await page.keyboard.press("ArrowUp");
     await expect.poll(label).toContain("format 1×1");
 
     await dragHandle(page, key, 260, 0);
@@ -241,7 +247,7 @@ test.describe("en associé", () => {
     const key = keys.includes("revenue") ? "revenue" : keys[0];
     const original = await handleOf(page, key).getAttribute("aria-label");
     await handleOf(page, key).focus();
-    await page.keyboard.press("ArrowLeft");
+    await page.keyboard.press("ArrowDown");
     await expect.poll(() => handleOf(page, key).getAttribute("aria-label")).not.toBe(original);
     const changed = await handleOf(page, key).getAttribute("aria-label");
     await page.getByRole("button", { name: "Terminé" }).click();
@@ -250,7 +256,7 @@ test.describe("en associé", () => {
     await page.goto("/?edition=1");
     expect(await handleOf(page, key).getAttribute("aria-label")).toBe(changed);
     await handleOf(page, key).focus();
-    await page.keyboard.press("ArrowRight");
+    await page.keyboard.press("ArrowUp");
     await page.getByRole("button", { name: "Terminé" }).click();
     await expect(page).toHaveURL(`${BASE}/`);
     await context.close();

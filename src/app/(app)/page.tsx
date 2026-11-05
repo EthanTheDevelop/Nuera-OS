@@ -60,9 +60,8 @@ export default async function HomePage({
   const today = capitalize(formatDateLong(new Date()));
   const notifications = editing ? null : await getDashboardNotifications(ctx);
 
-  // `data-page-wide` : le tableau occupe toute la largeur disponible, sans le plafond des autres pages.
   return (
-    <div data-page-wide className="contents">
+    <>
       <PageHeader
         title={`Bonjour ${firstName}`}
         subtitle={
@@ -95,6 +94,6 @@ export default async function HomePage({
       <Suspense fallback={<BoardSkeleton />}>
         <Board ctx={ctx} editing={editing} />
       </Suspense>
-    </div>
+    </>
   );
 }
