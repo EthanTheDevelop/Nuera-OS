@@ -47,7 +47,7 @@ export function Sidebar({
                     icon={item.icon}
                     label={item.label}
                     counter={counters[item.key]}
-                    activePrefix={item.activePrefix}
+                    activePrefixes={item.activePrefixes}
                     index={itemIndex++}
                   />
                 </li>

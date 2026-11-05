@@ -35,8 +35,8 @@ export interface NavItem {
   icon: IconName;
   /** Au moins une de ces permissions est requise. Absent : tout membre de l'équipe. */
   permissions?: readonly Permission[];
-  /** Préfixe de route qui marque l'entrée active, si différent de `href`. */
-  activePrefix?: string;
+  /** Préfixes de route qui marquent l'entrée active, si différents de `href`. */
+  activePrefixes?: readonly string[];
 }
 
 export interface NavSection {
@@ -192,7 +192,7 @@ export const NAVIGATION: readonly NavSection[] = [
         href: "/reglages/connexions",
         icon: "reglages",
         permissions: ["integrations:read"],
-        activePrefix: "/reglages",
+        activePrefixes: ["/reglages", "/profil"],
       },
     ],
   },

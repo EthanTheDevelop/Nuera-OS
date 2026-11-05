@@ -7,10 +7,10 @@ import { RollingNumber } from "@/components/motion/rolling-number";
 import { Icon, type IconName } from "@/components/ui/icon";
 import { cn } from "@/lib/cn";
 
-function isActive(pathname: string, href: string, activePrefix?: string): boolean {
-  const prefix = activePrefix ?? href;
-  if (prefix === "/") return pathname === "/";
-  return pathname === prefix || pathname.startsWith(`${prefix}/`);
+function isActive(pathname: string, prefixes: readonly string[]): boolean {
+  return prefixes.some((prefix) =>
+    prefix === "/" ? pathname === "/" : pathname === prefix || pathname.startsWith(`${prefix}/`),
+  );
 }
 
 /**
@@ -22,7 +22,7 @@ export function NavLink({
   icon,
   label,
   counter,
-  activePrefix,
+  activePrefixes,
   index,
   onNavigate,
 }: {
@@ -30,12 +30,12 @@ export function NavLink({
   icon: IconName;
   label: string;
   counter?: number;
-  activePrefix?: string;
+  activePrefixes?: readonly string[];
   /** Rang dans la cascade d'arrivée (30 ms d'écart). */
   index: number;
   onNavigate?: () => void;
 }) {
-  const active = isActive(usePathname(), href, activePrefix);
+  const active = isActive(usePathname(), activePrefixes ?? [href]);
   return (
     <Link
       href={href}
