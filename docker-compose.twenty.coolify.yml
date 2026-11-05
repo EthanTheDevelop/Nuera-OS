@@ -1,0 +1,82 @@
+# Twenty sur Coolify : Projet → Add Resource → Docker Compose Empty, coller ce fichier.
+# Coolify génère lui-même le domaine et les secrets (variables SERVICE_*).
+# Limites de mémoire : le serveur héberge aussi d'autres sites.
+# Version figée : la monter volontairement, après `npm run test:live`.
+services:
+  twenty:
+    image: twentycrm/twenty:v2.55.0
+    restart: unless-stopped
+    mem_limit: 1500m
+    environment:
+      - SERVICE_URL_TWENTY_3000
+      - SERVER_URL=$SERVICE_URL_TWENTY
+      - PG_DATABASE_URL=postgres://twenty:$SERVICE_PASSWORD_TWENTYDB@twenty-db:5432/twenty
+      - REDIS_URL=redis://twenty-redis:6379
+      - STORAGE_TYPE=local
+      - APP_SECRET=$SERVICE_BASE64_64_TWENTYAPP
+      - ENCRYPTION_KEY=$SERVICE_BASE64_64_TWENTYAPP
+      - NODE_PORT=3000
+      - DISABLE_DB_MIGRATIONS=false
+      - DISABLE_CRON_JOBS_REGISTRATION=false
+    volumes:
+      - twenty-storage:/app/packages/twenty-server/.local-storage
+    depends_on:
+      twenty-db:
+        condition: service_healthy
+      twenty-redis:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD", "curl", "--fail", "http://localhost:3000/healthz"]
+      interval: 10s
+      timeout: 5s
+      retries: 60
+
+  twenty-worker:
+    image: twentycrm/twenty:v2.55.0
+    restart: unless-stopped
+    mem_limit: 1000m
+    command: ["yarn", "worker:prod"]
+    environment:
+      - SERVER_URL=$SERVICE_URL_TWENTY
+      - PG_DATABASE_URL=postgres://twenty:$SERVICE_PASSWORD_TWENTYDB@twenty-db:5432/twenty
+      - REDIS_URL=redis://twenty-redis:6379
+      - STORAGE_TYPE=local
+      - APP_SECRET=$SERVICE_BASE64_64_TWENTYAPP
+      - ENCRYPTION_KEY=$SERVICE_BASE64_64_TWENTYAPP
+      - DISABLE_DB_MIGRATIONS=true
+      - DISABLE_CRON_JOBS_REGISTRATION=true
+    volumes:
+      - twenty-storage:/app/packages/twenty-server/.local-storage
+    depends_on:
+      twenty-db:
+        condition: service_healthy
+      twenty:
+        condition: service_healthy
+    exclude_from_hc: true
+
+  twenty-db:
+    image: postgres:16-alpine
+    restart: unless-stopped
+    mem_limit: 600m
+    environment:
+      - POSTGRES_USER=twenty
+      - POSTGRES_DB=twenty
+      - POSTGRES_PASSWORD=$SERVICE_PASSWORD_TWENTYDB
+    volumes:
+      - twenty-db-data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U twenty -d twenty"]
+      interval: 5s
+      timeout: 3s
+      retries: 20
+
+  twenty-redis:
+    image: redis:8-alpine
+    restart: unless-stopped
+    mem_limit: 256m
+    command: ["--maxmemory-policy", "noeviction"]
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 5s
+      timeout: 3s
+      retries: 20
