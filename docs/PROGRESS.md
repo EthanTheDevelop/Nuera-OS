@@ -19,7 +19,7 @@ Reprise après interruption : lire ce fichier, `CLAUDE.md`, puis `docs/domain-mo
 ## Restant, dans l'ordre
 
 1. Portail client, Pilotage (tableau de bord, reporting, recherche), Automatisations et administration.
-2. Parcours de bout en bout (`tests/journeys/`), revue de sécurité (permissions, cloisonnement du portail, 2FA).
+2. Revue de sécurité (permissions, cloisonnement du portail, 2FA). Les six parcours sont livrés : `tests/journeys/`, `tests/e2e/journeys.spec.ts`.
 3. Déploiement et exploitation : Coolify, Docker, sauvegarde et restauration, sondes de santé.
 4. README, documentation, vérification complète (`npm run check`, build, e2e), rapport final.
 
