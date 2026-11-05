@@ -291,7 +291,7 @@ function NewContractForm({
         {common.identity}
         {/* Les devis proposés sont ceux du client choisi : les changer remonte le champ. */}
         <QuoteField
-          key={companyId}
+          key={`devis-${companyId}`}
           state={state}
           quotes={companyQuotes}
           defaultValue={
@@ -300,7 +300,7 @@ function NewContractForm({
         />
         {/* Changer de formule remonte ces champs avec les valeurs de la formule. */}
         <TermsFields
-          key={planId}
+          key={`formule-${planId}`}
           state={state}
           withPrice
           defaults={{

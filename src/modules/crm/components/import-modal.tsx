@@ -282,7 +282,9 @@ function ImportFlow({ onClose }: { onClose: () => void }) {
                 disabled={remaining.length === 0}
                 onClick={() => void runImport()}
               >
-                {stopped ? "Reprendre l'import" : `Importer ${remaining.length} fiches`}
+                {stopped
+                  ? "Reprendre l'import"
+                  : `Importer ${remaining.length} ${remaining.length > 1 ? "fiches" : "fiche"}`}
               </Button>
             )}
           </ModalRow>

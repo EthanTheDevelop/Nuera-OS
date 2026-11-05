@@ -24,7 +24,7 @@ import {
   TextareaField,
   TextField,
 } from "@/components/ui/form";
-import { SubmitButton } from "@/components/ui/form-client";
+import { SubmitButton, useSubmitKeepingValues } from "@/components/ui/form-client";
 import { ModalRow } from "@/components/ui/modal";
 import { fieldError, submittedValue } from "@/lib/action-state";
 import {
@@ -177,7 +177,7 @@ export function CreateTicketForm({
   onCreated: (ticketId: string) => void;
   onCancel: () => void;
 }) {
-  const [state, action] = useActionState(
+  const [state, action, submitting] = useActionState(
     async (previous: TicketActionState, formData: FormData) => {
       const next = await createTicketAction(previous, formData);
       if (next.status === "success" && next.ticketId) onCreated(next.ticketId);
@@ -185,6 +185,7 @@ export function CreateTicketForm({
     },
     IDLE,
   );
+  const submit = useSubmitKeepingValues(action, submitting);
   const [companyId, setCompanyId] = useState(submittedValue(state, "companyId") ?? "");
   const [targets, setTargets] = useState<CompanyTargetOptions | null>(null);
   const [loading, startLoading] = useTransition();
@@ -205,7 +206,7 @@ export function CreateTicketForm({
   const companyError = fieldError(state, "companyId");
 
   return (
-    <form action={action} className="contents">
+    <form onSubmit={submit} className="contents">
       <ModalRow>
         <FormAlert state={state} />
       </ModalRow>
@@ -260,7 +261,9 @@ export function CreateTicketForm({
       </ModalRow>
       <ModalRow className="flex flex-wrap justify-end gap-3">
         <Button onClick={onCancel}>Annuler</Button>
-        <SubmitButton>Créer la demande</SubmitButton>
+        <Button type="submit" variant="accent" loading={submitting}>
+          Créer la demande
+        </Button>
       </ModalRow>
     </form>
   );

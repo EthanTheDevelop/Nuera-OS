@@ -1,6 +1,14 @@
 "use client";
 
-import { useState, type ComponentProps, type InputHTMLAttributes } from "react";
+import {
+  useEffect,
+  useRef,
+  useState,
+  useTransition,
+  type ComponentProps,
+  type FormEvent,
+  type InputHTMLAttributes,
+} from "react";
 import { useFormStatus } from "react-dom";
 import { fieldError, submittedValue } from "@/lib/action-state";
 import { cn } from "@/lib/cn";
@@ -32,6 +40,21 @@ export function SubmitButton({
       {children}
     </Button>
   );
+}
+
+/**
+ * Envoi sans `action` sur le `<form>` : React le réinitialiserait après chaque réponse, et une erreur
+ * ferait perdre une liste pilotée (`value`) ou une case cochée. À passer à `onSubmit`, avec un
+ * `<Button type="submit" loading={pending}>` : `SubmitButton` ne voit pas cet envoi.
+ */
+export function useSubmitKeepingValues(action: (data: FormData) => void, pending: boolean) {
+  const [, startSubmit] = useTransition();
+  return (event: FormEvent<HTMLFormElement>) => {
+    event.preventDefault();
+    if (pending) return;
+    const data = new FormData(event.currentTarget);
+    startSubmit(() => action(data));
+  };
 }
 
 type ParsedInputProps = Omit<
@@ -72,10 +95,25 @@ function ParsedField({
   const error =
     (state ? fieldError(state, name) : undefined) ?? (invalid ? invalidMessage : undefined);
 
+  // Une saisie illisible enverrait un champ vide : le formulaire passerait, et la valeur serait perdue.
+  // `setCustomValidity` ne suffit pas : plusieurs formulaires sont en `noValidate`.
+  const hidden = useRef<HTMLInputElement>(null);
+  useEffect(() => {
+    const form = hidden.current?.form;
+    if (!invalid || !form) return;
+    const block = (event: Event) => {
+      event.preventDefault();
+      event.stopPropagation();
+      form.querySelector<HTMLElement>(`#${CSS.escape(controlId)}`)?.focus();
+    };
+    form.addEventListener("submit", block, true);
+    return () => form.removeEventListener("submit", block, true);
+  }, [invalid, controlId]);
+
   return (
     <Field id={controlId} label={label} hint={hint} error={error} className={fieldClassName}>
       {/* La valeur envoyée est l'unité du domaine (centimes, minutes), jamais le texte saisi. */}
-      <input type="hidden" name={name} value={parsed ?? ""} />
+      <input ref={hidden} type="hidden" name={name} value={parsed ?? ""} />
       <span className="relative block">
         <Input
           id={controlId}

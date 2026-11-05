@@ -80,7 +80,6 @@ export function LostReasonDialog({
               maxLength={500}
               value={reason}
               onChange={(event) => setReason(event.target.value)}
-              onBlur={() => setTouched(true)}
               required
               aria-invalid={fieldError ? true : undefined}
               placeholder="Budget trop court, a choisi un autre prestataire, projet reporté…"

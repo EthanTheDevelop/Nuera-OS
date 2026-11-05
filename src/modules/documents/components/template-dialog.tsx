@@ -10,7 +10,7 @@ import {
   Textarea,
   TextField,
 } from "@/components/ui/form";
-import { SubmitButton } from "@/components/ui/form-client";
+import { useSubmitKeepingValues } from "@/components/ui/form-client";
 import { Button } from "@/components/ui/button";
 import { Modal, ModalRow } from "@/components/ui/modal";
 import { useActionToast } from "@/components/ui/toast";
@@ -33,7 +33,8 @@ const ITEMS_LABEL: Partial<Record<TemplateKind, string>> = {
 };
 
 function TemplateForm({ template, onClose }: { template?: TemplateRow; onClose: () => void }) {
-  const [state, action] = useActionState(saveTemplateAction, IDLE_ACTION_STATE);
+  const [state, action, submitting] = useActionState(saveTemplateAction, IDLE_ACTION_STATE);
+  const submit = useSubmitKeepingValues(action, submitting);
   const [kind, setKind] = useState<TemplateKind>(template?.kind ?? "brief");
   const structured = isStructured(kind);
   const contentField = structured ? "items" : "body";
@@ -45,7 +46,7 @@ function TemplateForm({ template, onClose }: { template?: TemplateRow; onClose: 
   }, [state, onClose]);
 
   return (
-    <form action={action} className="contents">
+    <form onSubmit={submit} className="contents">
       {template ? <input type="hidden" name="id" value={template.id} /> : null}
       <ModalRow>
         <FormAlert state={state.status === "error" ? state : IDLE_ACTION_STATE} />
@@ -114,7 +115,9 @@ function TemplateForm({ template, onClose }: { template?: TemplateRow; onClose: 
       </ModalRow>
       <ModalRow className="flex flex-wrap justify-end gap-3">
         <Button onClick={onClose}>Annuler</Button>
-        <SubmitButton>{template ? "Enregistrer" : "Créer le modèle"}</SubmitButton>
+        <Button type="submit" variant="accent" loading={submitting}>
+          {template ? "Enregistrer" : "Créer le modèle"}
+        </Button>
       </ModalRow>
     </form>
   );

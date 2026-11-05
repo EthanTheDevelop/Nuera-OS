@@ -13,7 +13,7 @@ import {
   SelectField,
   TextField,
 } from "@/components/ui/form";
-import { SubmitButton } from "@/components/ui/form-client";
+import { useSubmitKeepingValues } from "@/components/ui/form-client";
 import { Modal, ModalRow } from "@/components/ui/modal";
 import {
   fieldError,
@@ -105,10 +105,11 @@ function SiteForm({
   choices: SiteFormChoices;
   onDone: () => void;
 }) {
-  const [state, action] = useActionState<ActionState, FormData>(
+  const [state, action, submitting] = useActionState<ActionState, FormData>(
     site ? updateSiteAction : createSiteAction,
     IDLE_ACTION_STATE,
   );
+  const submit = useSubmitKeepingValues(action, submitting);
   const [companyId, setCompanyId] = useState(site?.companyId ?? "");
   const [links, setLinks] = useState<{ projects: LinkOption[]; contracts: LinkOption[] }>({
     projects: [],
@@ -135,7 +136,7 @@ function SiteForm({
   const hosted = state.status === "error" ? returned === "on" : (site?.hostedByNuera ?? true);
 
   return (
-    <form action={action} className="contents">
+    <form onSubmit={submit} className="contents">
       {site ? <input type="hidden" name="id" value={site.id} /> : null}
       <ModalRow>
         <FormAlert state={state} />
@@ -313,7 +314,9 @@ function SiteForm({
       </ModalRow>
       <ModalRow className="flex flex-wrap justify-end gap-3">
         <Button onClick={onDone}>Annuler</Button>
-        <SubmitButton>{site ? "Enregistrer" : "Créer le site"}</SubmitButton>
+        <Button type="submit" variant="accent" loading={submitting}>
+          {site ? "Enregistrer" : "Créer le site"}
+        </Button>
       </ModalRow>
     </form>
   );

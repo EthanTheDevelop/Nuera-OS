@@ -4,7 +4,7 @@ import { useActionState, useEffect, useState } from "react";
 import { Button } from "@/components/ui/button";
 import { CompactButton } from "@/components/ui/compact-button";
 import { Checkbox, DateField, FormAlert, SelectField, TextareaField } from "@/components/ui/form";
-import { DurationField, SubmitButton } from "@/components/ui/form-client";
+import { DurationField, useSubmitKeepingValues } from "@/components/ui/form-client";
 import { Modal, ModalRow } from "@/components/ui/modal";
 import { useActionToast } from "@/components/ui/toast";
 import { IDLE_ACTION_STATE } from "@/lib/action-state";
@@ -40,7 +40,8 @@ function EntryForm({
   defaultMemberId?: string;
   onDone: () => void;
 }) {
-  const [state, action] = useActionState(saveTimeEntryAction, IDLE_ACTION_STATE);
+  const [state, action, submitting] = useActionState(saveTimeEntryAction, IDLE_ACTION_STATE);
+  const submit = useSubmitKeepingValues(action, submitting);
   useActionToast(state);
 
   const [projectId, setProjectId] = useState(entry?.projectId ?? "");
@@ -90,7 +91,7 @@ function EntryForm({
   );
 
   return (
-    <form action={action} className="contents">
+    <form onSubmit={submit} className="contents">
       {entry ? <input type="hidden" name="id" value={entry.id} /> : null}
       <FormAlert state={state} />
       <ModalRow className="grid gap-4 sm:grid-cols-2">
@@ -223,7 +224,9 @@ function EntryForm({
       </ModalRow>
       <ModalRow className="flex flex-wrap justify-end gap-3">
         <Button onClick={onDone}>Annuler</Button>
-        <SubmitButton>{entry ? "Enregistrer" : "Saisir ce temps"}</SubmitButton>
+        <Button type="submit" variant="accent" loading={submitting}>
+          {entry ? "Enregistrer" : "Saisir ce temps"}
+        </Button>
       </ModalRow>
     </form>
   );
