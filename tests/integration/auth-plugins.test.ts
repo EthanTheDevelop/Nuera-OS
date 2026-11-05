@@ -120,6 +120,34 @@ describe("lien de connexion", () => {
     ).rejects.toThrow();
   });
 
+  it("refuse un lien expiré", async () => {
+    const email = "expire@test.local";
+    await createClient(email);
+    await auth.api.signInMagicLink({ body: { email }, headers: headers() });
+    const [mail] = await outboxFor(email);
+    const token = tokenFrom(mail?.text ?? null);
+    await db.update(verifications).set({ expiresAt: new Date(Date.now() - 1000) });
+
+    await expect(
+      auth.api.magicLinkVerify({ query: { token }, headers: headers() }),
+    ).rejects.toThrow();
+  });
+
+  it("n'ouvre aucune session à un client désactivé après l'envoi du lien", async () => {
+    const email = "desactive@test.local";
+    const id = await createClient(email);
+    await auth.api.signInMagicLink({ body: { email }, headers: headers() });
+    const [mail] = await outboxFor(email);
+    const token = tokenFrom(mail?.text ?? null);
+    await db.update(users).set({ banned: true }).where(eq(users.id, id));
+
+    await expect(
+      auth.api.magicLinkVerify({ query: { token }, headers: headers() }),
+    ).rejects.toThrow();
+    const open = await db.select().from(sessions).where(eq(sessions.userId, id));
+    expect(open).toEqual([]);
+  });
+
   it("ne crée jamais de compte depuis un lien, même avec un jeton valide", async () => {
     const email = "inconnu@test.local";
     const sent: { email: string; url: string }[] = [];
