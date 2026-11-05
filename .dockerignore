@@ -1,8 +1,15 @@
 .git
 .github
 .next
+.claude
+.vitest
 node_modules
 coverage
+docs
+graphify-out
+Dockerfile
+docker-compose*.yml
+NUERA_OS_PROMPT_ALL_IN_ONE_CLAUDE_CODE_READY.md
 .env
 .env.*
 !.env.example

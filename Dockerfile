@@ -35,10 +35,14 @@ ENV NODE_ENV=production \
     PORT=3000 \
     HOSTNAME=0.0.0.0
 
-RUN addgroup -S -g 1001 nodejs && adduser -S -u 1001 -G nodejs nextjs
+# /data/storage : point de montage du volume des documents (STORAGE_DIR). Un volume nommé neuf
+# hérite de ce propriétaire. Sans volume, définir STORAGE_DIR perdrait les fichiers au redéploiement.
+RUN addgroup -S -g 1001 nodejs && adduser -S -u 1001 -G nodejs nextjs \
+    && mkdir -p /data/storage && chown -R nextjs:nodejs /data
 
 COPY --from=builder --chown=nextjs:nodejs /app/.next/standalone ./
 COPY --from=builder --chown=nextjs:nodejs /app/.next/static ./.next/static
+COPY --from=builder --chown=nextjs:nodejs /app/public ./public
 # Migrations SQL versionnées : appliquées au démarrage si DB_MIGRATE_ON_START=true,
 # ou manuellement avec `node cli/db-migrate.mjs`.
 COPY --from=builder --chown=nextjs:nodejs /app/drizzle ./drizzle
