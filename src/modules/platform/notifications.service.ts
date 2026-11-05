@@ -29,9 +29,14 @@ export type NotifyInput = NotifyRecipients & {
 /** Sans préférence enregistrée : notification dans l'application, pas d'e-mail. */
 const DEFAULT_PREFERENCE = { inApp: true, email: false };
 
-/** Chemin de l'application. Les navigateurs lisent `/\` comme `//` : ce serait un autre site. */
+/**
+ * Chemin de l'application. Les navigateurs lisent `/\` comme `//` et retirent tabulations et retours
+ * à la ligne : `/<tab>/domaine` deviendrait lui aussi un autre site.
+ */
 export function isInternalHref(href: string | null | undefined): href is string {
-  return typeof href === "string" && /^\/(?![/\\])/.test(href);
+  return (
+    typeof href === "string" && /^\/(?![/\\])/.test(href) && !/[\u0000-\u001f\u007f]/.test(href)
+  );
 }
 
 /** URL absolue d'un lien interne pour un e-mail. Sans configuration lisible, pas de lien. */
