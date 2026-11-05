@@ -10,7 +10,7 @@ import { AppearanceSync } from "@/modules/platform/components/appearance-sync";
 import { getShellDataFor } from "@/modules/platform/shell.service";
 import { can, canAny } from "@/server/auth/permissions";
 import { ROLE_LABELS } from "@/server/auth/roles";
-import { requireInternalActor } from "@/server/auth/session";
+import { mustEnrolTwoFactor, requireInternalActor } from "@/server/auth/session";
 
 /**
  * Zone de l'agence : barre latérale + contenu. Un `client` part vers `/espace`.
@@ -23,8 +23,11 @@ export default async function AppLayout({ children }: { children: ReactNode }) {
   const actor = await requireInternalActor({ allowTwoFactorEnrolment: true });
   const sections = visibleNavigation((permissions) => canAny(actor, permissions));
   const roleLabel = ROLE_LABELS[actor.role];
-  // Compteurs et notifications : une panne ne fait jamais tomber la coque (`getShellData`).
-  const shell = await getShellDataFor(actor);
+  // Compteurs et notifications : une panne ne fait jamais tomber la coque (`getShellData`). Tant que
+  // la double authentification reste à activer, un mot de passe seul n'ouvre aucune de ces données.
+  const shell = (await mustEnrolTwoFactor())
+    ? { counters: {}, notifications: [] }
+    : await getShellDataFor(actor);
 
   return (
     <AppShell

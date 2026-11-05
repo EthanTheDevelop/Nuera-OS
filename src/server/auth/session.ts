@@ -56,7 +56,7 @@ export async function requireActor(): Promise<Actor> {
 /** Page d'enrôlement : jamais verrouillée, sinon personne ne pourrait s'y mettre en règle. */
 export const TWO_FACTOR_ENROLMENT_PATH = "/profil?double-authentification=requise#securite";
 
-const mustEnrolTwoFactor = cache(async (): Promise<boolean> => {
+export const mustEnrolTwoFactor = cache(async (): Promise<boolean> => {
   const session = await loadSession();
   if (!session || session.user.twoFactorEnabled) return false;
   return isTwoFactorRequired(getDb(), getEnv().NODE_ENV);
