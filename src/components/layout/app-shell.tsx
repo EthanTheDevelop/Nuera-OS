@@ -130,7 +130,7 @@ export function AppShell({
         </aside>
 
         <main id="contenu" tabIndex={-1} className="min-w-0 flex-1 outline-none">
-          <div className="mx-0 max-w-(--wrap-vast-w) px-4 pt-5 pb-12 lg:px-(--content-margin) lg:pt-7">
+          <div className="mx-0 max-w-(--wrap-vast-w) px-4 pt-5 pb-12 has-[[data-page-wide]]:max-w-none lg:px-(--content-margin) lg:pt-7">
             {children}
           </div>
         </main>

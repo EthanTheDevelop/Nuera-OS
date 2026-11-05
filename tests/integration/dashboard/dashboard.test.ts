@@ -2,7 +2,10 @@ import { and, count, eq } from "drizzle-orm";
 import { afterAll, beforeAll, describe, expect, it, vi } from "vitest";
 import {
   TILE_CATALOG,
+  closestInsertion,
+  emptyCells,
   moveTile,
+  packTiles,
   nearestTileSize,
   stepTileSize,
   tileSpan,
@@ -194,6 +197,25 @@ describe("disposition du tableau de bord", () => {
     expect(nearestTileSize("pipeline", "2x2", { columns: 4, rows: 2 }, 6)).toBe("2x2");
     expect(nearestTileSize("revenue", "2x2", { columns: 3.6, rows: 2 }, 6)).toBe("4x2");
     expect(tileSpan("4x2", 2)).toEqual({ columns: 2, rows: 2 });
+
+    // Placement dense : le 1×1 passe sous le 2×1, dans le trou à droite du 4×2.
+    const board = [
+      { key: "revenue", size: "4x2" },
+      { key: "load", size: "2x1" },
+      { key: "mrr", size: "1x1" },
+    ] as const;
+    const packed = packTiles(board, 6);
+    expect(packed.get("load")).toMatchObject({ column: 5, row: 1 });
+    expect(packed.get("mrr")).toMatchObject({ column: 5, row: 2 });
+    // Le trou de la deuxième rangée, puis la rangée en réserve.
+    expect(emptyCells(packed, 6)).toEqual([
+      { column: 6, row: 2 },
+      ...[1, 2, 3, 4, 5, 6].map((column) => ({ column, row: 3 })),
+    ]);
+    // Visée de la case libre : la tuile s'y pose au dernier rang. En haut à gauche : premier rang.
+    const others = board.slice(0, 2);
+    expect(closestInsertion(others, board[2], { column: 5, row: 2 }, 6, 2)).toBe(2);
+    expect(closestInsertion(others, board[2], { column: 1, row: 1 }, 6, 2)).toBe(0);
 
     const tiles = [
       { key: "pipeline", size: "1x1" },

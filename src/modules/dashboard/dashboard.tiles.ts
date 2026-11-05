@@ -177,6 +177,103 @@ export function tileSpan(size: DashboardTileSize, gridColumns: number) {
   return { columns: Math.min(columns, gridColumns), rows };
 }
 
+export interface TilePlacement {
+  column: number;
+  row: number;
+  columns: number;
+  rows: number;
+}
+
+/**
+ * Place les tuiles comme `grid-auto-flow: row dense` : chacune au premier trou où elle tient, en
+ * lisant la grille de gauche à droite, de haut en bas (lignes et colonnes comptées à partir de 1).
+ */
+export function packTiles(
+  tiles: readonly LayoutTile[],
+  gridColumns: number,
+): Map<TileKey, TilePlacement> {
+  const taken = new Set<string>();
+  const placements = new Map<TileKey, TilePlacement>();
+  for (const { key, size } of tiles) {
+    const { columns, rows } = tileSpan(size, gridColumns);
+    const cells = (column: number, row: number) =>
+      Array.from({ length: columns * rows }, (_, index) => {
+        return `${column + (index % columns)}:${row + Math.floor(index / columns)}`;
+      });
+    placing: for (let row = 1; ; row += 1) {
+      for (let column = 1; column <= gridColumns - columns + 1; column += 1) {
+        const wanted = cells(column, row);
+        if (wanted.some((cell) => taken.has(cell))) continue;
+        wanted.forEach((cell) => taken.add(cell));
+        placements.set(key, { column, row, columns, rows });
+        break placing;
+      }
+    }
+  }
+  return placements;
+}
+
+/** Cases libres de la grille, plus une rangée en réserve sous les tuiles pour pouvoir s'y poser. */
+export function emptyCells(
+  placements: ReadonlyMap<TileKey, TilePlacement>,
+  gridColumns: number,
+): { column: number; row: number }[] {
+  const taken = new Set<string>();
+  let lastRow = 0;
+  for (const { column, row, columns, rows } of placements.values()) {
+    lastRow = Math.max(lastRow, row + rows - 1);
+    for (let y = row; y < row + rows; y += 1) {
+      for (let x = column; x < column + columns; x += 1) taken.add(`${x}:${y}`);
+    }
+  }
+  const cells: { column: number; row: number }[] = [];
+  for (let row = 1; row <= lastRow + 1; row += 1) {
+    for (let column = 1; column <= gridColumns; column += 1) {
+      if (!taken.has(`${column}:${row}`)) cells.push({ column, row });
+    }
+  }
+  return cells;
+}
+
+/** Copie de la liste, la tuile insérée au rang donné. */
+export function insertTile(
+  others: readonly LayoutTile[],
+  tile: LayoutTile,
+  at: number,
+): LayoutTile[] {
+  return [...others.slice(0, at), tile, ...others.slice(at)];
+}
+
+/**
+ * Rang où insérer une tuile pour qu'elle se pose au plus près de la case visée (fractions comprises).
+ * Le tableau n'enregistre qu'un ordre et des formats : seules les places qu'un ordre permet comptent.
+ * Le rang en cours garde un léger avantage, et le moins de chamboulement départage les égalités.
+ */
+export function closestInsertion(
+  others: readonly LayoutTile[],
+  tile: LayoutTile,
+  target: { column: number; row: number },
+  gridColumns: number,
+  current: number | null,
+): number {
+  let best = current ?? others.length;
+  let bestScore = Number.POSITIVE_INFINITY;
+  for (let at = 0; at <= others.length; at += 1) {
+    const spot = packTiles(insertTile(others, tile, at), gridColumns).get(tile.key);
+    if (!spot) continue;
+    const distance = (spot.column - target.column) ** 2 + (spot.row - target.row) ** 2;
+    const score =
+      distance -
+      (at === current ? 0.25 : 0) +
+      (current === null ? 0 : Math.abs(at - current) * 0.001);
+    if (score < bestScore) {
+      best = at;
+      bestScore = score;
+    }
+  }
+  return best;
+}
+
 /** Format voisin aux flèches, sans boucler : les bouts de la liste restent les bouts. */
 export function stepTileSize(
   key: TileKey,

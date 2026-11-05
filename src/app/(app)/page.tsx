@@ -6,6 +6,7 @@ import { NotificationBell } from "@/components/layout/notifications";
 import { PageHeader } from "@/components/layout/page-header";
 import { TileSkeleton } from "@/components/states/states";
 import { ButtonLink } from "@/components/ui/button";
+import { TILE_GRID } from "@/components/ui/tile";
 import { formatDateLong } from "@/lib/format";
 import { DashboardBoard } from "@/modules/dashboard/components/dashboard-board";
 import { capitalize } from "@/modules/dashboard/reporting.periods";
@@ -28,7 +29,7 @@ async function Board({ ctx, editing }: { ctx: ServiceContext; editing: boolean }
 function BoardSkeleton() {
   return (
     <div className="@container" aria-busy="true">
-      <div className="grid auto-rows-[minmax(168px,auto)] grid-cols-2 gap-(--grid-gap) @lg:grid-cols-4 @5xl:grid-cols-6">
+      <div className={TILE_GRID}>
         <TileSkeleton className="col-span-2 row-span-2 @lg:col-span-4" lines={3} />
         <TileSkeleton className="col-span-2 row-span-2" lines={4} />
         <TileSkeleton className="col-span-2" />
@@ -59,13 +60,14 @@ export default async function HomePage({
   const today = capitalize(formatDateLong(new Date()));
   const notifications = editing ? null : await getDashboardNotifications(ctx);
 
+  // `data-page-wide` : le tableau occupe toute la largeur disponible, sans le plafond des autres pages.
   return (
-    <>
+    <div data-page-wide className="contents">
       <PageHeader
         title={`Bonjour ${firstName}`}
         subtitle={
           editing
-            ? "Mode édition · glissez pour déplacer, tirez la poignée pour changer la taille, le rond retire la tuile"
+            ? "Mode édition · glissez vers un emplacement, tirez la poignée pour la taille, le rond retire la tuile"
             : `${today} · l’agence aujourd’hui`
         }
         bell={
@@ -93,6 +95,6 @@ export default async function HomePage({
       <Suspense fallback={<BoardSkeleton />}>
         <Board ctx={ctx} editing={editing} />
       </Suspense>
-    </>
+    </div>
   );
 }

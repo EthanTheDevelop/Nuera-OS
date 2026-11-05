@@ -1,5 +1,5 @@
 import Link from "next/link";
-import { Children, type ButtonHTMLAttributes, type ReactNode } from "react";
+import { Children, type ButtonHTMLAttributes, type HTMLAttributes, type ReactNode } from "react";
 import { staggerIndex } from "@/components/motion/stagger";
 import { cn } from "@/lib/cn";
 import { Icon, type IconName } from "./icon";
@@ -106,18 +106,18 @@ export function Tile({
 }
 
 /**
- * Grille de tuiles de l'écran 01 : 6 colonnes de 168, gouttière 24, lignes de 168.
- * Se replie selon sa largeur : 6 → 4 → 2 colonnes. Les tuiles entrent en cascade, 60 ms d'écart.
+ * Grille de l'écran 01 : colonnes de 168 environ, gouttière 24, lignes de 168. Selon sa largeur,
+ * 2 → 4 → 6 colonnes, puis 8, 10 et 12 sur grand écran : la grille gagne des colonnes plutôt que
+ * d'étirer les tuiles, toujours par nombre pair pour que les formats à 2 colonnes s'alignent.
  */
+export const TILE_GRID =
+  "grid auto-rows-[minmax(168px,auto)] grid-cols-2 gap-(--grid-gap) @lg:grid-cols-4 @5xl:grid-cols-6 @[96rem]:grid-cols-8 @[120rem]:grid-cols-10 @[144rem]:grid-cols-12";
+
+/** Grille de tuiles : les tuiles entrent en cascade, 60 ms d'écart. */
 export function TileGrid({ className, children }: { className?: string; children: ReactNode }) {
   return (
     <div className="@container">
-      <div
-        className={cn(
-          "grid auto-rows-[minmax(168px,auto)] grid-cols-2 gap-(--grid-gap) @lg:grid-cols-4 @5xl:grid-cols-6",
-          className,
-        )}
-      >
+      <div className={cn(TILE_GRID, className)}>
         {Children.toArray(children).map((child, index) => (
           <div key={index} className="contents" style={staggerIndex(index)}>
             {child}
@@ -155,6 +155,28 @@ export function AddTile({
       </span>
       {label}
     </Link>
+  );
+}
+
+/**
+ * Emplacement de la grille pendant un geste d'édition : contour discret quand il est libre, accent
+ * là où la tuile va se poser. Décoratif : le geste s'annonce par ailleurs aux lecteurs d'écran.
+ */
+export function TileSlot({
+  active = false,
+  ...props
+}: { active?: boolean } & HTMLAttributes<HTMLDivElement>) {
+  return (
+    <div
+      aria-hidden="true"
+      className={cn(
+        "pointer-events-none rounded-xl",
+        active
+          ? "border-2 border-accent bg-accent-pale/40"
+          : "border-[1.5px] border-dashed border-border",
+      )}
+      {...props}
+    />
   );
 }
 

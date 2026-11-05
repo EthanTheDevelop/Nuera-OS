@@ -1,14 +1,15 @@
 "use client";
 
-import { motion, useDragControls, type PanInfo } from "motion/react";
 import { useRouter } from "next/navigation";
 import {
   useEffect,
   useId,
+  useLayoutEffect,
   useMemo,
   useRef,
   useState,
   useTransition,
+  type CSSProperties,
   type KeyboardEvent as ReactKeyboardEvent,
   type PointerEvent as ReactPointerEvent,
 } from "react";
@@ -17,14 +18,26 @@ import { staggerIndex } from "@/components/motion/stagger";
 import { EmptyState } from "@/components/states/states";
 import { Button, ButtonLink } from "@/components/ui/button";
 import { Icon } from "@/components/ui/icon";
-import { AddTile, Tile, TileRemoveButton, TileResizeHandle } from "@/components/ui/tile";
+import {
+  AddTile,
+  Tile,
+  TILE_GRID,
+  TileRemoveButton,
+  TileResizeHandle,
+  TileSlot,
+} from "@/components/ui/tile";
 import { useToast } from "@/components/ui/toast";
 import type { ActionState } from "@/lib/action-state";
 import { cn } from "@/lib/cn";
+import { DURATION_MS, EASE } from "@/lib/motion";
 import { saveDashboardLayoutAction } from "../dashboard.actions";
 import {
+  closestInsertion,
+  emptyCells,
+  insertTile,
   moveTile,
   nearestTileSize,
+  packTiles,
   stepTileSize,
   TILE_CATALOG,
   tileDefinition,
@@ -33,6 +46,7 @@ import {
   type LayoutTile,
   type TileDefinition,
   type TileKey,
+  type TilePlacement,
 } from "../dashboard.tiles";
 import type { DashboardData, TileState } from "../dashboard.types";
 import { tileBadge, TileBody } from "./tile-body";
@@ -45,7 +59,75 @@ const TILE_SPAN: Record<DashboardTileSize, string> = {
   "4x2": "col-span-2 @lg:col-span-4 row-span-2",
 };
 
-const SWAP_COOLDOWN_MS = 250;
+/** Hauteur minimale d'une rangée, celle de `TILE_GRID`. */
+const ROW_MIN_PX = 168;
+/** En deçà de ce déplacement, un appui reste un clic. */
+const DRAG_THRESHOLD_PX = 4;
+/** Le tableau se réarrange au plus à ce rythme : pas de va-et-vient pendant un survol rapide. */
+const REFLOW_COOLDOWN_MS = 120;
+/** Près du bord de la fenêtre, la page défile, jusqu'à cette vitesse par image. */
+const SCROLL_EDGE_PX = 64;
+const SCROLL_MAX_PX = 14;
+const REFLOW_EASING = `cubic-bezier(${EASE.emphasis.join(",")})`;
+
+/** Geste en cours : la grille passe en placement explicite et montre ses emplacements. */
+type BoardGesture = {
+  kind: "move" | "add" | "resize";
+  key: TileKey;
+  columns: number;
+  /** Ordre du DOM figé pendant le geste : déplacer un nœud lui ferait perdre le pointeur. */
+  domKeys: TileKey[];
+  /** Rang visé par une tuile venue de la galerie, tant qu'elle survole le tableau. */
+  at: number | null;
+  outside: boolean;
+  ghost: { width: number; height: number; x: number; y: number } | null;
+};
+
+const placementStyle = (
+  placement: Pick<TilePlacement, "column" | "row"> & Partial<TilePlacement>,
+) =>
+  ({
+    gridColumn: `${placement.column} / span ${placement.columns ?? 1}`,
+    gridRow: `${placement.row} / span ${placement.rows ?? 1}`,
+  }) satisfies CSSProperties;
+
+/** Pistes réelles de la grille : les rangées grandissent avec leur contenu. */
+function measureGrid(grid: HTMLElement) {
+  const styles = getComputedStyle(grid);
+  const tracks = (value: string) => value.split(" ").map(Number.parseFloat).filter(Number.isFinite);
+  const columns = tracks(styles.gridTemplateColumns);
+  return {
+    rect: grid.getBoundingClientRect(),
+    gap: Number.parseFloat(styles.columnGap) || 0,
+    columns: columns.length,
+    columnWidth: columns[0] ?? 0,
+    rows: tracks(styles.gridTemplateRows),
+  };
+}
+
+/** Case de la grille sous un point de l'écran, fractions comprises (à partir de 1). */
+function cellAt(metrics: ReturnType<typeof measureGrid>, x: number, y: number) {
+  const column = (x - metrics.rect.left) / (metrics.columnWidth + metrics.gap) + 1;
+  let rest = y - metrics.rect.top;
+  let row = 1;
+  for (const height of metrics.rows) {
+    const track = height + metrics.gap;
+    if (rest < track) return { column, row: row + rest / track };
+    rest -= track;
+    row += 1;
+  }
+  return { column, row: row + rest / (ROW_MIN_PX + metrics.gap) };
+}
+
+function isInside(box: DOMRect | undefined, x: number, y: number, margin = 0) {
+  return (
+    !!box &&
+    x >= box.left - margin &&
+    x <= box.right + margin &&
+    y >= box.top - margin &&
+    y <= box.bottom + margin
+  );
+}
 
 const sizeLabel = (size: DashboardTileSize) => size.replace("x", "×");
 
@@ -77,37 +159,30 @@ async function saveLayout(tiles: LayoutTile[]): Promise<ActionState> {
   }
 }
 
-/** La tuile sous le pointeur, en ignorant celle qu'on déplace. */
-function tileUnderPointer(info: Pick<PanInfo, "point">, except?: TileKey): TileKey | null {
-  const elements = document.elementsFromPoint(
-    info.point.x - window.scrollX,
-    info.point.y - window.scrollY,
-  );
-  for (const element of elements) {
-    const host = element.closest<HTMLElement>("[data-tile-key]");
-    const key = host?.dataset.tileKey as TileKey | undefined;
-    if (key && key !== except) return key;
-  }
-  return null;
-}
-
 /**
  * Poignée de taille : suit le pointeur, souris ou doigt, et propose le format le plus proche à chaque
  * mouvement. Le calcul part de la mesure au départ du geste : une tuile que la grille replace pendant
- * l'aperçu ne fait pas sauter le format. Sans déplacement, un clic ne change rien. Échap annule.
+ * l'aperçu ne fait pas sauter le format. Un cadre suit le pointeur au pixel, la tuile se cale sur le
+ * format proposé. Sans déplacement, un clic ne change rien. Échap annule.
  */
 function BoardResizeHandle({
   item,
   label,
+  onBegin,
   onPreview,
   onCommit,
+  onEnd,
 }: {
   item: LayoutTile;
   label: string;
+  onBegin: (key: TileKey) => void;
   onPreview: (key: TileKey, size: DashboardTileSize) => void;
   onCommit: (key: TileKey, size: DashboardTileSize) => void;
+  onEnd: () => void;
 }) {
+  const band = useRef<HTMLSpanElement>(null);
   const gesture = useRef<{
+    began: boolean;
     x: number;
     y: number;
     width: number;
@@ -132,6 +207,7 @@ function BoardResizeHandle({
     const span = tileSpan(item.size, gridColumns);
     const { width, height } = host.getBoundingClientRect();
     gesture.current = {
+      began: false,
       x: event.pageX,
       y: event.pageY,
       width,
@@ -148,12 +224,24 @@ function BoardResizeHandle({
   function move(event: ReactPointerEvent<HTMLButtonElement>) {
     const drag = gesture.current;
     if (!drag) return;
+    const dx = event.pageX - drag.x;
+    const dy = event.pageY - drag.y;
+    if (!drag.began) {
+      if (Math.hypot(dx, dy) < DRAG_THRESHOLD_PX) return;
+      drag.began = true;
+      onBegin(item.key);
+      if (band.current) band.current.hidden = false;
+    }
+    if (band.current) {
+      band.current.style.width = `${Math.max(drag.width + dx, drag.columnTrack / 2)}px`;
+      band.current.style.height = `${Math.max(drag.height + dy, drag.rowTrack / 2)}px`;
+    }
     const size = nearestTileSize(
       item.key,
       drag.last,
       {
-        columns: (drag.width + event.pageX - drag.x + drag.gap) / drag.columnTrack,
-        rows: (drag.height + event.pageY - drag.y + drag.gap) / drag.rowTrack,
+        columns: (drag.width + dx + drag.gap) / drag.columnTrack,
+        rows: (drag.height + dy + drag.gap) / drag.rowTrack,
       },
       drag.gridColumns,
     );
@@ -162,15 +250,21 @@ function BoardResizeHandle({
     onPreview(item.key, size);
   }
 
-  function end() {
+  function release() {
     const drag = gesture.current;
     gesture.current = null;
+    if (band.current) band.current.hidden = true;
+    if (drag?.began) onEnd();
+    return drag;
+  }
+
+  function end() {
+    const drag = release();
     if (drag && drag.last !== drag.start) onCommit(item.key, drag.last);
   }
 
   function cancel() {
-    const drag = gesture.current;
-    gesture.current = null;
+    const drag = release();
     if (drag && drag.last !== drag.start) onPreview(item.key, drag.start);
   }
 
@@ -187,15 +281,23 @@ function BoardResizeHandle({
   }
 
   return (
-    <TileResizeHandle
-      tileName={`${label}, format ${sizeLabel(item.size)}. Glissez, ou utilisez les flèches`}
-      editing
-      onPointerDown={start}
-      onPointerMove={move}
-      onPointerUp={end}
-      onPointerCancel={cancel}
-      onKeyDown={onKeyDown}
-    />
+    <>
+      <span
+        ref={band}
+        hidden
+        aria-hidden="true"
+        className="pointer-events-none absolute top-0 left-0 z-20 rounded-xl border-2 border-accent bg-accent-pale/30"
+      />
+      <TileResizeHandle
+        tileName={`${label}, format ${sizeLabel(item.size)}. Glissez, ou utilisez les flèches`}
+        editing
+        onPointerDown={start}
+        onPointerMove={move}
+        onPointerUp={end}
+        onPointerCancel={cancel}
+        onKeyDown={onKeyDown}
+      />
+    </>
   );
 }
 
@@ -205,29 +307,32 @@ function BoardTile({
   count,
   state,
   editing,
-  dropTarget,
+  placement,
+  active,
+  onResizeBegin,
   onResizePreview,
   onResizeCommit,
+  onResizeEnd,
   onRemove,
   onMove,
-  onDragOver,
-  onDragDone,
+  onDragStart,
 }: {
   item: LayoutTile;
   position: number;
   count: number;
   state: TileState | undefined;
   editing: boolean;
-  dropTarget: boolean;
+  placement: TilePlacement | undefined;
+  /** Tuile du geste en cours : déplacée, elle suit le pointeur ; redimensionnée, elle est soulignée. */
+  active: "move" | "resize" | null;
+  onResizeBegin: (key: TileKey) => void;
   onResizePreview: (key: TileKey, size: DashboardTileSize) => void;
   onResizeCommit: (key: TileKey, size: DashboardTileSize) => void;
+  onResizeEnd: () => void;
   onRemove: (key: TileKey) => void;
   onMove: (key: TileKey, to: number) => void;
-  onDragOver: (key: TileKey, info: PanInfo) => void;
-  onDragDone: () => void;
+  onDragStart: (event: ReactPointerEvent<HTMLElement>, key: TileKey) => void;
 }) {
-  const preset = useMotionPreset();
-  const controls = useDragControls();
   const definition = tileDefinition(item.key);
   const title = (state?.status === "ready" ? state.view.title : undefined) ?? definition.title;
 
@@ -245,25 +350,16 @@ function BoardTile({
 
   function startDrag(event: ReactPointerEvent<HTMLDivElement>) {
     if (!editing) return;
+    const target = event.target as HTMLElement;
     // Au doigt, seule la poignée dédiée déplace : le reste de la tuile laisse défiler la page.
-    if (event.pointerType === "touch") return;
-    if ((event.target as HTMLElement).closest("button,a")) return;
-    controls.start(event);
+    if (event.pointerType === "touch" && !target.closest("[data-tile-grip]")) return;
+    if (event.pointerType === "mouse" && event.button !== 0) return;
+    if (target.closest("button,a")) return;
+    onDragStart(event, item.key);
   }
 
   return (
-    <motion.div
-      layout={preset.reduced ? false : "position"}
-      transition={{ layout: preset.move }}
-      drag={editing}
-      dragControls={controls}
-      dragListener={false}
-      dragSnapToOrigin
-      dragElastic={1}
-      dragMomentum={false}
-      whileDrag={{ zIndex: 20, cursor: "grabbing" }}
-      onDrag={(_, info) => onDragOver(item.key, info)}
-      onDragEnd={onDragDone}
+    <div
       onPointerDown={startDrag}
       onKeyDown={onKeyDown}
       data-tile-key={item.key}
@@ -274,12 +370,13 @@ function BoardTile({
           : undefined
       }
       role={editing ? "group" : undefined}
-      style={staggerIndex(position)}
+      style={{ ...staggerIndex(position), ...(placement ? placementStyle(placement) : null) }}
       className={cn(
         "relative min-w-0 rounded-xl outline-none focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-focus",
         TILE_SPAN[item.size],
         editing && "cursor-grab select-none",
-        dropTarget && "ring-2 ring-accent ring-offset-2",
+        active === "move" && "z-20 cursor-grabbing opacity-95 [&>article]:shadow-float",
+        active === "resize" && "z-20 ring-4 ring-accent/40",
       )}
     >
       <Tile
@@ -294,8 +391,10 @@ function BoardTile({
             <BoardResizeHandle
               item={item}
               label={title}
+              onBegin={onResizeBegin}
               onPreview={onResizePreview}
               onCommit={onResizeCommit}
+              onEnd={onResizeEnd}
             />
           ) : null
         }
@@ -305,7 +404,7 @@ function BoardTile({
               <TileRemoveButton tileName={title} onClick={() => onRemove(item.key)} />
               <div
                 role="presentation"
-                onPointerDown={(event) => controls.start(event)}
+                data-tile-grip
                 className="absolute top-1 right-1 z-10 hidden size-8 touch-none items-center justify-center rounded-full text-muted pointer-coarse:flex"
               >
                 <Icon name="menu" size={16} />
@@ -319,51 +418,36 @@ function BoardTile({
           <TileBody state={state} size={item.size} editing={editing} service={definition.title} />
         </div>
       </Tile>
-    </motion.div>
+    </div>
   );
 }
 
 function GalleryItem({
   definition,
   onAdd,
-  onDragState,
-  onDropAt,
+  onDragStart,
 }: {
   definition: TileDefinition;
   onAdd: (key: TileKey) => void;
-  onDragState: (dragging: boolean) => void;
-  onDropAt: (key: TileKey, info: PanInfo) => void;
+  onDragStart: (event: ReactPointerEvent<HTMLElement>, key: TileKey, onActive: () => void) => void;
 }) {
   const dragged = useRef(false);
-  const controls = useDragControls();
   return (
-    <motion.button
+    <button
       type="button"
       data-gallery-item
-      drag
-      dragControls={controls}
-      dragListener={false}
       onPointerDown={(event) => {
-        // Au doigt, la liste défile : on y ajoute au toucher.
-        if (event.pointerType !== "touch") controls.start(event);
-      }}
-      dragSnapToOrigin
-      dragElastic={1}
-      dragMomentum={false}
-      whileDrag={{ zIndex: 40, boxShadow: "var(--shadow-float)" }}
-      onDragStart={() => {
-        dragged.current = true;
-        onDragState(true);
-      }}
-      onDragEnd={(_, info) => {
-        // Motion prévient après le clic du relâchement : le drapeau tombe seulement ici.
         dragged.current = false;
-        onDragState(false);
-        onDropAt(definition.key, info);
+        // Au doigt, la liste défile : on y ajoute au toucher.
+        if (event.pointerType === "touch") return;
+        if (event.pointerType === "mouse" && event.button !== 0) return;
+        onDragStart(event, definition.key, () => {
+          dragged.current = true;
+        });
       }}
-      onClick={() => {
-        // Le clic du relâchement n'est pas un ajout : c'est le dépôt qui décide.
-        if (!dragged.current) onAdd(definition.key);
+      onClick={(event) => {
+        // Le clic du relâchement n'est pas un ajout : c'est le dépôt qui décide. Au clavier, toujours.
+        if (event.detail === 0 || !dragged.current) onAdd(definition.key);
       }}
       className="relative flex h-[46px] w-full shrink-0 cursor-grab items-center gap-3 rounded-sm border border-border bg-surface px-2 text-left text-sm font-medium text-ink transition-colors duration-(--dur-fast) hover:bg-accent-pale/40 lg:touch-none"
     >
@@ -377,14 +461,15 @@ function GalleryItem({
       <span className="shrink-0 font-mono text-table-head font-normal text-muted">
         {sizeLabel(definition.size)}
       </span>
-    </motion.button>
+    </button>
   );
 }
 
 /**
  * Tableau de bord (écrans 01 et 06). La poignée n'existe qu'en édition, où rien n'est enregistré
  * avant « Terminé » : le serveur valide, « Annuler » abandonne. Le panneau de la galerie se réduit
- * le temps de l'édition, et le tableau reprend alors la largeur libérée.
+ * le temps de l'édition, et le tableau reprend alors la largeur libérée. Pendant un geste, la grille
+ * montre ses emplacements libres et celui où la tuile va se poser, comme l'écran d'accueil d'iOS.
  */
 export function DashboardBoard({ data, editing }: { data: DashboardData; editing: boolean }) {
   const router = useRouter();
@@ -393,11 +478,18 @@ export function DashboardBoard({ data, editing }: { data: DashboardData; editing
   const [galleryOpen, setGalleryOpen] = useState(true);
   const [tiles, setTiles] = useState<LayoutTile[]>(data.layout.tiles);
   const [announce, setAnnounce] = useState("");
-  const [dropTarget, setDropTarget] = useState<TileKey | null>(null);
-  const [galleryDragging, setGalleryDragging] = useState(false);
+  const [gesture, setGesture] = useState<BoardGesture | null>(null);
   const [saving, startSaving] = useTransition();
-  const lastSwap = useRef(0);
+  const { reduced } = useMotionPreset();
   const panel = useRef<HTMLElement>(null);
+  const grid = useRef<HTMLDivElement>(null);
+  const ghost = useRef<HTMLDivElement>(null);
+  /** Pose la tuile déplacée sous le pointeur, une fois la grille réarrangée. */
+  const placeDragged = useRef<(() => void) | null>(null);
+  const stopDrag = useRef<(() => void) | null>(null);
+  const positions = useRef(new Map<string, { x: number; y: number }>());
+  const lastWidth = useRef(0);
+  const noFlip = useRef<TileKey | null>(null);
 
   const available = useMemo(() => {
     const allowed = new Set([...data.layout.tiles, ...data.gallery].map((tile) => tile.key));
@@ -412,6 +504,41 @@ export function DashboardBoard({ data, editing }: { data: DashboardData; editing
     pendingFocus.current = null;
     target?.focus();
   }, [tiles]);
+
+  useEffect(() => () => stopDrag.current?.(), []);
+
+  // Réarrangement : chaque tuile part d'où elle était et rejoint sa place, sans animation en mouvement
+  // réduit. `offsetLeft` ignore les transformations : une animation interrompue repart d'où elle en est.
+  useLayoutEffect(() => {
+    const board = grid.current;
+    if (!board) return;
+    placeDragged.current?.();
+    const animated = !reduced && board.offsetWidth === lastWidth.current;
+    const origin = board.getBoundingClientRect();
+    const next = new Map<string, { x: number; y: number }>();
+    for (const element of board.querySelectorAll<HTMLElement>(
+      "[data-tile-key],[data-slot-landing]",
+    )) {
+      const id = element.dataset.tileKey ?? "landing";
+      const x = element.offsetLeft;
+      const y = element.offsetTop;
+      next.set(id, { x, y });
+      const before = positions.current.get(id);
+      if (!animated || !before || id === noFlip.current) continue;
+      const box = element.getBoundingClientRect();
+      const dx = before.x - x + (box.left - origin.left - x);
+      const dy = before.y - y + (box.top - origin.top - y);
+      if (Math.abs(dx) < 0.5 && Math.abs(dy) < 0.5) continue;
+      element.getAnimations().forEach((animation) => animation.cancel());
+      element.animate([{ transform: `translate(${dx}px, ${dy}px)` }, { transform: "none" }], {
+        duration: DURATION_MS.move,
+        easing: REFLOW_EASING,
+      });
+    }
+    positions.current = next;
+    lastWidth.current = board.offsetWidth;
+    if (!gesture) noFlip.current = null;
+  }, [tiles, gesture, reduced]);
 
   function previewSize(key: TileKey, size: DashboardTileSize) {
     settlePageBuild();
@@ -460,27 +587,199 @@ export function DashboardBoard({ data, editing }: { data: DashboardData; editing
     setAnnounce(`${tileDefinition(key).title} : position ${target + 1} sur ${tiles.length}.`);
   }
 
-  function onDragOver(key: TileKey, info: PanInfo) {
-    const now = performance.now();
-    if (now - lastSwap.current < SWAP_COOLDOWN_MS) return;
-    const hovered = tileUnderPointer(info, key);
-    if (!hovered) return;
-    const target = tiles.findIndex((tile) => tile.key === hovered);
-    if (target < 0) return;
-    lastSwap.current = now;
-    setTiles((current) => moveTile(current, key, target));
+  /**
+   * Glisser une tuile du tableau ou de la galerie, souris ou doigt. L'écoute se fait sur la fenêtre et
+   * la boucle d'images fait le reste : suivre le pointeur, faire défiler près des bords, réarranger.
+   * Lâchée hors du tableau, ou sur Échap, la tuile revient d'où elle venait.
+   */
+  function beginDrag(event: ReactPointerEvent<HTMLElement>, key: TileKey, onActive?: () => void) {
+    const board = grid.current;
+    if (!board || stopDrag.current) return;
+    const { pointerId } = event;
+    const start = { x: event.clientX, y: event.clientY };
+    const origin = tiles;
+    const placed = tiles.find((tile) => tile.key === key);
+    const tile = placed ?? { key, size: tileDefinition(key).size };
+    const others = tiles.filter((other) => other.key !== key);
+    const host = placed ? board.querySelector<HTMLElement>(`[data-tile-key="${key}"]`) : null;
+    const hostBox = host?.getBoundingClientRect();
+    const session = {
+      active: false,
+      pointer: start,
+      grab: hostBox ? { x: start.x - hostBox.left, y: start.y - hostBox.top } : { x: 0, y: 0 },
+      at: placed ? tiles.indexOf(placed) : (null as number | null),
+      outside: false,
+      dirty: false,
+      lastReflow: 0,
+      frame: 0,
+    };
+
+    const place = () => {
+      const x = session.pointer.x - session.grab.x;
+      const y = session.pointer.y - session.grab.y;
+      if (ghost.current) ghost.current.style.transform = `translate(${x}px, ${y}px)`;
+      if (host) {
+        const box = board.getBoundingClientRect();
+        host.style.transform = `translate(${x - box.left - host.offsetLeft}px, ${y - box.top - host.offsetTop}px)`;
+      }
+    };
+
+    const reflow = () => {
+      session.dirty = false;
+      session.lastReflow = performance.now();
+      const metrics = measureGrid(board);
+      const { x, y } = session.pointer;
+      const outside =
+        !isInside(metrics.rect, x, y, metrics.gap) ||
+        isInside(panel.current?.getBoundingClientRect(), x, y);
+      let at: number | null = null;
+      if (!outside) {
+        const target = cellAt(metrics, x - session.grab.x, y - session.grab.y);
+        at = closestInsertion(others, tile, target, metrics.columns, session.at);
+      }
+      if (at === session.at && outside === session.outside) return;
+      session.at = at;
+      session.outside = outside;
+      if (placed) setTiles(at === null ? origin : insertTile(others, tile, at));
+      setGesture((current) => current && { ...current, at, outside });
+    };
+
+    const tick = () => {
+      const { y } = session.pointer;
+      const edge =
+        y < SCROLL_EDGE_PX ? y - SCROLL_EDGE_PX : y - (window.innerHeight - SCROLL_EDGE_PX);
+      if ((y < SCROLL_EDGE_PX || y > window.innerHeight - SCROLL_EDGE_PX) && session.active) {
+        const speed = Math.min(SCROLL_MAX_PX, Math.abs(edge) / 4);
+        window.scrollBy({ top: Math.sign(edge) * speed, behavior: "instant" });
+        session.dirty = true;
+      }
+      place();
+      if (session.dirty && performance.now() - session.lastReflow >= REFLOW_COOLDOWN_MS) reflow();
+      session.frame = requestAnimationFrame(tick);
+    };
+
+    const activate = () => {
+      session.active = true;
+      onActive?.();
+      settlePageBuild();
+      noFlip.current = key;
+      const metrics = measureGrid(board);
+      const span = tileSpan(tile.size, metrics.columns);
+      let preview: BoardGesture["ghost"] = null;
+      if (!placed) {
+        const width = span.columns * (metrics.columnWidth + metrics.gap) - metrics.gap;
+        session.grab = { x: Math.min(width / 2, 80), y: 28 };
+        session.at = null;
+        session.outside = true;
+        preview = {
+          width,
+          height: span.rows * (ROW_MIN_PX + metrics.gap) - metrics.gap,
+          x: session.pointer.x - session.grab.x,
+          y: session.pointer.y - session.grab.y,
+        };
+      }
+      placeDragged.current = place;
+      setGesture({
+        kind: placed ? "move" : "add",
+        key,
+        columns: metrics.columns,
+        domKeys: tiles.map((item) => item.key),
+        at: session.at,
+        outside: session.outside,
+        ghost: preview,
+      });
+      session.dirty = true;
+      session.frame = requestAnimationFrame(tick);
+    };
+
+    const onMove = (next: PointerEvent) => {
+      if (next.pointerId !== pointerId) return;
+      session.pointer = { x: next.clientX, y: next.clientY };
+      if (session.active) session.dirty = true;
+      else if (Math.hypot(next.clientX - start.x, next.clientY - start.y) >= DRAG_THRESHOLD_PX) {
+        activate();
+      }
+    };
+
+    const stop = () => {
+      window.removeEventListener("pointermove", onMove);
+      window.removeEventListener("pointerup", onUp);
+      window.removeEventListener("pointercancel", onCancel);
+      window.removeEventListener("keydown", onKey, true);
+      cancelAnimationFrame(session.frame);
+      placeDragged.current = null;
+      stopDrag.current = null;
+    };
+
+    /** La tuile lâchée glisse jusqu'à sa place, au-dessus des autres, sauf en mouvement réduit. */
+    const settle = () => {
+      if (!host) return;
+      const from = host.style.transform;
+      host.style.transform = "";
+      if (reduced || !from) return;
+      host.animate(
+        [
+          { transform: from, zIndex: 20 },
+          { transform: "none", zIndex: 20 },
+        ],
+        { duration: DURATION_MS.move, easing: REFLOW_EASING },
+      );
+    };
+
+    const finishDrag = (cancelled: boolean) => {
+      stop();
+      if (!session.active) return;
+      if (!cancelled) reflow();
+      const dropped = !cancelled && !session.outside && session.at !== null;
+      settle();
+      setGesture(null);
+      if (!dropped) {
+        if (placed) setTiles(origin);
+        setAnnounce(`${tileDefinition(key).title} : déplacement annulé.`);
+      } else if (placed) {
+        setAnnounce(
+          `${tileDefinition(key).title} : position ${(session.at ?? 0) + 1} sur ${tiles.length}.`,
+        );
+      } else {
+        addTile(key, session.at ?? undefined);
+      }
+    };
+
+    const onUp = (next: PointerEvent) => {
+      if (next.pointerId === pointerId) finishDrag(false);
+    };
+    const onCancel = (next: PointerEvent) => {
+      if (next.pointerId === pointerId) finishDrag(true);
+    };
+    const onKey = (next: KeyboardEvent) => {
+      if (next.key !== "Escape") return;
+      next.preventDefault();
+      next.stopPropagation();
+      finishDrag(true);
+    };
+
+    window.addEventListener("pointermove", onMove);
+    window.addEventListener("pointerup", onUp);
+    window.addEventListener("pointercancel", onCancel);
+    window.addEventListener("keydown", onKey, true);
+    stopDrag.current = stop;
   }
 
-  function onGalleryDrop(key: TileKey, info: PanInfo) {
-    const x = info.point.x - window.scrollX;
-    const y = info.point.y - window.scrollY;
-    const box = panel.current?.getBoundingClientRect();
-    const overPanel = box && x >= box.left && x <= box.right && y >= box.top && y <= box.bottom;
-    setDropTarget(null);
-    if (overPanel) return;
-    const hovered = tileUnderPointer(info);
-    const at = hovered ? tiles.findIndex((tile) => tile.key === hovered) : -1;
-    addTile(key, at >= 0 ? at : undefined);
+  /** La poignée a son propre suivi du pointeur : ici, seulement les emplacements et l'ordre figé. */
+  function beginResize(key: TileKey) {
+    const board = grid.current;
+    if (!board) return;
+    settlePageBuild();
+    noFlip.current = key;
+    setGesture({
+      kind: "resize",
+      key,
+      columns: measureGrid(board).columns,
+      domKeys: tiles.map((item) => item.key),
+      at: null,
+      outside: false,
+      ghost: null,
+    });
   }
 
   function finish() {
@@ -493,6 +792,17 @@ export function DashboardBoard({ data, editing }: { data: DashboardData; editing
       router.push("/");
     });
   }
+
+  const adding = gesture?.kind === "add" ? tileDefinition(gesture.key) : null;
+  const shown =
+    adding && gesture?.at != null
+      ? insertTile(tiles, { key: adding.key, size: adding.size }, gesture.at)
+      : tiles;
+  const placements = gesture ? packTiles(shown, gesture.columns) : null;
+  const slots = placements && gesture ? emptyCells(placements, gesture.columns) : [];
+  const landing = gesture && gesture.kind !== "resize" ? placements?.get(gesture.key) : undefined;
+  const byKey = new Map(tiles.map((tile) => [tile.key, tile]));
+  const rendered = gesture ? gesture.domKeys.flatMap((key) => byKey.get(key) ?? []) : tiles;
 
   return (
     <>
@@ -531,14 +841,10 @@ export function DashboardBoard({ data, editing }: { data: DashboardData; editing
           {galleryOpen ? (
             <div id={galleryId} className="flex min-h-0 flex-1 flex-col gap-4">
               <p className="text-sm text-muted">
-                Glissez une tuile sur le tableau, ou cliquez pour l’ajouter à la fin.
+                Glissez une tuile sur le tableau, ou cliquez pour l’ajouter à la fin. Hors du
+                tableau, le dépôt est annulé.
               </p>
-              <div
-                className={cn(
-                  "flex max-h-[40dvh] min-h-0 flex-1 flex-col gap-2 lg:max-h-none",
-                  galleryDragging ? "overflow-visible" : "overflow-y-auto",
-                )}
-              >
+              <div className="flex max-h-[40dvh] min-h-0 flex-1 flex-col gap-2 overflow-y-auto lg:max-h-none">
                 {available.length === 0 ? (
                   <p className="py-6 text-center text-sm text-muted">
                     Toutes vos tuiles sont sur le tableau.
@@ -549,8 +855,7 @@ export function DashboardBoard({ data, editing }: { data: DashboardData; editing
                       key={definition.key}
                       definition={definition}
                       onAdd={addTile}
-                      onDragState={setGalleryDragging}
-                      onDropAt={onGalleryDrop}
+                      onDragStart={beginDrag}
                     />
                   ))
                 )}
@@ -573,22 +878,34 @@ export function DashboardBoard({ data, editing }: { data: DashboardData; editing
           editing && galleryOpen && "lg:pr-[364px]",
         )}
       >
-        <div className="grid grid-flow-row-dense auto-rows-[minmax(168px,auto)] grid-cols-2 gap-(--grid-gap) @lg:grid-cols-4 @5xl:grid-cols-6">
-          {tiles.map((item, index) => (
+        <div ref={grid} className={cn(TILE_GRID, "relative grid-flow-row-dense")}>
+          {slots.map((cell) => (
+            <TileSlot key={`${cell.column}:${cell.row}`} style={placementStyle(cell)} />
+          ))}
+          {landing ? (
+            <TileSlot
+              data-slot-landing
+              active={!gesture?.outside}
+              style={placementStyle(landing)}
+            />
+          ) : null}
+          {rendered.map((item) => (
             <BoardTile
               key={item.key}
               item={item}
-              position={index}
+              position={tiles.indexOf(item)}
               count={tiles.length}
               state={data.tiles[item.key]}
               editing={editing}
-              dropTarget={dropTarget === item.key}
+              placement={placements?.get(item.key)}
+              active={gesture?.key === item.key && gesture.kind !== "add" ? gesture.kind : null}
+              onResizeBegin={beginResize}
               onResizePreview={previewSize}
               onResizeCommit={commitSize}
+              onResizeEnd={() => setGesture(null)}
               onRemove={removeTile}
               onMove={moveByKeyboard}
-              onDragOver={onDragOver}
-              onDragDone={() => setDropTarget(null)}
+              onDragStart={beginDrag}
             />
           ))}
           {!editing ? (
@@ -613,6 +930,30 @@ export function DashboardBoard({ data, editing }: { data: DashboardData; editing
           ) : null}
         </div>
       </div>
+
+      {adding && gesture?.ghost ? (
+        <div
+          ref={ghost}
+          aria-hidden="true"
+          style={{
+            width: gesture.ghost.width,
+            height: gesture.ghost.height,
+            transform: `translate(${gesture.ghost.x}px, ${gesture.ghost.y}px)`,
+          }}
+          className="pointer-events-none fixed top-0 left-0 z-40 opacity-95 [&>article]:shadow-float"
+        >
+          <Tile icon={adding.icon} title={adding.title} editing className="h-full">
+            <div className="flex min-h-0 min-w-0 flex-1 flex-col overflow-hidden">
+              <TileBody
+                state={data.tiles[adding.key]}
+                size={adding.size}
+                editing
+                service={adding.title}
+              />
+            </div>
+          </Tile>
+        </div>
+      ) : null}
     </>
   );
 }
