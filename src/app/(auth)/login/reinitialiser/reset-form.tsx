@@ -49,7 +49,7 @@ export function ResetPasswordForm({ token }: { token: string }) {
       title="Nouveau mot de passe"
       description={`Au moins ${PASSWORD_MIN_LENGTH} caractères.`}
     >
-      <form onSubmit={onSubmit} className="flex flex-col gap-5" noValidate>
+      <form method="post" onSubmit={onSubmit} className="flex flex-col gap-5" noValidate>
         {error ? <Alert tone="danger">{error}</Alert> : null}
         <Field id="password" label="Nouveau mot de passe">
           <Input

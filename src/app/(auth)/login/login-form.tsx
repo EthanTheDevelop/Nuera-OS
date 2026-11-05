@@ -148,7 +148,13 @@ export function LoginForm({ redirectTo }: { redirectTo: string }) {
             : "Saisissez un de vos codes de secours. Il ne servira qu’une fois."
         }
       >
-        <form key={step} onSubmit={onSecondFactor} className="flex flex-col gap-4" noValidate>
+        <form
+          key={step}
+          method="post"
+          onSubmit={onSecondFactor}
+          className="flex flex-col gap-4"
+          noValidate
+        >
           {error ? <Alert tone="danger">{error}</Alert> : null}
           <Field id="code" label={isTotp ? "Code à 6 chiffres" : "Code de secours"}>
             <Input
@@ -188,7 +194,7 @@ export function LoginForm({ redirectTo }: { redirectTo: string }) {
         title="Mot de passe oublié"
         description="Indiquez votre e-mail : nous vous enverrons un lien pour en choisir un nouveau."
       >
-        <form onSubmit={onForgot} className="flex flex-col gap-4" noValidate>
+        <form method="post" onSubmit={onForgot} className="flex flex-col gap-4" noValidate>
           {error ? <Alert tone="danger">{error}</Alert> : null}
           <Field id="forgot-email" label="E-mail">
             <Input
@@ -224,7 +230,7 @@ export function LoginForm({ redirectTo }: { redirectTo: string }) {
 
   return (
     <AuthCard title="Espace de l’agence" description="Réservé à l’équipe de Nuera Studio.">
-      <form onSubmit={onSignIn} className="flex flex-col gap-5" noValidate>
+      <form method="post" onSubmit={onSignIn} className="flex flex-col gap-5" noValidate>
         {error ? <Alert tone="danger">{error}</Alert> : null}
         <Field id="email" label="E-mail">
           <Input
