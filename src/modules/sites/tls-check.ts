@@ -33,10 +33,14 @@ for (const [network, prefix] of [
   PRIVATE_RANGES.addSubnet(network, prefix, "ipv4");
 }
 for (const [network, prefix] of [
-  ["::", 128],
-  ["::1", 128],
+  // `::/96` : adresse nulle, boucle locale et IPv4 compatible. Suivent les formes qui embarquent une
+  // adresse IPv4 : NAT64, Teredo et 6to4.
+  ["::", 96],
   ["64:ff9b::", 96],
+  ["64:ff9b:1::", 48],
   ["100::", 64],
+  ["2001::", 32],
+  ["2002::", 16],
   ["2001:db8::", 32],
   ["fc00::", 7],
   ["fe80::", 10],
