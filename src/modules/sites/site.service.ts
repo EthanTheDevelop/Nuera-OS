@@ -1,6 +1,7 @@
 import type { CmsKind, EnvironmentStatus, SiteKind, SiteStatus } from "@/lib/domain-enums";
 import { z } from "@/lib/zod";
 import { recordAudit } from "@/modules/audit/audit.service";
+import { activateContractsForSite } from "@/modules/contracts/contract.service";
 import {
   getCompanyRef,
   listCompanyOptions,
@@ -410,7 +411,10 @@ export async function changeSiteStatus(ctx: ServiceContext, input: unknown): Pro
       entityId: id,
       metadata: { from: current.status, to: status },
     });
-    if (status === "live") await emitSiteLive(tx, site, ctx.actor.userId);
+    if (status === "live") {
+      await emitSiteLive(tx, site, ctx.actor.userId);
+      await activateContractsForSite(tx, { siteId: id, actorId: ctx.actor.userId, now });
+    }
     return site;
   });
 }
@@ -448,6 +452,8 @@ export async function activateSiteAfterGoLive(
     throw new ConflictError("Ce projet n'appartient pas au client de ce site.");
   }
   if (current.status === "live") {
+    // Un contrat lié après la mise en ligne démarre avec la livraison du projet.
+    await activateContractsForSite(tx, { siteId, actorId: ctx.actor.userId });
     if (current.projectId) return;
     await repository.updateSite(tx, siteId, { projectId });
     await recordAudit(tx, {
@@ -475,6 +481,7 @@ export async function activateSiteAfterGoLive(
     metadata: { projectId, from: current.status },
   });
   await emitSiteLive(tx, site, ctx.actor.userId);
+  await activateContractsForSite(tx, { siteId, actorId: ctx.actor.userId });
 }
 
 // --- Environnements ----------------------------------------------------------------------------
