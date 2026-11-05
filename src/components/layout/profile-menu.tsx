@@ -13,17 +13,28 @@ import {
   Popover,
 } from "@/components/ui/popover";
 import { writeAppearance } from "@/lib/appearance";
+import type { ActionState } from "@/lib/action-state";
 import { getAuthClient } from "@/lib/auth-client";
 import { NotificationList, type NotificationEntry } from "./notifications";
 
-function ThemeRow() {
+/** Appliquée tout de suite, puis enregistrée sur le compte. Refusée : retour au thème précédent. */
+function ThemeRow({ saveTheme }: { saveTheme?: SaveTheme }) {
   const [dark, setDark] = useState(() => document.documentElement.dataset.theme === "dark");
+  const apply = (next: boolean) => {
+    setDark(next);
+    writeAppearance({ theme: next ? "dark" : "light" });
+  };
   return (
     <MenuSwitchItem
       checked={dark}
       onCheckedChange={(next) => {
-        setDark(next);
-        writeAppearance({ theme: next ? "dark" : "light" });
+        apply(next);
+        void saveTheme?.(next ? "dark" : "light").then(
+          (state) => {
+            if (state.status === "error") apply(!next);
+          },
+          () => apply(!next),
+        );
       }}
     >
       Thème sombre
@@ -44,6 +55,8 @@ export function useSignOut(redirectTo = "/login") {
   return { signOut, pending };
 }
 
+type SaveTheme = (theme: "light" | "dark") => Promise<ActionState>;
+
 export interface ProfileMenuUser {
   name: string;
   email: string;
@@ -59,6 +72,7 @@ export interface ProfileMenuUser {
  * - `people` : avatars du bloc (les associés, depuis le module Équipe). Défaut : l'utilisateur.
  * - `canManageAgency` : `integrations:read`, affiche ChatGPT et Réglages de l'agence.
  * - `chatgptLabel` : état réel de la connexion. Sans valeur, pas de badge.
+ * - `saveTheme` : enregistre le thème sur le compte, sinon `/profil` afficherait l'ancien.
  */
 export function ProfileMenu({
   user,
@@ -68,6 +82,7 @@ export function ProfileMenu({
   notifications = [],
   canManageAgency = false,
   chatgptLabel,
+  saveTheme,
 }: {
   user: ProfileMenuUser;
   title: string;
@@ -76,6 +91,7 @@ export function ProfileMenu({
   notifications?: readonly NotificationEntry[];
   canManageAgency?: boolean;
   chatgptLabel?: string;
+  saveTheme?: SaveTheme;
 }) {
   const { signOut, pending } = useSignOut();
   const [view, setView] = useState<"menu" | "notifications">("menu");
@@ -161,7 +177,7 @@ export function ProfileMenu({
                   </MenuItem>
                 </>
               ) : null}
-              <ThemeRow />
+              <ThemeRow saveTheme={saveTheme} />
               <MenuSeparator />
               <MenuItem icon="chevron" danger disabled={pending} onSelect={signOut}>
                 Se déconnecter

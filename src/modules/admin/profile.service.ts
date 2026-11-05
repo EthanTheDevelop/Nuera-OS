@@ -199,6 +199,24 @@ export async function updateProfile(
   });
 }
 
+/** Bascule du menu du profil : le thème seul, pour que `/profil` et l'affichage restent d'accord. */
+export async function updateTheme(ctx: ServiceContext, rawInput: unknown): Promise<void> {
+  const theme = parseInput(profileSchema.shape.theme, rawInput);
+  await ctx.db.transaction(async (tx) => {
+    await tx
+      .insert(userPreferences)
+      .values({ userId: ctx.actor.userId, theme })
+      .onConflictDoUpdate({ target: userPreferences.userId, set: { theme } });
+    await recordAudit(tx, {
+      actorId: ctx.actor.userId,
+      action: "user_preference.updated",
+      entityType: "user_preference",
+      entityId: ctx.actor.userId,
+      metadata: { theme },
+    });
+  });
+}
+
 /** « Se déconnecter partout » : toutes les sessions du compte, y compris celle-ci. */
 export async function revokeAllMySessions(ctx: ServiceContext): Promise<number> {
   return ctx.db.transaction(async (tx) => {

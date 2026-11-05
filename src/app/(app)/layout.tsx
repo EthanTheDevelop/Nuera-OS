@@ -4,6 +4,7 @@ import { ProfileMenu } from "@/components/layout/profile-menu";
 import { Sidebar } from "@/components/layout/sidebar";
 import { PageBuild } from "@/components/motion/page-build";
 import { visibleNavigation } from "@/config/navigation";
+import { saveThemeAction } from "@/modules/admin/admin.actions";
 import { globalSearchAction } from "@/modules/dashboard/dashboard.actions";
 import { AppearanceSync } from "@/modules/platform/components/appearance-sync";
 import { getShellDataFor } from "@/modules/platform/shell.service";
@@ -44,6 +45,7 @@ export default async function AppLayout({ children }: { children: ReactNode }) {
               notifications={shell.notifications}
               canManageAgency={can(actor, "integrations:read")}
               chatgptLabel={shell.chatgptLabel}
+              saveTheme={saveThemeAction}
             />
           }
         />

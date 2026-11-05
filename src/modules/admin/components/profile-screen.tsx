@@ -58,6 +58,12 @@ export function ProfileScreen({
   const router = useRouter();
   const [saving, startSaving] = useTransition();
   const [theme, setTheme] = useState(profile.appearance.theme);
+  // Le thème change aussi depuis le menu du profil, écran ouvert : le choix enregistré fait foi.
+  const [savedTheme, setSavedTheme] = useState(profile.appearance.theme);
+  if (savedTheme !== profile.appearance.theme) {
+    setSavedTheme(profile.appearance.theme);
+    setTheme(profile.appearance.theme);
+  }
   const [accent, setAccent] = useState(profile.appearance.accent as Accent);
   const [density, setDensity] = useState(profile.appearance.density);
   const [homePath, setHomePath] = useState(profile.appearance.homePath);

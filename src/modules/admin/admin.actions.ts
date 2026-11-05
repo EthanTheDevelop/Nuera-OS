@@ -19,7 +19,12 @@ import {
   revokeUserSessions,
   sendAccessLink,
 } from "./admin.service";
-import { revokeAllMySessions, revokeMySession, updateProfile } from "./profile.service";
+import {
+  revokeAllMySessions,
+  revokeMySession,
+  updateProfile,
+  updateTheme,
+} from "./profile.service";
 
 function revalidateAdmin() {
   revalidatePath("/administration");
@@ -158,6 +163,16 @@ export async function saveProfileAction(input: unknown): Promise<ActionState> {
     return { status: "success", message: "Préférences enregistrées." };
   } catch (error) {
     return toActionErrorState(error, { action: "profile.save" });
+  }
+}
+
+export async function saveThemeAction(theme: unknown): Promise<ActionState> {
+  try {
+    await updateTheme(await getEnrolmentServiceContext(), theme);
+    revalidatePath("/profil");
+    return { status: "success", message: "Thème enregistré." };
+  } catch (error) {
+    return toActionErrorState(error, { action: "profile.save_theme" });
   }
 }
 

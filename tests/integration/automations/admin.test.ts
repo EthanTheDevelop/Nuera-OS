@@ -28,6 +28,7 @@ import {
   revokeAllMySessions,
   revokeMySession,
   updateProfile,
+  updateTheme,
 } from "@/modules/admin/profile.service";
 import { buildAuth, type Auth } from "@/server/auth/auth";
 import { sendPasswordResetMail } from "@/server/auth/reset-link";
@@ -560,6 +561,25 @@ describe("profil", () => {
     ],
   };
   const options = { allowedHomePaths: ["/", "/projets"] };
+
+  it("le thème choisi au menu est celui que /profil relit, sans toucher au reste", async () => {
+    const ctx = await createTestContext(db, "admin");
+    await updateProfile(ctx, input, options);
+    await updateTheme(ctx, "light");
+    const profile = await getProfile(ctx, { currentSessionId: null, nodeEnv: "development" });
+    expect(profile.appearance).toMatchObject({
+      theme: "light",
+      accent: "chatgpt",
+      density: "compact",
+      homePath: "/projets",
+    });
+
+    const fresh = await createTestContext(db, "viewer");
+    await updateTheme(fresh, "dark");
+    const created = await getProfile(fresh, { currentSessionId: null, nodeEnv: "development" });
+    expect(created.appearance.theme).toBe("dark");
+    await expect(updateTheme(fresh, "fuchsia")).rejects.toThrow(ValidationError);
+  });
 
   it("enregistre tout, et se relit", async () => {
     const ctx = await createTestContext(db, "admin");
