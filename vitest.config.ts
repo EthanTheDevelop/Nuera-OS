@@ -1,3 +1,4 @@
+import { availableParallelism } from "node:os";
 import { fileURLToPath } from "node:url";
 import { configDefaults, defineConfig } from "vitest/config";
 
@@ -16,7 +17,10 @@ export default defineConfig(({ mode }) => ({
       mode === "live" ? ["tests/live/**/*.test.ts"] : ["src/**/*.test.ts", "tests/**/*.test.ts"],
     exclude:
       mode === "live" ? configDefaults.exclude : [...configDefaults.exclude, "tests/live/**"],
-    // Les tests d'intégration démarrent un PostgreSQL embarqué (PGlite) par fichier.
+    // Chaque fichier d'intégration démarre un PostgreSQL embarqué (PGlite) dans son propre processus.
+    // Un processus par cœur épuise la mémoire validée d'une grosse machine (32 cœurs : plantages
+    // 0xC0000409 et 0xC000012D) : plafond fixe, et jamais plus de cœurs que disponibles.
+    maxWorkers: Math.max(1, Math.min(4, availableParallelism() - 1)),
     testTimeout: mode === "live" ? 180_000 : 30_000,
     hookTimeout: mode === "live" ? 180_000 : 60_000,
     env: {

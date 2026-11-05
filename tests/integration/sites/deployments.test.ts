@@ -377,6 +377,8 @@ describe("application d'une relecture de Coolify", () => {
 
   it("relire deux fois ne crée ni doublon ni second événement", async () => {
     const t = await target();
+    // Horloge fixée : au-delà de la fenêtre de fraîcheur, le déploiement relu est de l'historique, sans événement.
+    const now = new Date("2026-11-04T10:02:00Z");
     const external = {
       deployment_uuid: `dep-${crypto.randomUUID()}`,
       status: "finished",
@@ -385,10 +387,10 @@ describe("application d'une relecture de Coolify", () => {
       created_at: "2026-11-04T10:00:00Z",
       updated_at: "2026-11-04T10:01:12Z",
     };
-    await expect(applyExternalDeployment(db, t, external)).resolves.toMatchObject({
+    await expect(applyExternalDeployment(db, t, external, now)).resolves.toMatchObject({
       created: true,
     });
-    await expect(applyExternalDeployment(db, t, external)).resolves.toEqual({
+    await expect(applyExternalDeployment(db, t, external, now)).resolves.toEqual({
       created: false,
       changed: false,
     });
