@@ -10,3 +10,5 @@ coverage
 .data
 .vscode
 .idea
+dist
+*.tsbuildinfo

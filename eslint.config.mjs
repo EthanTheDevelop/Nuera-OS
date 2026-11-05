@@ -51,5 +51,13 @@ export default defineConfig([
     files: ["src/lib/zod.ts"],
     rules: { "no-restricted-imports": "off" },
   },
-  globalIgnores([".next/**", "out/**", "build/**", "coverage/**", "drizzle/**", "next-env.d.ts"]),
+  globalIgnores([
+    ".next/**",
+    "out/**",
+    "build/**",
+    "dist/**",
+    "coverage/**",
+    "drizzle/**",
+    "next-env.d.ts",
+  ]),
 ]);

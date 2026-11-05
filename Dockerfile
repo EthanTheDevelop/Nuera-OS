@@ -1,7 +1,14 @@
 # syntax=docker/dockerfile:1
 #
-# Image de production de Nuera OS (sortie Next.js « standalone »).
-# Aucun secret n'est nécessaire au build : la configuration est lue au démarrage.
+# Image de production de Nuera OS (sortie Next.js « standalone »), utilisée telle
+# quelle par Coolify (Build Pack « Dockerfile ») pour main et staging.
+#
+# - Aucun secret n'est nécessaire au build : la configuration (DATABASE_URL,
+#   BETTER_AUTH_*…) est lue et validée au démarrage. Dans Coolify, les variables
+#   doivent être disponibles à l'exécution uniquement (pas au build).
+# - Le conteneur écoute en HTTP sur le port 3000 ; le TLS est terminé par le proxy
+#   de Coolify (Traefik / Caddy). Voir docs/deployment-coolify.md.
+#
 # Recommandation : épingler l'image de base par digest (`node:24-alpine@sha256:…`).
 
 FROM node:24-alpine AS base
@@ -18,7 +25,8 @@ FROM base AS builder
 WORKDIR /app
 COPY --from=deps /app/node_modules ./node_modules
 COPY . .
-RUN npm run build
+# Application Next.js, puis outils d'exploitation autonomes (migrations, comptes).
+RUN npm run build && npm run build:cli
 
 # --- Exécution (utilisateur non privilégié, fichiers minimaux) -----------------
 FROM base AS runner
@@ -31,13 +39,18 @@ RUN addgroup -S -g 1001 nodejs && adduser -S -u 1001 -G nodejs nextjs
 
 COPY --from=builder --chown=nextjs:nodejs /app/.next/standalone ./
 COPY --from=builder --chown=nextjs:nodejs /app/.next/static ./.next/static
-# Migrations SQL, appliquées au démarrage si DB_MIGRATE_ON_START=true.
+# Migrations SQL versionnées : appliquées au démarrage si DB_MIGRATE_ON_START=true,
+# ou manuellement avec `node cli/db-migrate.mjs`.
 COPY --from=builder --chown=nextjs:nodejs /app/drizzle ./drizzle
+# CLI : `node cli/db-migrate.mjs`, `node cli/user-create.mjs --email … --name … --role admin`.
+COPY --from=builder --chown=nextjs:nodejs /app/dist/cli ./cli
 
 USER nextjs
 EXPOSE 3000
 
-HEALTHCHECK --interval=30s --timeout=5s --start-period=20s --retries=3 \
+# Sain uniquement si le serveur répond ET si PostgreSQL est joignable.
+# `start-period` couvre l'application des migrations au démarrage.
+HEALTHCHECK --interval=30s --timeout=5s --start-period=40s --retries=3 \
   CMD wget -qO- http://127.0.0.1:3000/api/health > /dev/null || exit 1
 
 CMD ["node", "server.js"]
