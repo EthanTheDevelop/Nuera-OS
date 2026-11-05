@@ -8,7 +8,7 @@ import {
 
 /**
  * Tableau de bord et reporting : ce que seul un vrai navigateur peut révéler (focus du clavier, doigt,
- * réseau coupé). Aucune écriture : aucun scénario n'enregistre la disposition.
+ * réseau coupé). Seul le scénario « Terminé » enregistre la disposition, et il la remet en place.
  *
  * Exige une base de développement remplie et un compte d'associé : E2E_ADMIN_EMAIL et
  * E2E_ADMIN_PASSWORD. E2E_VIEWER_EMAIL et E2E_VIEWER_PASSWORD ajoutent le contrôle du rôle lecture.
@@ -36,6 +36,24 @@ const tileKeys = (page: Page) =>
   page
     .locator("[data-tile-key]")
     .evaluateAll((tiles) => tiles.map((tile) => (tile as HTMLElement).dataset.tileKey ?? ""));
+const tileHost = (page: Page, key: string | undefined) => page.locator(`[data-tile-key="${key}"]`);
+const handleOf = (page: Page, key: string | undefined) =>
+  tileHost(page, key).getByRole("button", { name: /^Redimensionner la tuile/ });
+const tileWidth = async (page: Page, key: string | undefined) =>
+  Math.round((await tileHost(page, key).boundingBox())?.width ?? 0);
+
+/** Tire une poignée à la souris, par à-coups, sans relâcher. */
+async function dragHandle(page: Page, key: string | undefined, dx: number, dy: number) {
+  const box = await handleOf(page, key).boundingBox();
+  if (!box) throw new Error("Poignée hors de l'écran");
+  const from = { x: box.x + box.width / 2, y: box.y + box.height / 2 };
+  await page.mouse.move(from.x, from.y);
+  await page.mouse.down();
+  for (let step = 1; step <= 10; step += 1) {
+    await page.mouse.move(from.x + (dx * step) / 10, from.y + (dy * step) / 10);
+  }
+}
+
 const focusedTile = (page: Page) =>
   page.evaluate(() => (document.activeElement as HTMLElement | null)?.dataset.tileKey);
 
@@ -141,6 +159,168 @@ test.describe("en associé", () => {
     await touch("touchEnd");
     await expect.poll(() => tileKeys(page)).not.toEqual(start);
 
+    const overflow = await page.evaluate(
+      () => document.documentElement.scrollWidth - window.innerWidth,
+    );
+    expect(overflow).toBeLessThanOrEqual(0);
+    await context.close();
+  });
+
+  test("la poignée n'existe qu'en édition, et un clic n'y change rien", async ({ browser }) => {
+    const { context, page } = await open(browser, { viewport: { width: 1440, height: 1120 } });
+    await page.goto("/");
+    await expect(page.locator("[data-tile-key]").first()).toBeVisible();
+    await expect(page.getByRole("button", { name: /^Redimensionner la tuile/ })).toHaveCount(0);
+
+    await page.goto("/?edition=1");
+    const [key] = await tileKeys(page);
+    await expect(handleOf(page, key)).toBeVisible();
+    const label = await handleOf(page, key).getAttribute("aria-label");
+    await handleOf(page, key).click();
+    await handleOf(page, key).click();
+    await page.waitForTimeout(400);
+    expect(await handleOf(page, key).getAttribute("aria-label")).toBe(label);
+    await context.close();
+  });
+
+  test("glisser la poignée : aperçu calé sur la grille, Annuler ne garde rien", async ({
+    browser,
+  }) => {
+    const { context, page } = await open(browser, { viewport: { width: 1440, height: 1120 } });
+    await page.goto("/?edition=1");
+    const keys = await tileKeys(page);
+    const key = keys.includes("revenue") ? "revenue" : keys[0];
+    await page.getByRole("button", { name: "Réduire la galerie" }).click();
+    await page.waitForTimeout(400);
+    const start = await tileWidth(page, key);
+
+    await dragHandle(page, key, -start * 0.6, -200);
+    await expect.poll(() => tileWidth(page, key)).toBeLessThan(start * 0.6);
+    await page.mouse.up();
+    const shrunk = await tileWidth(page, key);
+    await page.waitForTimeout(400);
+    expect(await tileWidth(page, key)).toBe(shrunk);
+
+    await page.getByRole("link", { name: "Annuler" }).click();
+    await expect(page).toHaveURL(`${BASE}/`);
+    await expect.poll(() => tileWidth(page, key)).toBeGreaterThan(shrunk);
+    await context.close();
+  });
+
+  test("les flèches sur la poignée changent le format, sans boucler, et Échap annule un geste", async ({
+    browser,
+  }) => {
+    const { context, page } = await open(browser, { viewport: { width: 1440, height: 1120 } });
+    await page.goto("/?edition=1");
+    const keys = await tileKeys(page);
+    const key = keys.includes("revenue") ? "revenue" : keys[0];
+    const label = () => handleOf(page, key).getAttribute("aria-label");
+
+    await handleOf(page, key).focus();
+    for (let press = 0; press < 5; press += 1) await page.keyboard.press("ArrowLeft");
+    await expect.poll(label).toContain("format 1×1");
+    await page.keyboard.press("ArrowRight");
+    await expect.poll(label).toContain("format 2×1");
+    await expect(handleOf(page, key)).toBeFocused();
+    await page.keyboard.press("ArrowLeft");
+    await expect.poll(label).toContain("format 1×1");
+
+    await dragHandle(page, key, 260, 0);
+    await expect.poll(label).toContain("format 2×1");
+    await page.keyboard.press("Escape");
+    await expect.poll(label).toContain("format 1×1");
+    await page.mouse.up();
+    await expect.poll(label).toContain("format 1×1");
+    await context.close();
+  });
+
+  test("Terminé enregistre le format choisi", async ({ browser }) => {
+    const { context, page } = await open(browser, { viewport: { width: 1440, height: 1120 } });
+    await page.goto("/?edition=1");
+    const keys = await tileKeys(page);
+    const key = keys.includes("revenue") ? "revenue" : keys[0];
+    const original = await handleOf(page, key).getAttribute("aria-label");
+    await handleOf(page, key).focus();
+    await page.keyboard.press("ArrowLeft");
+    await expect.poll(() => handleOf(page, key).getAttribute("aria-label")).not.toBe(original);
+    const changed = await handleOf(page, key).getAttribute("aria-label");
+    await page.getByRole("button", { name: "Terminé" }).click();
+    await expect(page).toHaveURL(`${BASE}/`);
+
+    await page.goto("/?edition=1");
+    expect(await handleOf(page, key).getAttribute("aria-label")).toBe(changed);
+    await handleOf(page, key).focus();
+    await page.keyboard.press("ArrowRight");
+    await page.getByRole("button", { name: "Terminé" }).click();
+    await expect(page).toHaveURL(`${BASE}/`);
+    await context.close();
+  });
+
+  test("la galerie se réduit, le tableau reprend la largeur, et elle se rouvre au clavier", async ({
+    browser,
+  }) => {
+    const { context, page } = await open(browser, { viewport: { width: 1440, height: 1120 } });
+    await page.goto("/?edition=1");
+    const grid = page.locator("[data-tile-key]").first().locator("xpath=..");
+    await expect(grid).toBeVisible();
+    const widthOpen = (await grid.boundingBox())?.width ?? 0;
+    const gallery = page.getByRole("complementary", { name: "Galerie de tuiles" });
+
+    const reduce = gallery.getByRole("button", { name: "Réduire la galerie" });
+    await expect(reduce).toHaveAttribute("aria-expanded", "true");
+    await reduce.focus();
+    await page.keyboard.press("Enter");
+
+    await expect(page.locator("[data-gallery-item]")).toHaveCount(0);
+    const reopen = gallery.getByRole("button", { name: "Rouvrir la galerie" });
+    await expect(reopen).toBeFocused();
+    await expect(reopen).toHaveAttribute("aria-expanded", "false");
+    await expect(gallery.getByRole("button", { name: "Terminé" })).toBeVisible();
+    await expect(gallery.getByRole("link", { name: "Annuler" })).toBeVisible();
+    await expect
+      .poll(async () => (await grid.boundingBox())?.width ?? 0)
+      .toBeGreaterThan(widthOpen);
+
+    await page.keyboard.press("Enter");
+    await expect(page.locator("[data-gallery-item]").first()).toBeVisible();
+    await expect(gallery.getByRole("button", { name: "Réduire la galerie" })).toBeFocused();
+    await context.close();
+  });
+
+  test("au doigt à 390 px : tirer la poignée change le format, sans défiler", async ({
+    browser,
+  }) => {
+    const { context, page } = await open(browser, {
+      viewport: { width: 390, height: 844 },
+      hasTouch: true,
+      isMobile: true,
+    });
+    await page.goto("/?edition=1");
+    const keys = await tileKeys(page);
+    const key = keys.includes("revenue") ? "revenue" : keys[0];
+    await handleOf(page, key).scrollIntoViewIfNeeded();
+    const label = () => handleOf(page, key).getAttribute("aria-label");
+    const start = await label();
+    const box = await handleOf(page, key).boundingBox();
+    if (!box) throw new Error("Poignée hors de l'écran");
+    const scrollBefore = await page.evaluate(() => window.scrollY);
+
+    const cdp = await context.newCDPSession(page);
+    const touch = (type: string, x?: number, y?: number) =>
+      cdp.send("Input.dispatchTouchEvent", {
+        type,
+        touchPoints: x === undefined ? [] : [{ x, y }],
+      } as never);
+    const from = { x: box.x + box.width / 2, y: box.y + box.height / 2 };
+    await touch("touchStart", from.x, from.y);
+    for (let step = 1; step <= 12; step += 1) {
+      await touch("touchMove", from.x, from.y - (step * 240) / 12);
+      await page.waitForTimeout(30);
+    }
+    await touch("touchEnd");
+
+    await expect.poll(label).not.toBe(start);
+    expect(await page.evaluate(() => window.scrollY)).toBe(scrollBefore);
     const overflow = await page.evaluate(
       () => document.documentElement.scrollWidth - window.innerWidth,
     );

@@ -65,7 +65,7 @@ export default async function HomePage({
         title={`Bonjour ${firstName}`}
         subtitle={
           editing
-            ? "Mode édition · glissez pour déplacer, la poignée change la taille, le rond retire la tuile"
+            ? "Mode édition · glissez pour déplacer, tirez la poignée pour changer la taille, le rond retire la tuile"
             : `${today} · l’agence aujourd’hui`
         }
         bell={

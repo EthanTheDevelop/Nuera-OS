@@ -44,7 +44,7 @@ export interface TileDefinition {
   icon: IconName;
   /** Format de départ, celui de la maquette. */
   size: DashboardTileSize;
-  /** Formats dans l'ordre où la poignée les parcourt. */
+  /** Formats permis, du plus petit au plus grand : la poignée se cale sur l'un d'eux. */
   sizes: readonly DashboardTileSize[];
   /** Toutes requises. Sans l'une d'elles, la tuile n'existe pas pour ce compte. */
   permissions: readonly Permission[];
@@ -171,11 +171,40 @@ export interface DashboardLayout {
   tiles: LayoutTile[];
 }
 
-/** Format suivant au clic sur la poignée : petite, moyenne, grande, puis on recommence. */
-export function nextTileSize(key: TileKey, size: DashboardTileSize): DashboardTileSize {
+/** Colonnes et lignes d'un format, bornées à la largeur de la grille (4×2 tient sur 2 colonnes). */
+export function tileSpan(size: DashboardTileSize, gridColumns: number) {
+  const [columns = 1, rows = 1] = size.split("x").map(Number);
+  return { columns: Math.min(columns, gridColumns), rows };
+}
+
+/** Format voisin aux flèches, sans boucler : les bouts de la liste restent les bouts. */
+export function stepTileSize(
+  key: TileKey,
+  size: DashboardTileSize,
+  step: -1 | 1,
+): DashboardTileSize {
   const { sizes } = tileDefinition(key);
-  const index = sizes.indexOf(size);
-  return sizes[(index + 1) % sizes.length] ?? size;
+  return sizes[sizes.indexOf(size) + step] ?? size;
+}
+
+/**
+ * Format autorisé le plus proche de l'étendue visée par la poignée, en colonnes et lignes (fractions
+ * comprises). À égalité, le format en cours reste : sans déplacement, rien ne change.
+ */
+export function nearestTileSize(
+  key: TileKey,
+  current: DashboardTileSize,
+  target: { columns: number; rows: number },
+  gridColumns: number,
+): DashboardTileSize {
+  const distance = (size: DashboardTileSize) => {
+    const span = tileSpan(size, gridColumns);
+    return (span.columns - target.columns) ** 2 + (span.rows - target.rows) ** 2;
+  };
+  return tileDefinition(key).sizes.reduce(
+    (best, size) => (distance(size) < distance(best) ? size : best),
+    current,
+  );
 }
 
 /** Déplace une entrée d'une liste : déplacement au clavier et au glisser partagent cette règle. */

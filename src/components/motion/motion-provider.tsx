@@ -13,11 +13,29 @@ interface MotionSettings {
 const MotionSettingsContext = createContext<MotionSettings>({ client: false });
 
 /**
+ * Nonce de la CSP du document, lu une fois au chargement du module, sur les scripts déjà parsés.
+ * Il ne change qu'avec le document, alors que le layout racine peut être rejoué sans recharger la page
+ * (connexion, action serveur) et apporter le nonce d'une autre requête, que le navigateur refuse.
+ */
+const DOCUMENT_NONCE =
+  typeof document === "undefined"
+    ? undefined
+    : document.querySelector<HTMLScriptElement>("script[nonce]")?.nonce || undefined;
+
+/**
  * Racine du mouvement, posée par le layout racine.
- * `nonce` : Motion et NumberFlow injectent des `<style>`, autorisés par la CSP à ce nonce.
+ * `nonce` : Motion et NumberFlow injectent des `<style>`, autorisés par la CSP à ce nonce. Le serveur
+ * passe celui de sa requête ; dans le navigateur, seul celui du document fait foi.
  * `reducedMotion="user"` : garde-fou pour les animations de disposition (`layout`, `layoutId`).
  */
-export function MotionProvider({ nonce, children }: { nonce?: string; children: ReactNode }) {
+export function MotionProvider({
+  nonce: requestNonce,
+  children,
+}: {
+  nonce?: string;
+  children: ReactNode;
+}) {
+  const nonce = DOCUMENT_NONCE ?? requestNonce;
   const settings = useMemo(() => ({ nonce, client: false }), [nonce]);
   return (
     <MotionSettingsContext.Provider value={settings}>

@@ -32,7 +32,8 @@ Vérifié sans défaut : la recherche ne sort rien du périmètre d'un prestatai
 ## Décisions
 
 - Mode édition : état de l'adresse, `/?edition=1`. Il charge aussi les tuiles de la galerie, pour montrer de vraies données à l'ajout.
-- La poignée parcourt les formats de la tuile et enregistre aussitôt hors édition (note de 01, prototype `59:481`). 4×2 réservé au chiffre d'affaires.
+- La poignée n'existe qu'en édition (décision de la direction, écart avec 01 et le prototype `59:481`) : on la tire, l'aperçu se cale sur les formats de la tuile, un clic ne change rien, les flèches restent au clavier. Terminé enregistre, Annuler abandonne. 4×2 réservé au chiffre d'affaires.
+- La galerie du mode édition se réduit le temps de l'édition, sans persistance. Ouverte, elle réserve sa largeur au lieu de recouvrir le tableau.
 - « journées prévues » plutôt que « vendues » : `plannedMinutes` est du temps saisi plus le reste à faire.
 - `home_path` suivi à l'arrivée seulement (adresse saisie, favori, sortie de connexion, d'après le `Referer`) : un clic sur « Tableau de bord » reste libre.
 - Marge du reporting : total par client (une facture à la fois sur un projet et un contrat ne compte qu'une fois), ventilation par projet et contrat, toujours via `getMargins`. La courbe part de 0 : une marge négative se lit dans l'info-bulle.

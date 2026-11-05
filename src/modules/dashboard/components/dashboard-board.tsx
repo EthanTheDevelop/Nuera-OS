@@ -3,8 +3,8 @@
 import { motion, useDragControls, type PanInfo } from "motion/react";
 import { useRouter } from "next/navigation";
 import {
-  useCallback,
   useEffect,
+  useId,
   useMemo,
   useRef,
   useState,
@@ -24,9 +24,11 @@ import { cn } from "@/lib/cn";
 import { saveDashboardLayoutAction } from "../dashboard.actions";
 import {
   moveTile,
-  nextTileSize,
+  nearestTileSize,
+  stepTileSize,
   TILE_CATALOG,
   tileDefinition,
+  tileSpan,
   type DashboardTileSize,
   type LayoutTile,
   type TileDefinition,
@@ -46,6 +48,14 @@ const TILE_SPAN: Record<DashboardTileSize, string> = {
 const SWAP_COOLDOWN_MS = 250;
 
 const sizeLabel = (size: DashboardTileSize) => size.replace("x", "×");
+
+/** Flèches sur la poignée : vers le bas et la droite, on agrandit, comme en la tirant. */
+const ARROW_STEP: Partial<Record<string, -1 | 1>> = {
+  ArrowLeft: -1,
+  ArrowUp: -1,
+  ArrowRight: 1,
+  ArrowDown: 1,
+};
 
 /**
  * Dès qu'on touche au tableau, la page est construite : une tuile ajoutée ou un chiffre qui change de
@@ -81,6 +91,114 @@ function tileUnderPointer(info: Pick<PanInfo, "point">, except?: TileKey): TileK
   return null;
 }
 
+/**
+ * Poignée de taille : suit le pointeur, souris ou doigt, et propose le format le plus proche à chaque
+ * mouvement. Le calcul part de la mesure au départ du geste : une tuile que la grille replace pendant
+ * l'aperçu ne fait pas sauter le format. Sans déplacement, un clic ne change rien. Échap annule.
+ */
+function BoardResizeHandle({
+  item,
+  label,
+  onPreview,
+  onCommit,
+}: {
+  item: LayoutTile;
+  label: string;
+  onPreview: (key: TileKey, size: DashboardTileSize) => void;
+  onCommit: (key: TileKey, size: DashboardTileSize) => void;
+}) {
+  const gesture = useRef<{
+    x: number;
+    y: number;
+    width: number;
+    height: number;
+    gap: number;
+    gridColumns: number;
+    columnTrack: number;
+    rowTrack: number;
+    start: DashboardTileSize;
+    last: DashboardTileSize;
+  } | null>(null);
+
+  function start(event: ReactPointerEvent<HTMLButtonElement>) {
+    if (event.pointerType === "mouse" && event.button !== 0) return;
+    const host = event.currentTarget.closest<HTMLElement>("[data-tile-key]");
+    const grid = host?.parentElement;
+    if (!host || !grid) return;
+    event.currentTarget.setPointerCapture(event.pointerId);
+    const styles = getComputedStyle(grid);
+    const gap = Number.parseFloat(styles.columnGap) || 0;
+    const gridColumns = styles.gridTemplateColumns.split(" ").length;
+    const span = tileSpan(item.size, gridColumns);
+    const { width, height } = host.getBoundingClientRect();
+    gesture.current = {
+      x: event.pageX,
+      y: event.pageY,
+      width,
+      height,
+      gap,
+      gridColumns,
+      columnTrack: (width + gap) / span.columns,
+      rowTrack: (height + gap) / span.rows,
+      start: item.size,
+      last: item.size,
+    };
+  }
+
+  function move(event: ReactPointerEvent<HTMLButtonElement>) {
+    const drag = gesture.current;
+    if (!drag) return;
+    const size = nearestTileSize(
+      item.key,
+      drag.last,
+      {
+        columns: (drag.width + event.pageX - drag.x + drag.gap) / drag.columnTrack,
+        rows: (drag.height + event.pageY - drag.y + drag.gap) / drag.rowTrack,
+      },
+      drag.gridColumns,
+    );
+    if (size === drag.last) return;
+    drag.last = size;
+    onPreview(item.key, size);
+  }
+
+  function end() {
+    const drag = gesture.current;
+    gesture.current = null;
+    if (drag && drag.last !== drag.start) onCommit(item.key, drag.last);
+  }
+
+  function cancel() {
+    const drag = gesture.current;
+    gesture.current = null;
+    if (drag && drag.last !== drag.start) onPreview(item.key, drag.start);
+  }
+
+  function onKeyDown(event: ReactKeyboardEvent<HTMLButtonElement>) {
+    if (event.key === "Escape") {
+      cancel();
+      return;
+    }
+    const step = ARROW_STEP[event.key];
+    if (!step) return;
+    event.preventDefault();
+    const size = stepTileSize(item.key, item.size, step);
+    if (size !== item.size) onCommit(item.key, size);
+  }
+
+  return (
+    <TileResizeHandle
+      tileName={`${label}, format ${sizeLabel(item.size)}. Glissez, ou utilisez les flèches`}
+      editing
+      onPointerDown={start}
+      onPointerMove={move}
+      onPointerUp={end}
+      onPointerCancel={cancel}
+      onKeyDown={onKeyDown}
+    />
+  );
+}
+
 function BoardTile({
   item,
   position,
@@ -88,7 +206,8 @@ function BoardTile({
   state,
   editing,
   dropTarget,
-  onCycle,
+  onResizePreview,
+  onResizeCommit,
   onRemove,
   onMove,
   onDragOver,
@@ -100,7 +219,8 @@ function BoardTile({
   state: TileState | undefined;
   editing: boolean;
   dropTarget: boolean;
-  onCycle: (key: TileKey) => void;
+  onResizePreview: (key: TileKey, size: DashboardTileSize) => void;
+  onResizeCommit: (key: TileKey, size: DashboardTileSize) => void;
   onRemove: (key: TileKey) => void;
   onMove: (key: TileKey, to: number) => void;
   onDragOver: (key: TileKey, info: PanInfo) => void;
@@ -170,11 +290,14 @@ function BoardTile({
         editing={editing}
         className="h-full"
         handle={
-          <TileResizeHandle
-            tileName={`${title}, format ${sizeLabel(item.size)}`}
-            editing={editing}
-            onClick={() => onCycle(item.key)}
-          />
+          editing ? (
+            <BoardResizeHandle
+              item={item}
+              label={title}
+              onPreview={onResizePreview}
+              onCommit={onResizeCommit}
+            />
+          ) : null
         }
         removeControl={
           editing ? (
@@ -259,12 +382,15 @@ function GalleryItem({
 }
 
 /**
- * Tableau de bord (écrans 01 et 06). La poignée change le format, y compris hors édition : le choix
- * est aussitôt enregistré. En édition, rien n'est enregistré avant « Terminé ». Le serveur valide.
+ * Tableau de bord (écrans 01 et 06). La poignée n'existe qu'en édition, où rien n'est enregistré
+ * avant « Terminé » : le serveur valide, « Annuler » abandonne. Le panneau de la galerie se réduit
+ * le temps de l'édition, et le tableau reprend alors la largeur libérée.
  */
 export function DashboardBoard({ data, editing }: { data: DashboardData; editing: boolean }) {
   const router = useRouter();
   const toast = useToast();
+  const galleryId = useId();
+  const [galleryOpen, setGalleryOpen] = useState(true);
   const [tiles, setTiles] = useState<LayoutTile[]>(data.layout.tiles);
   const [announce, setAnnounce] = useState("");
   const [dropTarget, setDropTarget] = useState<TileKey | null>(null);
@@ -287,30 +413,14 @@ export function DashboardBoard({ data, editing }: { data: DashboardData; editing
     target?.focus();
   }, [tiles]);
 
-  const persist = useCallback(
-    (next: LayoutTile[], previous: LayoutTile[]) => {
-      startSaving(async () => {
-        const result = await saveLayout(next);
-        if (result.status === "error") {
-          setTiles(previous);
-          toast({ tone: "danger", message: result.message });
-        }
-      });
-    },
-    [toast],
-  );
-
-  function cycleSize(key: TileKey) {
+  function previewSize(key: TileKey, size: DashboardTileSize) {
     settlePageBuild();
-    const next = tiles.map((tile) =>
-      tile.key === key ? { ...tile, size: nextTileSize(key, tile.size) } : tile,
-    );
-    setTiles(next);
-    const resized = next.find((tile) => tile.key === key);
-    if (resized) {
-      setAnnounce(`${tileDefinition(key).title} : format ${sizeLabel(resized.size)}.`);
-    }
-    if (!editing) persist(next, tiles);
+    setTiles((current) => current.map((tile) => (tile.key === key ? { ...tile, size } : tile)));
+  }
+
+  function commitSize(key: TileKey, size: DashboardTileSize) {
+    previewSize(key, size);
+    setAnnounce(`${tileDefinition(key).title} : format ${sizeLabel(size)}.`);
   }
 
   function removeTile(key: TileKey) {
@@ -395,39 +505,59 @@ export function DashboardBoard({ data, editing }: { data: DashboardData; editing
           ref={panel}
           aria-label="Galerie de tuiles"
           className={cn(
-            "z-30 mb-6 flex flex-col gap-4 rounded-xl bg-surface p-6 shadow-float",
-            "lg:fixed lg:top-3 lg:right-3 lg:bottom-3 lg:mb-0 lg:w-[360px]",
+            "z-30 mb-6 flex rounded-xl bg-surface shadow-float lg:fixed lg:top-3 lg:right-3 lg:mb-0",
+            galleryOpen
+              ? "flex-col gap-4 p-6 lg:bottom-3 lg:w-[360px]"
+              : "flex-wrap items-center justify-between gap-3 p-3",
           )}
         >
-          <div className="flex flex-col gap-2">
-            <h2 className="text-client-card-title text-ink">Ajouter une tuile</h2>
-            <p className="text-sm text-muted">
-              Glissez une tuile sur le tableau, ou cliquez pour l’ajouter à la fin.
-            </p>
+          <div className="flex items-center justify-between gap-3">
+            {galleryOpen ? (
+              <h2 className="text-client-card-title text-ink">Ajouter une tuile</h2>
+            ) : null}
+            {/* Le même bouton réduit et rouvre : le focus du clavier y reste. */}
+            <button
+              type="button"
+              aria-expanded={galleryOpen}
+              aria-controls={galleryOpen ? galleryId : undefined}
+              aria-label={galleryOpen ? "Réduire la galerie" : "Rouvrir la galerie"}
+              onClick={() => setGalleryOpen((open) => !open)}
+              className="hit-44 inline-flex h-9 shrink-0 items-center gap-1.5 rounded-md px-2 text-compact-button whitespace-nowrap text-accent transition-colors duration-(--dur-fast) hover:bg-accent-pale/40"
+            >
+              <Icon name="chevron" size={16} className={galleryOpen ? undefined : "rotate-180"} />
+              {galleryOpen ? null : "Galerie"}
+            </button>
           </div>
-          <div
-            className={cn(
-              "flex max-h-[40dvh] min-h-0 flex-1 flex-col gap-2 lg:max-h-none",
-              galleryDragging ? "overflow-visible" : "overflow-y-auto",
-            )}
-          >
-            {available.length === 0 ? (
-              <p className="py-6 text-center text-sm text-muted">
-                Toutes vos tuiles sont sur le tableau.
+          {galleryOpen ? (
+            <div id={galleryId} className="flex min-h-0 flex-1 flex-col gap-4">
+              <p className="text-sm text-muted">
+                Glissez une tuile sur le tableau, ou cliquez pour l’ajouter à la fin.
               </p>
-            ) : (
-              available.map((definition) => (
-                <GalleryItem
-                  key={definition.key}
-                  definition={definition}
-                  onAdd={addTile}
-                  onDragState={setGalleryDragging}
-                  onDropAt={onGalleryDrop}
-                />
-              ))
-            )}
-          </div>
-          <div className="flex items-center justify-end gap-3 pt-2">
+              <div
+                className={cn(
+                  "flex max-h-[40dvh] min-h-0 flex-1 flex-col gap-2 lg:max-h-none",
+                  galleryDragging ? "overflow-visible" : "overflow-y-auto",
+                )}
+              >
+                {available.length === 0 ? (
+                  <p className="py-6 text-center text-sm text-muted">
+                    Toutes vos tuiles sont sur le tableau.
+                  </p>
+                ) : (
+                  available.map((definition) => (
+                    <GalleryItem
+                      key={definition.key}
+                      definition={definition}
+                      onAdd={addTile}
+                      onDragState={setGalleryDragging}
+                      onDropAt={onGalleryDrop}
+                    />
+                  ))
+                )}
+              </div>
+            </div>
+          ) : null}
+          <div className={cn("flex items-center justify-end gap-3", galleryOpen && "pt-2")}>
             <ButtonLink href="/">Annuler</ButtonLink>
             <Button variant="accent" loading={saving} onClick={finish}>
               Terminé
@@ -436,7 +566,13 @@ export function DashboardBoard({ data, editing }: { data: DashboardData; editing
         </aside>
       ) : null}
 
-      <div className="@container">
+      <div
+        className={cn(
+          "@container",
+          // Le panneau flotte à droite : le tableau lui laisse sa place, et la reprend quand il se réduit.
+          editing && galleryOpen && "lg:pr-[364px]",
+        )}
+      >
         <div className="grid grid-flow-row-dense auto-rows-[minmax(168px,auto)] grid-cols-2 gap-(--grid-gap) @lg:grid-cols-4 @5xl:grid-cols-6">
           {tiles.map((item, index) => (
             <BoardTile
@@ -447,7 +583,8 @@ export function DashboardBoard({ data, editing }: { data: DashboardData; editing
               state={data.tiles[item.key]}
               editing={editing}
               dropTarget={dropTarget === item.key}
-              onCycle={cycleSize}
+              onResizePreview={previewSize}
+              onResizeCommit={commitSize}
               onRemove={removeTile}
               onMove={moveByKeyboard}
               onDragOver={onDragOver}

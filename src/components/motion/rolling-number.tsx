@@ -14,6 +14,16 @@ const bezier = (points: readonly number[]) => `cubic-bezier(${points.join(", ")}
 const TIMING = { duration: DURATION_MS.line, easing: bezier(EASE.out) };
 const OPACITY_TIMING = { duration: DURATION_MS.fast, easing: "ease-out" };
 
+/** Largeur moyenne d'un signe en `em`, un peu large : un long montant ne sort jamais de son cadre. */
+const SIGN_WIDTH_EM = 0.6;
+
+/**
+ * NumberFlow ne passe pas à la ligne : un long montant réduit sa police pour tenir dans le conteneur
+ * le plus proche (`@container`), sans jamais grandir ni descendre sous 60 % de sa taille.
+ */
+const fittedFontSize = (length: number) =>
+  `clamp(0.6em, calc(100cqi / ${Math.max(length, 1) * SIGN_WIDTH_EM}), 1em)`;
+
 /**
  * Chiffre qui roule (motion.md §2.2) : chaque chiffre à sa place, les unités à la fin.
  * Le HTML du serveur porte la vraie valeur : jamais de faux zéro si le JavaScript manque.
@@ -60,8 +70,16 @@ export function RollingNumber({
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
+  const length =
+    (prefix?.length ?? 0) +
+    new Intl.NumberFormat(LOCALE, format).format(value).length +
+    (suffix?.length ?? 0);
+
   return (
-    <span className={cn("inline-block", countUp && "anim-data", className)}>
+    <span
+      className={cn("inline-block max-w-full", countUp && "anim-data", className)}
+      style={{ fontSize: fittedFontSize(length) }}
+    >
       <NumberFlow
         value={counting ? 0 : value}
         locales={LOCALE}

@@ -176,7 +176,7 @@ export function TileFigure({
   className?: string;
 }) {
   return (
-    <div className={cn("mt-auto flex min-w-0 flex-col gap-1", className)}>
+    <div className={cn("@container mt-auto flex w-full min-w-0 flex-col gap-1", className)}>
       <p
         className={cn(
           "flex flex-wrap items-baseline gap-2 text-ink",
@@ -216,7 +216,8 @@ function HandleGlyph() {
 
 /**
  * Poignée de taille (Figma 57:127), 22 × 22, en bas à droite de la tuile.
- * Le lot Pilotage décide du changement de taille : ce bouton ne fait que le demander.
+ * Le tableau de bord la pose en édition seulement et la branche sur le glisser et les flèches :
+ * un simple clic ne change rien. `touch-none` : au doigt, le geste tire la poignée sans défiler.
  */
 export function TileResizeHandle({
   tileName,
@@ -227,9 +228,9 @@ export function TileResizeHandle({
   return (
     <button
       type="button"
-      aria-label={`Changer la taille de la tuile ${tileName}`}
+      aria-label={`Redimensionner la tuile ${tileName}`}
       className={cn(
-        "hit-44 absolute right-1.5 bottom-1.5 z-10 flex size-[22px] items-center justify-center rounded-sm",
+        "hit-44 absolute right-1.5 bottom-1.5 z-10 flex size-[22px] cursor-nwse-resize touch-none items-center justify-center rounded-sm",
         editing ? "text-accent" : "text-muted",
         className,
       )}

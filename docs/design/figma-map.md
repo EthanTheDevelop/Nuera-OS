@@ -692,7 +692,7 @@ Les montants, noms et dates cités dans ces notes sont des exemples, comme dans 
 
 ### Prototype des tuiles (`59:481`)
 
-Cliquer sur la poignée fait passer une tuile de petite à moyenne puis grande ; les autres se replacent. Plus une tuile est grande, plus elle montre de lignes : voir `_components-tuiles-vivantes.png`.
+Cliquer sur la poignée fait passer une tuile de petite à moyenne puis grande ; les autres se replacent (écart décidé pour le produit : la poignée n'existe qu'en édition et se tire, un clic ne change rien). Plus une tuile est grande, plus elle montre de lignes : voir `_components-tuiles-vivantes.png`.
 
 Écart avec 01 : le prototype n'a que 3 tailles et 6 tuiles ; 01 a 4 formats (dont 4×2) et 13 tuiles. Le comportement de la poignée pour 4×2 n'est pas défini. Le titre diffère aussi (« Messages » contre « Messages à traiter »). Seul le contenu détaillé de ces 6 tuiles existe par taille.
 

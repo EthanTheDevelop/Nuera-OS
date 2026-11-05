@@ -26,7 +26,7 @@ export function KpiContent({
   return (
     <>
       <span className="text-kpi-label text-muted">{label}</span>
-      <span className="tabular text-figure text-ink">{value}</span>
+      <span className="tabular @container w-full text-figure text-ink">{value}</span>
       {note ? <span className={cn("text-kpi-note", NOTE_TONES[noteTone])}>{note}</span> : null}
     </>
   );

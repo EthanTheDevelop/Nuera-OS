@@ -1,6 +1,12 @@
 import { and, count, eq } from "drizzle-orm";
 import { afterAll, beforeAll, describe, expect, it, vi } from "vitest";
-import { TILE_CATALOG, moveTile, nextTileSize } from "@/modules/dashboard/dashboard.tiles";
+import {
+  TILE_CATALOG,
+  moveTile,
+  nearestTileSize,
+  stepTileSize,
+  tileSpan,
+} from "@/modules/dashboard/dashboard.tiles";
 import {
   getDashboard,
   getDashboardLayout,
@@ -171,11 +177,24 @@ describe("disposition du tableau de bord", () => {
     expect((await getDashboardLayout(ctx)).tiles).toEqual([{ key: "support", size: "1x1" }]);
   });
 
-  it("la poignée parcourt les formats de la tuile, le déplacement reste borné", () => {
-    expect(nextTileSize("pipeline", "1x1")).toBe("2x1");
-    expect(nextTileSize("pipeline", "2x2")).toBe("1x1");
-    expect(nextTileSize("revenue", "2x2")).toBe("4x2");
-    expect(nextTileSize("revenue", "4x2")).toBe("1x1");
+  it("les flèches changent de format sans boucler, le glisser se cale sur le format le plus proche", () => {
+    expect(stepTileSize("pipeline", "1x1", 1)).toBe("2x1");
+    expect(stepTileSize("pipeline", "2x2", 1)).toBe("2x2");
+    expect(stepTileSize("pipeline", "1x1", -1)).toBe("1x1");
+    expect(stepTileSize("revenue", "2x2", 1)).toBe("4x2");
+    expect(stepTileSize("revenue", "4x2", -1)).toBe("2x2");
+
+    // Sans déplacement, le format reste, même quand il est borné par la grille.
+    expect(nearestTileSize("revenue", "2x1", { columns: 2, rows: 1 }, 6)).toBe("2x1");
+    expect(nearestTileSize("revenue", "4x2", { columns: 2, rows: 2 }, 2)).toBe("4x2");
+    expect(nearestTileSize("pipeline", "1x1", { columns: 1.4, rows: 1 }, 6)).toBe("1x1");
+    expect(nearestTileSize("pipeline", "1x1", { columns: 1.6, rows: 1 }, 6)).toBe("2x1");
+    expect(nearestTileSize("pipeline", "1x1", { columns: 2, rows: 1.8 }, 6)).toBe("2x2");
+    // Un format que la tuile n'a pas n'est jamais choisi.
+    expect(nearestTileSize("pipeline", "2x2", { columns: 4, rows: 2 }, 6)).toBe("2x2");
+    expect(nearestTileSize("revenue", "2x2", { columns: 3.6, rows: 2 }, 6)).toBe("4x2");
+    expect(tileSpan("4x2", 2)).toEqual({ columns: 2, rows: 2 });
+
     const tiles = [
       { key: "pipeline", size: "1x1" },
       { key: "support", size: "1x1" },
