@@ -27,7 +27,8 @@ Internet ──HTTPS──▶ Proxy Coolify (Traefik/Caddy, TLS Let's Encrypt)
   PostgreSQL de développement local et **ne doit pas** être utilisé par Coolify.
 - **Aucune base n'est créée par le déploiement** : l'application se connecte uniquement à la
   base désignée par `DATABASE_URL` et y applique les migrations versionnées (`drizzle/`).
-- L'application est **sans état** (sessions et données en base) : aucun volume persistant.
+- Sessions et données métier sont en base. **Seuls les documents déposés sont sur disque** :
+  un volume persistant monté sur `/data/storage` (`STORAGE_DIR`, voir § 6).
 
 ## Image Docker
 
@@ -40,8 +41,9 @@ Internet ──HTTPS──▶ Proxy Coolify (Traefik/Caddy, TLS Let's Encrypt)
    `NODE_ENV=production`, `PORT=3000`, `HOSTNAME=0.0.0.0`, `HEALTHCHECK` sur `/api/health`,
    commande `node server.js`.
 
-Contenu de `/app` dans l'image : `server.js` (serveur Next.js), `.next/static`, `drizzle/`
-(migrations SQL) et `cli/` (`db-migrate.mjs`, `user-create.mjs`).
+Contenu de `/app` dans l'image : `server.js` (serveur Next.js), `.next/static`, `public/`,
+`drizzle/` (migrations SQL) et `cli/` (`db-migrate.mjs`, `user-create.mjs`). `/data/storage`
+appartient à `nextjs`, pour accueillir le volume des documents.
 
 ### Comportement au démarrage
 
@@ -108,6 +110,23 @@ n'a besoin d'aucune variable et un secret passé au build peut fuir dans l'image
 | `DB_MIGRATE_ON_START` | oui         | `true`                                                                                                      |
 | `LOG_LEVEL`           | non         | `info` (production) / `debug` possible en staging                                                           |
 | `DATABASE_POOL_MAX`   | non         | `10` par défaut (1 à 100) ; rester sous `max_connections` de la base                                        |
+| `STORAGE_DIR`         | non         | `/data/storage`, avec le volume du § 6. Absente : documents en « connexion requise »                        |
+| `JOBS_SECRET`         | non         | Secret des tâches planifiées, ≥ 32 caractères. Absente : `/api/jobs/*` répond 404                           |
+
+Intégrations, toutes facultatives. Sans elles, l'écran concerné affiche « connexion requise ».
+Chaque variable est décrite dans `.env.example` :
+
+| Variables                                                                          | Rôle                                               |
+| ---------------------------------------------------------------------------------- | -------------------------------------------------- |
+| `STORAGE_MAX_UPLOAD_MB`                                                            | Taille maximale d'un document déposé               |
+| `TWENTY_API_URL`, `TWENTY_API_KEY`, `TWENTY_WEBHOOK_SECRET`                        | CRM Twenty : API et signature du webhook           |
+| `COOLIFY_API_URL`, `COOLIFY_API_TOKEN`, `COOLIFY_WEBHOOK_SECRET`                   | État et déclenchement des déploiements des sites   |
+| `UPTIME_KUMA_URL`, `UPTIME_KUMA_STATUS_SLUG`, `UPTIME_KUMA_WEBHOOK_SECRET`         | Supervision des sites                              |
+| `DOCUSEAL_API_URL`, `DOCUSEAL_API_KEY`, `DOCUSEAL_WEBHOOK_SECRET`                  | Signature des devis                                |
+| `OPENAI_API_KEY`, `OPENAI_MODEL`, `OPENAI_BASE_URL`                                | Réponses suggérées                                 |
+| `CAL_WEBHOOK_SECRET`                                                               | Rendez-vous par webhook Cal.diy ou Cal.com         |
+| `SMTP_HOST`, `SMTP_PORT`, `SMTP_SECURE`, `SMTP_USER`, `SMTP_PASSWORD`, `SMTP_FROM` | E-mails sortants, dont les liens du portail client |
+| `N8N_WEBHOOK_URL`, `N8N_WEBHOOK_SECRET`, `N8N_WEBHOOK_HEADER_TOKEN`                | Relais d'événements vers et depuis n8n             |
 
 Générer un secret (à faire séparément pour chaque environnement) :
 
@@ -155,7 +174,7 @@ L'image définit un `HEALTHCHECK` Docker. Le configurer aussi explicitement dans
 | ------------ | ------------- |
 | Method       | `GET`         |
 | Scheme       | `http`        |
-| Host         | `localhost`   |
+| Host         | `127.0.0.1`   |
 | Port         | `3000`        |
 | Path         | `/api/health` |
 | Return Code  | `200`         |
@@ -163,6 +182,10 @@ L'image définit un `HEALTHCHECK` Docker. Le configurer aussi explicitement dans
 | Timeout      | `5` s         |
 | Retries      | `3`           |
 | Start Period | `40` s        |
+
+Écrire `127.0.0.1` : dans l'image, `http://localhost:3000` répond « connexion refusée » (constaté
+avec `wget`, le serveur n'écoutant qu'en IPv4). `/api/health/ready` applique le même contrôle, pour
+une supervision externe.
 
 `/api/health` répond `200 {"status":"ok"}` si le serveur répond **et** si PostgreSQL
 répond en moins de 2 s, sinon `503 {"status":"unavailable"}`. Aucune information interne
@@ -175,23 +198,27 @@ version en service.
 
 ### 6. Autres réglages
 
-- **Persistent Storage** : aucun.
+- **Persistent Storage** : un volume (Volume Mount), destination `/data/storage`, et
+  `STORAGE_DIR=/data/storage`. Un volume neuf hérite du propriétaire de l'image. Un montage de
+  dossier hôte (Bind Mount) doit appartenir à l'uid 1001. Sauvegarde et restauration :
+  [docs/ops/sauvegarde-restauration.md](ops/sauvegarde-restauration.md).
 - **Resource Limits** (recommandé) : mémoire 1 Go en production, 512 Mo en staging.
 - **Auto Deploy** (webhook GitHub) : au choix de l'équipe. Recommandation : activé pour
   `staging`, manuel pour `main` (sauvegarde préalable, voir § Migrations).
 - **Watch Paths** : vide (tout changement peut affecter l'image).
 - **Instances** : une seule par environnement (limitation de débit de l'authentification
-  en mémoire ; passer en stockage base avant toute mise à l'échelle horizontale).
+  en mémoire et documents sur un volume local ; à revoir avant toute mise à l'échelle horizontale).
 - **Logs** : JSON une ligne par événement (`event`, `level`, `time`), sans secrets.
 
 ### 7. Premier déploiement
 
 1. Vérifier sur chaque base cible qu'elle est **vide** ou ne contient que des objets créés
-   par ces migrations (tables `users`, `sessions`, `accounts`, `verifications`, `audit_log`
-   et schéma `drizzle`). Si des tables du même nom existent déjà, la première migration
+   par ces migrations (les tables de `drizzle/*.sql` et le schéma `drizzle`). Si des tables du
+   même nom existent déjà, la première migration
    échoue proprement (transaction annulée, rien n'est modifié) et le conteneur s'arrête.
 2. Activer les **sauvegardes planifiées** sur la ressource PostgreSQL de production
-   (onglet **Backups**) et faire une sauvegarde manuelle.
+   (onglet **Backups**) et faire une sauvegarde manuelle. La sauvegarde hors du serveur, base et
+   documents, se met en place à part : [docs/ops/sauvegarde-restauration.md](ops/sauvegarde-restauration.md).
 3. Déployer **staging** en premier, vérifier dans les logs `db.migrations_applied` puis
    `startup.ready`, et `https://staging.os.nuera.studio/api/health`.
 4. Créer le premier administrateur (onglet **Terminal** de l'application, conteneur
@@ -202,9 +229,55 @@ version en service.
    ```
 
    Le mot de passe (12 caractères minimum) est demandé sans écho. L'inscription publique
-   est désactivée : c'est le seul moyen de créer le premier compte.
+   est désactivée : c'est le seul moyen de créer le premier compte. Ce bundle est compilé depuis
+   `scripts/user-create.ts`.
 
-5. Répéter pour la production.
+5. Activer la double authentification de ce compte (voir § 8), puis planifier les tâches (§ 9).
+6. Répéter pour la production.
+
+### 8. Double authentification
+
+En production, elle est exigée par défaut. Un compte de l'équipe qui ne l'a pas encore est renvoyé
+vers `/profil` à la connexion et ne voit aucune donnée tant qu'il ne l'a pas activée : le premier
+administrateur commence donc par là. Le réglage se change dans Administration, et un associé sans
+double authentification ne peut pas l'exiger. Les clients du portail se connectent par lien, sans
+mot de passe.
+
+### 9. Tâches planifiées
+
+Définir `JOBS_SECRET`, puis créer une « Scheduled Task » par ligne du tableau de
+[docs/ops/jobs.md](ops/jobs.md) : la commande avec `wget` et son cron. Les secrets des webhooks
+entrants y sont aussi listés.
+
+### 10. Twenty
+
+Service distinct, facultatif : sans lui, le CRM affiche « connexion requise ».
+
+- **Version figée : `twentycrm/twenty:v2.55.0`**, serveur et worker, avec sa propre base PostgreSQL et son Redis.
+  Ne pas monter de version sans `npm run test:live` ([docs/integrations/twenty.md](integrations/twenty.md)).
+- `docker-compose.twenty.yml` décrit cet assemblage **pour le développement** : il sert de modèle,
+  avec en production `SERVER_URL`, `PG_DATABASE_URL`, `REDIS_URL`, `STORAGE_TYPE`, `APP_SECRET`,
+  `ENCRYPTION_KEY` et un volume de stockage. Le déploiement sur Coolify n'a pas encore été exercé,
+  pas plus que les migrations automatiques de Twenty en production.
+- Créer une clé d'API dans Twenty, puis lancer `npm run twenty:bootstrap` depuis une copie du dépôt, avec
+  `TWENTY_API_URL` et `TWENTY_API_KEY` en variables d'environnement. Le script ne crée aucun compte sur
+  une autre instance que la locale. L'option `--webhook-url=<domaine>/api/webhooks/twenty` crée le webhook.
+- Reporter `TWENTY_API_URL`, `TWENTY_API_KEY` et `TWENTY_WEBHOOK_SECRET` dans l'application Coolify, et
+  planifier `crm-reconcile` : le webhook seul ne suffit pas.
+
+Étapes d'opportunité appliquées par le bootstrap :
+
+| Étape Nuera  | Valeur        | Étape d'origine renommée |
+| ------------ | ------------- | ------------------------ |
+| Nouveau      | `NEW`         | `NEW`                    |
+| Qualifié     | `QUALIFIED`   | `SCREENING`              |
+| Devis envoyé | `QUOTE_SENT`  | `PROPOSAL`               |
+| Négociation  | `NEGOTIATION` | `MEETING`                |
+| Gagné        | `WON`         | `CUSTOMER`               |
+| Perdu        | `LOST`        | aucune                   |
+
+Les étapes renommées migrent les dossiers. Une étape inconnue encore utilisée arrête le script sans
+rien modifier.
 
 ## Migrations
 
@@ -253,6 +326,13 @@ version en service.
    l'étape 3 (opération manuelle, à décider explicitement).
 
 ## Vérifications locales de l'image
+
+Vérifié le 5 novembre 2026 sur des conteneurs jetables, à partir de la branche `feat/create-nuera-os` :
+Node 24.22.2, uid 1001, migrations appliquées au démarrage, `/api/health` et `/api/health/ready` à 200 puis
+503 base arrêtée, arrêt en code 1 sur configuration invalide ou migration en échec, premier compte
+créé par `cli/user-create.mjs`, renvoi vers `/profil` sans double authentification, dépôt et relecture d'un
+document sur le volume, tâche planifiée par `wget`, données et fichiers intacts après redémarrage et
+après recréation des conteneurs. Rien n'a été vérifié sur Coolify ni sur le serveur réel.
 
 ```bash
 docker build -t nuera-os:local .
