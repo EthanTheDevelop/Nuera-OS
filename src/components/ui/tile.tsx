@@ -259,18 +259,18 @@ export function TileFigure({
 }
 
 /** Arc de même centre que l'angle de la tuile (`--radius-xl`, 28) : il épouse son bord. */
-const HANDLE_PATH = "M25.6 6.86A26.5 26.5 0 0 1 6.86 25.6";
+const HANDLE_PATH = "M37.75 4V12A25.75 25.75 0 0 1 12 37.75H4";
 
 function HandleGlyph() {
   return (
-    <svg width="28" height="28" viewBox="0 0 28 28" fill="none" aria-hidden="true">
-      <path d={HANDLE_PATH} stroke="currentColor" strokeWidth="3" strokeLinecap="round" />
+    <svg width="40" height="40" viewBox="0 0 40 40" fill="none" aria-hidden="true">
+      <path d={HANDLE_PATH} stroke="currentColor" strokeWidth="4.5" strokeLinecap="round" />
     </svg>
   );
 }
 
 /**
- * Poignée de taille, 28 × 28, posée sur l'angle bas droit de la tuile.
+ * Poignée de taille, 40 × 40, posée sur l'angle bas droit de la tuile.
  * Le tableau de bord la pose en édition seulement et la branche sur le glisser et les flèches :
  * un simple clic ne change rien. `touch-none` : au doigt, le geste tire la poignée sans défiler.
  */
@@ -285,7 +285,7 @@ export function TileResizeHandle({
       type="button"
       aria-label={`Redimensionner la tuile ${tileName}`}
       className={cn(
-        "hit-44 absolute right-0 bottom-0 z-10 flex size-7 cursor-nwse-resize touch-none items-center justify-center rounded-sm after:top-auto after:bottom-0 after:transform-none",
+        "hit-44 absolute right-0 bottom-0 z-10 flex size-10 cursor-nwse-resize touch-none items-center justify-center rounded-sm after:top-auto after:bottom-0 after:transform-none",
         editing ? "text-accent" : "text-muted",
         className,
       )}
