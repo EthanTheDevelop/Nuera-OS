@@ -8,7 +8,8 @@ import { BUILD_MS, DURATION_MS, EASE } from "@/lib/motion";
 import { pageBuildElapsedMs } from "./build-state";
 import { useIsClientPreset, useStyleNonce } from "./motion-provider";
 
-const LOCALE = "fr-FR";
+// fr-CA pour les chiffres : voir src/lib/money.ts.
+const LOCALE = "fr-CA";
 
 const bezier = (points: readonly number[]) => `cubic-bezier(${points.join(", ")})`;
 const TIMING = { duration: DURATION_MS.line, easing: bezier(EASE.out) };

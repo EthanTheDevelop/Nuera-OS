@@ -153,7 +153,8 @@ export function MessagesPanel({
   }, [router]);
 
   useEffect(() => {
-    endOfThread.current?.scrollIntoView({ block: "nearest" });
+    const list = endOfThread.current?.closest<HTMLElement>("div.overflow-y-auto");
+    if (list && list.scrollHeight > list.clientHeight) list.scrollTop = list.scrollHeight;
   }, [messages.length]);
 
   const send = useCallback(
@@ -251,7 +252,7 @@ export function MessagesPanel({
   }
 
   return (
-    <section className="flex min-h-[640px] min-w-0 flex-col rounded-xl border border-border bg-surface p-4 sm:p-7 lg:h-[952px]">
+    <section className="flex min-w-0 flex-col rounded-xl border border-border bg-surface p-4 max-lg:min-h-[640px] sm:p-7">
       <header className="flex items-center gap-3 border-b border-border pb-4">
         <AvatarStack people={interlocutors.map((person) => ({ name: person.fullName }))} />
         <div className="min-w-0">
@@ -260,7 +261,7 @@ export function MessagesPanel({
         </div>
       </header>
 
-      <div className="flex min-h-0 flex-1 flex-col overflow-y-auto py-4">
+      <div className="flex min-h-0 flex-1 [scrollbar-width:thin] [scrollbar-color:var(--color-border)_transparent] [scrollbar-gutter:stable] flex-col overflow-y-auto [mask-image:linear-gradient(to_bottom,transparent,#000_20px)] py-4 pr-3 lg:min-h-32 lg:flex-[1_1_0px]">
         {canLoadOlder ? (
           <div className="flex justify-center pb-3">
             <CompactButton variant="quiet" onClick={() => void loadOlder()}>

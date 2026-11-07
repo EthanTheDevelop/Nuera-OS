@@ -1,0 +1,28 @@
+/*
+ * Portail à hauteur d'écran, à partir de 1024 px. Les utilitaires Tailwind lisent `--spacing` et
+ * `--text-*` : les redéfinir ici met à l'échelle espacements et textes de tout le contenu.
+ * `--portal-u` vaut 9px sur 1440×900 (échelle 1), suit la dimension la plus contrainte de la fenêtre.
+ * Les bornes gardent le texte lisible sur un portable et évitent un rendu démesuré sur grand écran.
+ */
+@media (min-width: 64rem) {
+  .portal-fit {
+    --portal-u: min(1dvh, 0.625vw);
+    --spacing: clamp(0.2rem, calc(var(--portal-u) * 0.444), 0.325rem);
+    --text-xs: clamp(0.6875rem, calc(var(--portal-u) * 1.333), 0.975rem);
+    --text-sm: clamp(0.8125rem, calc(var(--portal-u) * 1.556), 1.1375rem);
+    --text-base: clamp(0.875rem, calc(var(--portal-u) * 1.778), 1.3rem);
+    --text-base--line-height: 1.4;
+    --text-lg: clamp(1rem, calc(var(--portal-u) * 2.222), 1.625rem);
+    --text-figure: clamp(1.25rem, calc(var(--portal-u) * 2.889), 2.125rem);
+    --portal-title: clamp(1.75rem, calc(var(--portal-u) * 4.889), 3.5rem);
+    --portal-figure: clamp(1.5rem, calc(var(--portal-u) * 4), 3rem);
+  }
+}
+
+/* Fenêtre très basse (1280×720) : le contenu a sa hauteur minimale, on rend la marge basse pour éviter un défilement de page. */
+@media (min-width: 64rem) and (max-height: 760px) {
+  .portal-fit {
+    padding-bottom: 0;
+    padding-top: 0.125rem;
+  }
+}

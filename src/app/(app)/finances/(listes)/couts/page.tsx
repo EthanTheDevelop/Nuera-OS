@@ -146,7 +146,7 @@ export default async function CostsPage({
             cell: (row) => (
               <span className="block truncate">
                 {[row.companyName, row.projectName ?? row.contractName ?? row.siteName]
-                  .filter(Boolean)
+                  .filter((part, index, parts) => Boolean(part) && parts.indexOf(part) === index)
                   .join(" · ") || "Frais de l'agence"}
               </span>
             ),

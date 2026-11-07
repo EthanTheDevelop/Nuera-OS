@@ -124,7 +124,7 @@ export function BlockerCard({
       {editable ? (
         <div>
           <CompactButton variant="secondary" icon="plus" onClick={() => setEditing("new")}>
-            Signaler un blocage
+            {open.length > 0 ? "Signaler un autre blocage" : "Signaler un blocage"}
           </CompactButton>
         </div>
       ) : null}

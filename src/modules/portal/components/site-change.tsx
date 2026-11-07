@@ -31,11 +31,11 @@ export function SiteChangeRequest({ siteId }: { siteId: string }) {
   });
 
   return (
-    <div className="flex flex-col gap-4">
+    <div className="flex flex-col gap-4 lg:flex-1">
       <form ref={form} action={formAction} className="contents">
         <input type="hidden" name="siteId" value={siteId} />
-        <div className="flex flex-col gap-4 rounded-lg bg-accent-pale p-4 sm:p-6">
-          <div className="w-full max-w-[420px] rounded-md border-2 border-dashed border-accent bg-surface/60 transition-colors duration-(--dur-fast) hover:bg-surface">
+        <div className="flex flex-col gap-4 rounded-lg bg-accent-pale p-4 sm:p-6 lg:flex-1 lg:items-center lg:justify-center">
+          <div className="w-full max-w-[420px] rounded-md border-2 border-dashed border-accent bg-surface/60 transition-colors duration-(--dur-fast) hover:bg-surface lg:max-w-[640px]">
             <label htmlFor="site-change-current" className="sr-only">
               Le texte ou la photo à changer
             </label>
@@ -60,7 +60,7 @@ export function SiteChangeRequest({ siteId }: { siteId: string }) {
                 initial={preset.message.initial}
                 animate={preset.message.animate}
                 exit={preset.leave}
-                className="flex w-full max-w-[420px] flex-col gap-3 rounded-lg border border-border bg-surface p-5"
+                className="flex w-full max-w-[420px] flex-col gap-3 rounded-lg border border-border bg-surface p-5 lg:max-w-[640px]"
               >
                 <FormAlert state={state.status === "error" ? state : IDLE_ACTION_STATE} />
                 <TextareaField

@@ -41,6 +41,8 @@ describe("dates", () => {
     expect(formatDate("2026-11-18")).toBe("18 novembre 2026");
     expect(formatDate("2026-01-01")).toBe("1 janvier 2026");
     expect(formatDateShort("2026-11-18")).toBe("18 nov.");
+    expect(formatDateShort("2026-11-01")).toBe("1er nov.");
+    expect(formatDateShort("2026-11-11")).toBe("11 nov.");
     expect(formatDateNumeric("2026-11-18")).toBe("18/11/2026");
     expect(formatDateLong("2026-11-03")).toBe("mardi 3 novembre 2026");
   });

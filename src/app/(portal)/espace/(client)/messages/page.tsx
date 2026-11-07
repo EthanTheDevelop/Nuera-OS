@@ -1,10 +1,11 @@
 import type { Metadata } from "next";
-import { PortalCard } from "@/components/portal/portal-card";
+import { PORTAL_FILL, PORTAL_ROW, PortalCard } from "@/components/portal/portal-card";
 import { Icon } from "@/components/ui/icon";
 import { paramValue } from "@/lib/url-state";
 import { listDocumentsForPortal } from "@/modules/documents/document.service";
 import { listPortalConversation } from "@/modules/messaging/message.service";
 import { MessagesPanel } from "@/modules/portal/components/messages-panel";
+import { PortalPageTip } from "@/modules/portal/components/page-tip";
 import { SharedFilesDrop } from "@/modules/portal/components/shared-files";
 import { loadPortalHome, requirePortalPage } from "@/modules/portal/portal.page";
 
@@ -28,36 +29,42 @@ export default async function PortalMessagesPage({
   const projectId = home?.project.id ?? null;
 
   return (
-    <div className="grid gap-6 lg:grid-cols-[minmax(0,1016fr)_minmax(0,320fr)]">
-      <MessagesPanel
-        messages={conversation.messages}
-        hasMore={conversation.hasMore}
-        unread={conversation.unread}
-        interlocutors={interlocutors}
-        interlocutorNames={home?.interlocutorNames ?? "Nuera Studio"}
-        draft={paramValue(query, "brouillon")?.slice(0, 500)}
-        projectId={projectId}
-      />
-      <PortalCard title="Fichiers partagés" className="lg:h-[952px]">
-        {files.items.length > 0 ? (
-          <ul className="flex flex-col gap-3">
-            {files.items.map((file) => (
-              <li key={file.id}>
-                <a
-                  href={file.downloadHref}
-                  className="flex items-center gap-2 text-sm text-ink underline-offset-4 hover:underline"
-                >
-                  <Icon name="devis" size={16} className="shrink-0 text-accent" />
-                  <span className="min-w-0 truncate">{file.filename ?? file.title}</span>
-                </a>
-              </li>
-            ))}
-          </ul>
-        ) : (
-          <p className="text-sm text-muted">Aucun fichier pour l&apos;instant.</p>
-        )}
-        <SharedFilesDrop projectId={projectId} />
-      </PortalCard>
-    </div>
+    <>
+      <PortalPageTip tip="messages" />
+      <div className={`${PORTAL_ROW} lg:grid-cols-[minmax(0,1016fr)_minmax(0,320fr)]`}>
+        <MessagesPanel
+          messages={conversation.messages}
+          hasMore={conversation.hasMore}
+          unread={conversation.unread}
+          interlocutors={interlocutors}
+          interlocutorNames={home?.interlocutorNames ?? "Nuera Studio"}
+          draft={paramValue(query, "brouillon")?.slice(0, 500)}
+          projectId={projectId}
+        />
+        <PortalCard title="Fichiers partagés">
+          {files.items.length > 0 ? (
+            <ul className="flex flex-col gap-3 lg:max-h-[40dvh] lg:[scrollbar-width:thin] lg:[scrollbar-color:var(--color-border)_transparent] lg:overflow-y-auto lg:pr-3">
+              {files.items.map((file) => (
+                <li key={file.id}>
+                  <a
+                    href={file.downloadHref}
+                    className="flex items-center gap-2 text-sm text-ink underline-offset-4 hover:underline"
+                  >
+                    <Icon name="devis" size={16} className="shrink-0 text-accent" />
+                    <span className="min-w-0 truncate">{file.filename ?? file.title}</span>
+                  </a>
+                </li>
+              ))}
+            </ul>
+          ) : (
+            <p className={`text-sm text-muted ${PORTAL_FILL}`}>
+              Aucun fichier pour l&apos;instant. Déposez ici vos photos ou vos textes : nous les
+              recevons aussitôt.
+            </p>
+          )}
+          <SharedFilesDrop projectId={projectId} />
+        </PortalCard>
+      </div>
+    </>
   );
 }

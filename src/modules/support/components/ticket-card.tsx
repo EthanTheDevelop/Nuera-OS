@@ -28,7 +28,9 @@ export function TicketCard({
   const label = `${row.number} · ${row.subject}`;
   return (
     <div className="flex flex-col gap-2 rounded-md border border-border bg-surface p-4">
-      <p className="truncate text-row-secondary text-muted">{row.companyName}</p>
+      <p className="truncate text-row-secondary text-muted" title={row.companyName}>
+        {row.companyName}
+      </p>
       <div className="flex flex-wrap items-center gap-1">
         <StatusBadge
           kind="severity"
@@ -52,7 +54,9 @@ export function TicketCard({
           Résolue le {formatDateShort(row.resolvedAt)}
         </p>
       ) : (
-        <p className="truncate text-row-secondary text-muted">{originLabel(row)}</p>
+        <p className="truncate text-row-secondary text-muted" title={originLabel(row)}>
+          {originLabel(row)}
+        </p>
       )}
       <div className="flex flex-wrap items-center gap-1">
         <StatusBadge kind="coverage" status={row.coverage} />

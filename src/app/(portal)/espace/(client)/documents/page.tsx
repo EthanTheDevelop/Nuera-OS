@@ -1,7 +1,7 @@
 import type { Metadata } from "next";
 import { redirect } from "next/navigation";
 import { Suspense } from "react";
-import { PortalPageHeader } from "@/components/portal/portal-card";
+import { PORTAL_PAGE, PORTAL_SCROLL, PortalPageHeader } from "@/components/portal/portal-card";
 import { EmptyState } from "@/components/states/states";
 import { Badge, type BadgeTone } from "@/components/ui/badge";
 import { CompactLink } from "@/components/ui/compact-button";
@@ -12,6 +12,7 @@ import { formatCents } from "@/lib/money";
 import { hrefWith, paramValue } from "@/lib/url-state";
 import { getDocumentStorageStatus } from "@/modules/documents/document.service";
 import type { PortalDocumentRow } from "@/modules/documents/document.types";
+import { PortalPageTip } from "@/modules/portal/components/page-tip";
 import { requirePortalPage } from "@/modules/portal/portal.page";
 import {
   getPortalDocumentsPage,
@@ -46,7 +47,9 @@ function invoiceCard(invoice: PortalInvoiceCard): CardModel {
     key: `invoice-${invoice.id}`,
     icon: "euro",
     title: `${noun} · ${invoice.label}`,
-    detail: invoice.downloadHref ? detail : `${detail} · fichier à venir`,
+    detail: invoice.downloadHref
+      ? detail
+      : `${detail} · fichier bientôt disponible, écrivez-nous si besoin`,
     badge:
       invoice.status === "paid"
         ? { label: "Payée", tone: "success" }
@@ -133,7 +136,8 @@ export default async function PortalDocumentsPage({
   if (requestedPage > last) redirect(hrefWith("/espace/documents", query, { page: last }));
 
   return (
-    <div className="flex flex-col gap-6">
+    <div className={PORTAL_PAGE}>
+      <PortalPageTip tip="documents" />
       <PortalPageHeader
         title="Vos documents"
         subtitle="Tout ce que nous avons échangé, au même endroit"
@@ -175,7 +179,10 @@ export default async function PortalDocumentsPage({
           description="Devis, factures et maquettes partagés arriveront ici, avec les fichiers que vous déposez."
         />
       ) : (
-        <div className="grid gap-6 sm:grid-cols-2 xl:grid-cols-4">
+        // Les rangées prennent la place libre, sans s'étirer au-delà d'un tiers d'écran.
+        <div
+          className={`grid content-start gap-6 min-[2200px]:grid-cols-5 sm:grid-cols-2 lg:auto-rows-[minmax(max-content,30dvh)] lg:grid-cols-3 xl:grid-cols-4 ${PORTAL_SCROLL}`}
+        >
           {cards.map((card) => (
             <DocumentCard key={card.key} card={card} />
           ))}

@@ -52,7 +52,9 @@ export function TileHeader({
       </Title>
     </>
   );
-  const badge = aside ? <div className="relative z-10 shrink-0">{aside}</div> : null;
+  const badge = aside ? (
+    <div className={cn("relative z-10 shrink-0", fit && "tile-aside")}>{aside}</div>
+  ) : null;
   if (fit) {
     return (
       <header className={cn("tile-header gap-x-2", className)}>
@@ -218,6 +220,7 @@ export function TileFigure({
   noteTone = "muted",
   hero = false,
   unit,
+  reserveNote = false,
   className,
 }: {
   value: ReactNode;
@@ -226,6 +229,8 @@ export function TileFigure({
   hero?: boolean;
   /** Complément à droite du chiffre (`journées vendues`). */
   unit?: ReactNode;
+  /** Réserve deux lignes de note : le chiffre garde la même hauteur d'une tuile à l'autre. */
+  reserveNote?: boolean;
   className?: string;
 }) {
   return (
@@ -241,10 +246,11 @@ export function TileFigure({
         <span className="tabular max-w-full min-w-0">{value}</span>
         {unit ? <span className="text-sm font-normal text-muted">{unit}</span> : null}
       </p>
-      {note ? (
+      {note || reserveNote ? (
         <p
           className={cn(
             "text-kpi-note",
+            reserveNote && "min-h-[2.5em]",
             noteTone === "muted" && "text-muted",
             noteTone === "warn" && "text-warn",
             noteTone === "danger" && "text-danger",
@@ -259,12 +265,12 @@ export function TileFigure({
 }
 
 /** Arc de même centre que l'angle de la tuile (`--radius-xl`, 28) : il épouse son bord. */
-const HANDLE_PATH = "M37.75 4V12A25.75 25.75 0 0 1 12 37.75H4";
+const HANDLE_PATH = "M37 3V12A25 25 0 0 1 12 37H3";
 
 function HandleGlyph() {
   return (
     <svg width="40" height="40" viewBox="0 0 40 40" fill="none" aria-hidden="true">
-      <path d={HANDLE_PATH} stroke="currentColor" strokeWidth="4.5" strokeLinecap="round" />
+      <path d={HANDLE_PATH} stroke="currentColor" strokeWidth="6" strokeLinecap="round" />
     </svg>
   );
 }

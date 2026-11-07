@@ -1,5 +1,12 @@
 import type { Metadata } from "next";
-import { PortalCard, PortalPageHeader } from "@/components/portal/portal-card";
+import {
+  PORTAL_FILL,
+  PORTAL_PAGE,
+  PORTAL_ROW,
+  PORTAL_SCROLL,
+  PortalCard,
+  PortalPageHeader,
+} from "@/components/portal/portal-card";
 import { Avatar } from "@/components/ui/avatar";
 import { Badge } from "@/components/ui/badge";
 import { CompactLink } from "@/components/ui/compact-button";
@@ -28,7 +35,7 @@ export default async function PortalTicketPage({ params }: { params: Promise<{ i
   const timeline = clientTicketTimeline(ticket.timeline);
 
   return (
-    <div className="flex flex-col gap-6">
+    <div className={PORTAL_PAGE}>
       <div>
         <CompactLink variant="quiet" href="/espace/demandes">
           Toutes mes demandes
@@ -41,47 +48,49 @@ export default async function PortalTicketPage({ params }: { params: Promise<{ i
           .join(" · ")}
         actions={<Badge tone={status.tone}>{status.label}</Badge>}
       />
-      <div className="grid gap-6 lg:grid-cols-[minmax(0,856fr)_minmax(0,480fr)]">
+      <div className={`${PORTAL_ROW} lg:grid-cols-[minmax(0,856fr)_minmax(0,480fr)]`}>
         <PortalCard title="Échanges" className="gap-4">
-          {ticket.description ? (
-            <p className="text-sm whitespace-pre-wrap text-muted">{ticket.description}</p>
-          ) : null}
-          {ticket.messages.length > 0 ? (
-            <ul className="flex flex-col gap-4">
-              {ticket.messages.map((message) => (
-                <li
-                  key={message.id}
-                  className={cn(
-                    "flex items-start gap-2.5",
-                    message.fromClient ? "justify-end" : "justify-start",
-                  )}
-                >
-                  {message.fromClient ? null : <Avatar name={message.authorName} size={36} />}
-                  <div
+          <div className={`flex flex-col gap-4 ${PORTAL_SCROLL}`}>
+            {ticket.description ? (
+              <p className="text-sm whitespace-pre-wrap text-muted">{ticket.description}</p>
+            ) : null}
+            {ticket.messages.length > 0 ? (
+              <ul className="flex flex-col gap-4">
+                {ticket.messages.map((message) => (
+                  <li
+                    key={message.id}
                     className={cn(
-                      "flex max-w-[85%] flex-col gap-1.5 rounded-lg px-4 py-3 text-sm leading-[1.3]",
-                      message.fromClient
-                        ? "bg-accent text-on-accent"
-                        : "border border-border bg-surface text-ink",
+                      "flex items-start gap-2.5",
+                      message.fromClient ? "justify-end" : "justify-start",
                     )}
                   >
-                    <p className="whitespace-pre-wrap">{message.body}</p>
-                    <p
+                    {message.fromClient ? null : <Avatar name={message.authorName} size={36} />}
+                    <div
                       className={cn(
-                        "text-xs",
-                        message.fromClient ? "text-on-accent/80" : "text-muted",
+                        "flex max-w-[85%] flex-col gap-1.5 rounded-lg px-4 py-3 text-sm leading-[1.3]",
+                        message.fromClient
+                          ? "bg-accent text-on-accent"
+                          : "border border-border bg-surface text-ink",
                       )}
                     >
-                      {message.fromClient ? "Vous" : message.authorName} ·{" "}
-                      {formatDateTime(message.at)}
-                    </p>
-                  </div>
-                </li>
-              ))}
-            </ul>
-          ) : (
-            <p className="text-sm text-muted">Pas encore de réponse : nous revenons vers vous.</p>
-          )}
+                      <p className="whitespace-pre-wrap">{message.body}</p>
+                      <p
+                        className={cn(
+                          "text-xs",
+                          message.fromClient ? "text-on-accent/80" : "text-muted",
+                        )}
+                      >
+                        {message.fromClient ? "Vous" : message.authorName} ·{" "}
+                        {formatDateTime(message.at)}
+                      </p>
+                    </div>
+                  </li>
+                ))}
+              </ul>
+            ) : (
+              <p className="text-sm text-muted">Pas encore de réponse : nous revenons vers vous.</p>
+            )}
+          </div>
           {ticket.status === "closed" ? (
             <p className="text-sm text-muted">
               Cette demande est clôturée. Pour la suite, ouvrez une nouvelle demande.
@@ -91,7 +100,7 @@ export default async function PortalTicketPage({ params }: { params: Promise<{ i
           )}
         </PortalCard>
         <div className="flex min-w-0 flex-col gap-6">
-          <PortalCard title="Où en est-on" className="gap-3">
+          <PortalCard title="Où en est-on" className="gap-3 lg:shrink-0 lg:only:flex-1">
             <ol className="flex flex-col gap-2">
               {timeline.map((step) => (
                 <li
@@ -111,8 +120,8 @@ export default async function PortalTicketPage({ params }: { params: Promise<{ i
             </ol>
           </PortalCard>
           {files.items.length > 0 ? (
-            <PortalCard title="Fichiers" className="gap-3">
-              <ul className="flex flex-col gap-2">
+            <PortalCard title="Fichiers" className={`gap-3 ${PORTAL_FILL}`}>
+              <ul className={`flex flex-col gap-2 ${PORTAL_SCROLL}`}>
                 {files.items.map((file) => (
                   <li key={file.id}>
                     <a

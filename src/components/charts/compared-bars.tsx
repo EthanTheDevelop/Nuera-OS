@@ -28,16 +28,17 @@ export function ComparedBars({
   className?: string;
 }) {
   const max = niceMax(Math.max(0, ...current.values, ...previous.values));
+  const hasPrevious = previous.values.some((value) => value > 0);
 
   return (
     <ChartShell
       title={title}
       summary={summary}
       points={points}
-      seriesLabels={[current.label, previous.label]}
+      seriesLabels={hasPrevious ? [current.label, previous.label] : [current.label]}
       rowsByPoint={points.map((_, index) => [
         { label: current.label, value: current.values[index] ?? 0 },
-        { label: previous.label, value: previous.values[index] ?? 0 },
+        ...(hasPrevious ? [{ label: previous.label, value: previous.values[index] ?? 0 }] : []),
       ])}
       valueFormat={valueFormat}
       ticks={[max, max / 2, 0]}
@@ -45,7 +46,7 @@ export function ComparedBars({
       showCrosshair={false}
       legend={[
         { label: current.label, color: "var(--accent)" },
-        { label: previous.label, color: "var(--accent-pale)" },
+        ...(hasPrevious ? [{ label: previous.label, color: "var(--accent-pale)" }] : []),
       ]}
       className={className}
     >
@@ -59,14 +60,16 @@ export function ComparedBars({
                 active !== null && active !== index && "opacity-40",
               )}
             >
-              <span className="h-full w-[22%] max-w-5">
-                <GrowBar
-                  axis="y"
-                  index={index * 2}
-                  value={(previous.values[index] ?? 0) / max}
-                  className="h-full rounded-t-[4px] bg-accent-pale"
-                />
-              </span>
+              {hasPrevious ? (
+                <span className="h-full w-[22%] max-w-5">
+                  <GrowBar
+                    axis="y"
+                    index={index * 2}
+                    value={(previous.values[index] ?? 0) / max}
+                    className="h-full rounded-t-[4px] bg-accent-pale"
+                  />
+                </span>
+              ) : null}
               <span className="h-full w-[22%] max-w-5">
                 <GrowBar
                   axis="y"

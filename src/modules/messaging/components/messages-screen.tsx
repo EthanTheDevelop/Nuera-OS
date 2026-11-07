@@ -135,7 +135,7 @@ export async function MessagesScreen({
   const showReady = canSend && settings.enabled;
 
   const now = new Date();
-  const withQuery = (id: string) => hrefWith(`/messages/${id}`, searchParams, {});
+  const withQuery = (id: string) => hrefWith("/messages", searchParams, { c: id });
   const rows: ConversationListItem[] = inbox.items.map((conversation) => ({
     id: conversation.id,
     href: withQuery(conversation.id),
@@ -228,11 +228,7 @@ export async function MessagesScreen({
             label="Chercher un client, un message"
             className="sm:w-full"
           />
-          <div
-            role="group"
-            aria-label="Filtres"
-            className="flex [scrollbar-width:none] items-center gap-1 overflow-x-auto py-1"
-          >
+          <div role="group" aria-label="Filtres" className="flex flex-wrap items-center gap-1 py-1">
             <FilterChip param="filtre" count={counts.all}>
               Tous
             </FilterChip>
@@ -280,7 +276,7 @@ export async function MessagesScreen({
         {inbox.total > inbox.pageSize ? (
           <DataTablePagination
             query={{
-              pathname: conversationId ? `/messages/${conversationId}` : "/messages",
+              pathname: "/messages",
               searchParams,
             }}
             page={inbox.page}

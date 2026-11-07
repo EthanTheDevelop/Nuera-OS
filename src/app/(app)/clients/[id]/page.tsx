@@ -5,7 +5,7 @@ import { ButtonLink } from "@/components/ui/button";
 import { Alert } from "@/components/ui/feedback";
 import { Tile } from "@/components/ui/tile";
 import { paramValue } from "@/lib/url-state";
-import { InviteToPortalButton, PortalAccessList } from "@/modules/portal/components/portal-access";
+import { PortalAccessList } from "@/modules/portal/components/portal-access";
 import { getPortalAccessForCompany } from "@/modules/portal/portal-access.service";
 import {
   listActivitiesForCompany,
@@ -148,9 +148,6 @@ export default async function ClientRecordPage({
                 canMerge={canMerge}
                 company={company}
               />
-            ) : null}
-            {portalAccess.canManage && !archived ? (
-              <InviteToPortalButton companyId={id} overview={portalAccess} />
             ) : null}
             {can(ctx.actor, "messages:send") && !archived ? (
               <ButtonLink variant="accent" href={`/messages?client=${id}&nouvelle=1`}>

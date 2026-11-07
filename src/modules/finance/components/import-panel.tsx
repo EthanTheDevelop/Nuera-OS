@@ -104,8 +104,9 @@ function ImportFlow({ onClose }: { onClose: () => void }) {
       <>
         <ModalRow>
           <Alert tone={result.rejected > 0 ? "warn" : "success"}>
-            {result.total} lignes lues : {result.created} créées, {result.updated} mises à jour,{" "}
-            {result.unchanged} inchangées, {result.rejected} refusées.
+            {result.total} {result.total > 1 ? "lignes lues" : "ligne lue"} : {result.created}{" "}
+            créées, {result.updated} mises à jour, {result.unchanged} inchangées, {result.rejected}{" "}
+            refusées.
           </Alert>
         </ModalRow>
         {result.rejections.length > 0 ? (
@@ -207,7 +208,9 @@ function ImportFlow({ onClose }: { onClose: () => void }) {
           ) : (
             <>
               <ModalRow className="flex flex-wrap gap-2">
-                <Badge tone="neutral">{preview.total} lignes</Badge>
+                <Badge tone="neutral">
+                  {preview.total} {preview.total > 1 ? "lignes" : "ligne"}
+                </Badge>
                 <Badge tone="accent">{preview.creates} à créer</Badge>
                 <Badge tone="accent">{preview.updates} à mettre à jour</Badge>
                 <Badge tone="neutral">{preview.unchanged} inchangées</Badge>

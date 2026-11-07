@@ -9,6 +9,7 @@ import {
 } from "@/components/ui/data-table";
 import { formatDateShort } from "@/lib/format";
 import { formatCents } from "@/lib/money";
+import { parisToday } from "@/modules/time/calendar";
 import { firstName } from "@/modules/time/time-format";
 import { MISSION_STATUS_BADGES } from "../mission.status";
 import type { MissionView } from "../team.service";
@@ -20,12 +21,24 @@ function missionWork(mission: MissionView): string {
   );
 }
 
+/** Échéance dépassée alors que la mission n'est ni livrée ni annulée. */
+export function isMissionLate(mission: MissionView, today: string): boolean {
+  return (
+    mission.dueOn !== null &&
+    mission.dueOn < today &&
+    (mission.status === "planned" || mission.status === "in_progress")
+  );
+}
+
 /** Livrable attendu et, s'il est là, sa réception : c'est la colonne LIVRABLE de l'écran 22. */
 export function DeliverableState({ mission }: { mission: MissionView }) {
   if (mission.deliverableReceivedOn) {
     return <Badge tone="success">Reçu {formatDateShort(mission.deliverableReceivedOn)}</Badge>;
   }
   const { label, tone } = MISSION_STATUS_BADGES[mission.status];
+  if (isMissionLate(mission, parisToday())) {
+    return <Badge tone="danger">{label} · en retard</Badge>;
+  }
   return <Badge tone={tone}>{label}</Badge>;
 }
 
@@ -47,6 +60,7 @@ export function MissionTable({
   pagination?: DataTablePage;
   empty?: ReactNode;
 }) {
+  const today = parisToday();
   // Largeurs de la maquette, espacement compris ; sans intervenant, la fiche est plus étroite.
   const widths = showMember
     ? { project: 176, due: 136, deliverable: 160, costs: 150 }
@@ -85,7 +99,14 @@ export function MissionTable({
       key: "due",
       header: "ÉCHÉANCE",
       width: widths.due,
-      cell: (mission) => (mission.dueOn ? formatDateShort(mission.dueOn) : "—"),
+      cell: (mission) =>
+        mission.dueOn ? (
+          <span className={isMissionLate(mission, today) ? "font-medium text-danger" : undefined}>
+            {formatDateShort(mission.dueOn)}
+          </span>
+        ) : (
+          "—"
+        ),
     },
     {
       key: "deliverable",

@@ -3,7 +3,7 @@
 import { motion } from "motion/react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { useId } from "react";
+import { useId, useTransition } from "react";
 import { useMotionPreset } from "@/components/motion/motion-provider";
 import { Logo } from "@/components/layout/logo";
 import { useSignOut } from "@/components/layout/profile-menu";
@@ -46,6 +46,7 @@ export function ClientCapsule({
   user,
   menuItems = [],
   signOutRedirect = "/espace/connexion",
+  onReplayGuide,
   className,
 }: {
   /** Impose l'onglet actif. Défaut : déduit de l'URL. `null` : aucun. */
@@ -68,6 +69,8 @@ export function ClientCapsule({
   /** Entrées du menu (C5), liens uniquement. « Se déconnecter » est ajouté automatiquement. */
   menuItems?: readonly MenuEntry[];
   signOutRedirect?: string;
+  /** « Revoir le guide » dans le menu : relance le guide de première visite. */
+  onReplayGuide?: () => Promise<unknown>;
   className?: string;
 }) {
   const pathname = usePathname();
@@ -75,13 +78,14 @@ export function ClientCapsule({
   const uid = useId();
   const preset = useMotionPreset();
   const { signOut, pending } = useSignOut(signOutRedirect);
+  const [replaying, startReplay] = useTransition();
 
   // Une seule barre d'onglets, repositionnée par `order` : une copie masquée volerait le `layoutId`
   // de l'onglet actif et le rendrait invisible.
   return (
     <header
       className={cn(
-        "anim-header flex h-auto items-center px-3 py-3 sm:px-10 xl:h-(--client-capsule-h) xl:py-0",
+        "anim-header flex h-auto items-center px-3 py-3 sm:px-10 xl:h-[min(var(--client-capsule-h),max(74px,10dvh))] xl:shrink-0 xl:py-0",
         className,
       )}
     >
@@ -121,7 +125,11 @@ export function ClientCapsule({
               const selected = tab.key === activeTab;
               const counter = tab.key === "messages" ? messagesCount : undefined;
               return (
-                <li key={tab.key} className="relative max-[899px]:flex-1">
+                <li
+                  key={tab.key}
+                  data-guide={`tab-${tab.key}`}
+                  className="relative max-[899px]:flex-1"
+                >
                   {selected ? (
                     <motion.span
                       layoutId={`${uid}-tab`}
@@ -205,7 +213,21 @@ export function ClientCapsule({
                     {item.label}
                   </MenuItem>
                 ))}
-                {menuItems.length > 0 ? <MenuSeparator /> : null}
+                {onReplayGuide ? (
+                  <MenuItem
+                    icon="flag"
+                    disabled={replaying}
+                    onSelect={() => {
+                      close();
+                      startReplay(async () => {
+                        await onReplayGuide().catch(() => undefined);
+                      });
+                    }}
+                  >
+                    Revoir le guide
+                  </MenuItem>
+                ) : null}
+                {menuItems.length > 0 || onReplayGuide ? <MenuSeparator /> : null}
                 <MenuItem icon="chevron" danger disabled={pending} onSelect={signOut}>
                   Se déconnecter
                 </MenuItem>

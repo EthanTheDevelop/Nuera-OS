@@ -87,11 +87,11 @@ export function TicketReplyForm({ ticketId }: { ticketId: string }) {
   });
 
   return (
-    <div className="flex flex-col gap-4">
+    <div className="flex flex-col gap-4 lg:grid lg:shrink-0 lg:grid-cols-2">
       <form ref={form} action={formAction} className="flex flex-col gap-3">
         <input type="hidden" name="ticketId" value={ticketId} />
         <FormAlert state={state.status === "error" ? state : IDLE_ACTION_STATE} />
-        <TextareaField name="body" label="Votre réponse" state={state} rows={3} required />
+        <TextareaField name="body" label="Votre réponse" state={state} rows={2} required />
         <div className="flex justify-end">
           <SubmitButton>Envoyer</SubmitButton>
         </div>

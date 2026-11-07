@@ -21,7 +21,7 @@ export function uptimeLabel(site: SiteSummary, now: Date): string {
     : value;
 }
 
-/** Carte de l'écran 10 : aperçu `--accent-pale` avec le domaine, pas de vraie capture. */
+/** Carte de l'écran 10. Sans capture réelle, pas de bandeau d'aperçu : le domaine est le titre. */
 export function SiteCard({ site, now }: { site: SiteSummary; now: Date }) {
   const label = site.primaryDomain ?? site.name;
   const badge = siteHealthBadge(site, now);
@@ -37,9 +37,6 @@ export function SiteCard({ site, now }: { site: SiteSummary; now: Date }) {
 
   return (
     <article className="anim-content relative flex min-w-0 flex-col gap-4 rounded-xl bg-surface p-6 shadow-soft transition-shadow duration-(--dur-fast) hover:shadow-float">
-      <div className="flex h-[120px] items-start rounded-lg bg-accent-pale p-4">
-        <span className="truncate font-mono text-sm text-accent">{label}</span>
-      </div>
       <div className="flex items-start justify-between gap-3">
         <div className="min-w-0">
           <h2 className="truncate text-base font-semibold text-ink">

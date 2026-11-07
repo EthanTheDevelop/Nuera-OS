@@ -189,36 +189,38 @@ export default async function ProjectsPage({
         </FilterBar>
       </PageHeader>
 
-      <DataTable
-        caption="Projets"
-        columns={columns}
-        rows={items}
-        rowKey={(project) => project.id}
-        rowHref={(project) => `/projets/${project.id}`}
-        rowHeight="lg"
-        query={{ pathname: PATH, searchParams: params }}
-        pagination={total > pageSize ? { page, pageSize, total } : undefined}
-        empty={
-          <EmptyState compact icon="projets" title={copy.title} description={copy.description} />
-        }
-      />
+      <div className="grid items-start gap-(--grid-gap) min-[1808px]:grid-cols-[minmax(0,1fr)_minmax(0,640px)]">
+        <DataTable
+          caption="Projets"
+          columns={columns}
+          rows={items}
+          rowKey={(project) => project.id}
+          rowHref={(project) => `/projets/${project.id}`}
+          rowHeight="lg"
+          query={{ pathname: PATH, searchParams: params }}
+          pagination={total > pageSize ? { page, pageSize, total } : undefined}
+          empty={
+            <EmptyState compact icon="projets" title={copy.title} description={copy.description} />
+          }
+        />
 
-      {overview.load ? (
-        <Tile className="gap-3 rounded-lg p-6">
-          <h2 className="text-tile-title text-ink">
-            {capacity > 0
-              ? `Charge sur 6 semaines · ${formatNumber(capacity / MINUTES_PER_DAY, 1)} journées par semaine`
-              : "Charge sur 6 semaines"}
-          </h2>
-          {capacity > 0 ? (
-            <CapacityBars weeks={overview.load.weeks} />
-          ) : (
-            <p className="text-sm text-muted">
-              Renseignez la capacité de l’équipe pour voir la charge à venir.
-            </p>
-          )}
-        </Tile>
-      ) : null}
+        {overview.load ? (
+          <Tile className="gap-3 rounded-lg p-6">
+            <h2 className="text-tile-title text-ink">
+              {capacity > 0
+                ? `Charge sur 6 semaines · ${formatNumber(capacity / MINUTES_PER_DAY, 1)} journées par semaine`
+                : "Charge sur 6 semaines"}
+            </h2>
+            {capacity > 0 ? (
+              <CapacityBars weeks={overview.load.weeks} />
+            ) : (
+              <p className="text-sm text-muted">
+                Renseignez la capacité de l’équipe pour voir la charge à venir.
+              </p>
+            )}
+          </Tile>
+        ) : null}
+      </div>
     </div>
   );
 }

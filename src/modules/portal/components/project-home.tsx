@@ -1,5 +1,11 @@
 import type { ReactNode } from "react";
-import { PortalCard } from "@/components/portal/portal-card";
+import {
+  PORTAL_FILL,
+  PORTAL_PAGE,
+  PORTAL_ROW,
+  PORTAL_SCROLL,
+  PortalCard,
+} from "@/components/portal/portal-card";
 import { EmptyState } from "@/components/states/states";
 import { AvatarStack } from "@/components/ui/avatar";
 import { Badge } from "@/components/ui/badge";
@@ -63,22 +69,24 @@ function Hero({
   const promise =
     project.dueOn && !project.deliveredOn ? deliveryPromise(project.dueOn, now) : null;
   return (
-    <header className="flex flex-wrap items-end justify-between gap-6">
-      <div className="max-w-[640px] min-w-0">
-        <h1 className="text-[32px] leading-[1.25] font-bold text-ink sm:text-[44px]">{greeting}</h1>
-        <p className="mt-2 text-lg leading-[1.4] font-normal text-muted">{chapo(home)}</p>
+    <header className="flex flex-wrap items-end justify-between gap-6 lg:flex-nowrap">
+      <div className="max-w-[640px] min-w-0 lg:max-w-none lg:flex-1">
+        <h1 className="text-[32px] leading-[1.25] font-bold text-ink sm:text-[44px] lg:text-[length:var(--portal-title)]">
+          {greeting}
+        </h1>
+        <p className="mt-2 text-lg leading-[1.4] font-normal text-muted lg:mt-1">{chapo(home)}</p>
       </div>
       {project.deliveredOn ? (
-        <div className="sm:text-right">
+        <div className="sm:text-right lg:shrink-0">
           <p className="text-sm text-muted">Mise en ligne</p>
-          <p className="text-[28px] leading-[1.25] font-bold text-ink sm:text-[36px]">
+          <p className="text-[28px] leading-[1.25] font-bold text-ink sm:text-[36px] lg:text-[length:var(--portal-figure)]">
             {formatDayMonth(project.deliveredOn)}
           </p>
         </div>
       ) : project.dueOn && promise ? (
-        <div className="sm:text-right">
+        <div className="sm:text-right lg:shrink-0">
           <p className="text-sm text-muted">Mise en ligne prévue</p>
-          <p className="text-[28px] leading-[1.25] font-bold text-ink sm:text-[36px]">
+          <p className="text-[28px] leading-[1.25] font-bold text-ink sm:text-[36px] lg:text-[length:var(--portal-figure)]">
             {formatDayMonth(project.dueOn)}
           </p>
           <p
@@ -100,7 +108,7 @@ function PathCard({ home }: { home: PortalProjectHome }) {
   const { phases, stepLabel } = home.project;
   if (phases.length === 0) {
     return (
-      <PortalCard title="Le chemin de votre projet">
+      <PortalCard id="parcours" title="Le chemin de votre projet">
         <EmptyState
           compact
           icon="flag"
@@ -121,11 +129,18 @@ function PathCard({ home }: { home: PortalProjectHome }) {
   }));
   return (
     <PortalCard
+      id="parcours"
       title="Le chemin de votre projet"
       aside={`Étape ${position} sur ${phases.length}`}
-      className="gap-5"
+      className="gap-5 lg:gap-0 lg:py-4"
     >
-      <StepTimeline variant="client" steps={steps} label="Avancement du projet" />
+      {/* Le rail est placé en pixels : ses repères gardent l'échelle d'origine. */}
+      <StepTimeline
+        variant="client"
+        steps={steps}
+        label="Avancement du projet"
+        className="lg:pb-[max(0px,calc(var(--portal-u)*2-14px))] lg:[--spacing:0.25rem]"
+      />
     </PortalCard>
   );
 }
@@ -149,17 +164,18 @@ function ContentsCard({
     <PortalCard
       id="a-vous"
       title="À vous de jouer"
+      className={PORTAL_FILL}
       description={
         expected.length > 0
           ? "S'ils arrivent plus tard, la mise en ligne recule d'autant, et nous vous le disons tout de suite."
           : "Tout est bien reçu, merci. Rien d'autre à faire pour l'instant."
       }
     >
-      <ul className="flex flex-col">
+      <ul className={`flex flex-col ${PORTAL_SCROLL}`}>
         {requirements.map((item, index) => (
           <li
             key={item.id}
-            className="flex flex-wrap items-center gap-x-4 gap-y-2 border-t border-border py-4 last:pb-0"
+            className="flex flex-wrap items-center gap-x-4 gap-y-2 border-t border-border py-4 last:pb-0 lg:flex-[1_0_auto]"
           >
             {item.status === "received" ? (
               <span
@@ -223,8 +239,14 @@ function AppointmentCard({ home, readOnly }: { home: PortalProjectHome; readOnly
   const appointment = home.nextAppointment;
   if (!appointment) {
     return (
-      <PortalCard title="Prochain rendez-vous">
-        <p className="text-sm text-muted">Aucun rendez-vous prévu pour l&apos;instant.</p>
+      <PortalCard
+        title="Prochain rendez-vous"
+        className={readOnly ? "lg:flex-1" : "lg:flex-1 lg:justify-between"}
+      >
+        <p className="text-sm text-muted">
+          Aucun rendez-vous prévu pour l&apos;instant.
+          {readOnly ? "" : " Besoin d'en parler de vive voix ? Proposez-nous un créneau."}
+        </p>
         {readOnly ? null : (
           <div>
             <CompactLink
@@ -242,7 +264,7 @@ function AppointmentCard({ home, readOnly }: { home: PortalProjectHome; readOnly
   const weekday = APPOINTMENT_DAY.format(appointment.startsAt);
   const draft = `Bonjour, pourrions-nous déplacer le rendez-vous « ${appointment.title} » du ${formatDateShort(appointment.startsAt)} ? Je vous propose : `;
   return (
-    <PortalCard title="Prochain rendez-vous" className="gap-5">
+    <PortalCard title="Prochain rendez-vous" className="gap-5 lg:flex-1 lg:justify-between">
       <div className="flex items-center gap-4">
         <div className="flex size-14 shrink-0 flex-col items-center justify-center rounded-md bg-accent-pale text-accent">
           <span className="text-xs leading-[1.25]">
@@ -304,8 +326,10 @@ function DeliverablePreview({ item }: { item: PortalDeliverableView }) {
       ? documentPreviewHref(document.id)
       : null;
   return (
-    <div className="overflow-hidden rounded-lg border border-border">
-      <div className="flex items-center gap-1.5 border-b border-border px-3 py-2.5">
+    <div
+      className={`flex flex-col overflow-hidden rounded-lg border border-border lg:min-h-[140px] ${PORTAL_FILL}`}
+    >
+      <div className="flex shrink-0 items-center gap-1.5 border-b border-border px-3 py-2.5">
         <span aria-hidden="true" className="size-1.5 rounded-full bg-border" />
         <span aria-hidden="true" className="size-1.5 rounded-full bg-border" />
         <span aria-hidden="true" className="size-1.5 rounded-full bg-border" />
@@ -314,10 +338,17 @@ function DeliverablePreview({ item }: { item: PortalDeliverableView }) {
         </span>
       </div>
       {image ? (
-        // eslint-disable-next-line @next/next/no-img-element -- aperçu authentifié, hors optimiseur
-        <img src={image} alt={`Aperçu : ${item.title}`} className="block h-auto w-full" />
+        <div className="lg:relative lg:min-h-0 lg:flex-1">
+          {/* À hauteur d'écran, l'image entière tient dans le cadre. */}
+          {/* eslint-disable-next-line @next/next/no-img-element -- aperçu authentifié, hors optimiseur */}
+          <img
+            src={image}
+            alt={`Aperçu : ${item.title}`}
+            className="block h-auto w-full lg:absolute lg:inset-0 lg:h-full lg:object-contain"
+          />
+        </div>
       ) : (
-        <div className="flex min-h-40 flex-col items-center justify-center gap-3 bg-surface-raised p-6 text-center">
+        <div className="flex min-h-40 flex-col items-center justify-center gap-3 bg-surface-raised p-6 text-center lg:min-h-0 lg:flex-1 lg:p-3">
           <Icon name="devis" size={24} className="text-accent" />
           {document ? (
             <CompactLink
@@ -350,7 +381,7 @@ function DeliverableCard({
 }) {
   const note = roundsNote(item);
   return (
-    <PortalCard title={item.title} className="gap-4">
+    <PortalCard title={item.title} className={`gap-4 ${PORTAL_FILL}`}>
       <p className="-mt-2 text-sm text-muted">
         Version {item.version} · reçue {formatRelativeDate(item.updatedAt)}
       </p>
@@ -371,12 +402,15 @@ function DeliverableCard({
 function ReviewedCard({ items }: { items: readonly PortalDeliverableView[] }) {
   if (items.length === 0) return null;
   return (
-    <PortalCard title="Vos retours">
-      <ul className="flex flex-col gap-3">
+    <PortalCard title="Vos retours" className={PORTAL_FILL}>
+      <ul className={`flex flex-col gap-3 ${PORTAL_SCROLL}`}>
         {items.map((item) => (
           <li key={item.id} className="flex items-center justify-between gap-3">
             <div className="min-w-0">
-              <p className="truncate text-sm font-medium text-ink">
+              <p
+                className="line-clamp-2 text-sm font-medium break-words text-ink"
+                title={`${item.title} · version ${item.version}`}
+              >
                 {item.title} · version {item.version}
               </p>
               {item.decidedAt ? (
@@ -394,11 +428,10 @@ function ReviewedCard({ items }: { items: readonly PortalDeliverableView[] }) {
     </PortalCard>
   );
 }
-
 function PaymentsCard({ home }: { home: PortalProjectHome }) {
   if (!home.payments) {
     return (
-      <PortalCard title="Paiements">
+      <PortalCard title="Paiements" className="lg:flex-1">
         <p className="text-sm text-muted">
           Le client voit ici ce qu&apos;il a réglé. Ces montants sont réservés aux personnes qui ont
           accès aux finances.
@@ -409,7 +442,7 @@ function PaymentsCard({ home }: { home: PortalProjectHome }) {
   const { paidCents, totalCents, remainingCents, items } = home.payments;
   if (totalCents === null) {
     return (
-      <PortalCard title="Paiements">
+      <PortalCard title="Paiements" className="lg:flex-1">
         <p className="text-sm text-muted">Les échéances de ce projet s&apos;afficheront ici.</p>
       </PortalCard>
     );
@@ -417,7 +450,7 @@ function PaymentsCard({ home }: { home: PortalProjectHome }) {
   const percent = ratioPercent(paidCents, totalCents) ?? 0;
   const next = items.find((item) => item.status !== "paid");
   return (
-    <PortalCard title="Paiements">
+    <PortalCard title="Paiements" className="lg:flex-1 lg:justify-between">
       <p className="flex flex-wrap items-baseline gap-x-2">
         <span className="text-figure font-bold text-ink">{formatCents(paidCents)}</span>
         <span className="text-sm text-muted">réglés sur {formatCents(totalCents)} HT</span>
@@ -444,11 +477,11 @@ function PaymentsCard({ home }: { home: PortalProjectHome }) {
 function InterlocutorsCard({ home, readOnly }: { home: PortalProjectHome; readOnly: boolean }) {
   const people = home.project.interlocutors;
   return (
-    <PortalCard title="Vos interlocuteurs" className="gap-4">
+    <PortalCard title="Vos interlocuteurs" className="gap-4 lg:flex-1 lg:justify-between lg:gap-2">
       {people.length > 0 ? (
-        <div className="flex items-center gap-3">
+        <div className="flex flex-wrap items-center gap-x-3 gap-y-2">
           <AvatarStack people={people.map((person) => ({ name: person.fullName }))} />
-          <div className="min-w-0">
+          <div className="min-w-[12rem] flex-1">
             <p className="text-base font-semibold text-ink">
               {joinNames(people.map((person) => person.fullName))}
             </p>
@@ -492,16 +525,19 @@ export function ProjectHome({
   const toValidate = home.deliverables.filter((item) => item.status === "to_validate");
   const reviewed = home.deliverables.filter((item) => item.status !== "to_validate");
   return (
-    <div className="flex flex-col gap-6">
+    <div className={PORTAL_PAGE}>
       {switcher}
       <Hero home={home} greeting={greeting} now={now} />
       <PathCard home={home} />
-      <div className="grid gap-6 lg:grid-cols-[minmax(0,856fr)_minmax(0,480fr)]">
-        <div className="flex min-w-0 flex-col gap-6">
-          <ContentsCard home={home} readOnly={readOnly} now={now} />
-          <AppointmentCard home={home} readOnly={readOnly} />
-        </div>
-        <div id="a-valider" className="flex min-w-0 scroll-mt-28 flex-col gap-6">
+      {/* Quatre colonnes de largeur égale : une section absente libère sa place. */}
+      <div
+        className={`${PORTAL_ROW} lg:auto-rows-[minmax(0,1fr)] lg:grid-cols-2 xl:auto-cols-[minmax(0,1fr)] xl:grid-flow-col xl:grid-cols-none`}
+      >
+        <ContentsCard home={home} readOnly={readOnly} now={now} />
+        <div
+          id="a-valider"
+          className="flex min-w-0 scroll-mt-28 flex-col gap-6 empty:hidden lg:min-h-64 lg:overflow-y-auto"
+        >
           {toValidate.length > 0 ? (
             toValidate.map((item) => (
               <DeliverableCard
@@ -518,12 +554,15 @@ export function ProjectHome({
               </p>
             </PortalCard>
           ) : null}
+        </div>
+        <div className="flex min-w-0 flex-col gap-6 lg:gap-4">
+          <AppointmentCard home={home} readOnly={readOnly} />
+          <InterlocutorsCard home={home} readOnly={readOnly} />
+        </div>
+        <div className="flex min-w-0 flex-col gap-6 lg:gap-4">
+          <PaymentsCard home={home} />
           <ReviewedCard items={reviewed} />
         </div>
-      </div>
-      <div className="grid gap-6 md:grid-cols-2">
-        <PaymentsCard home={home} />
-        <InterlocutorsCard home={home} readOnly={readOnly} />
       </div>
     </div>
   );

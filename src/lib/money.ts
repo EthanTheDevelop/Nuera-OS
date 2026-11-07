@@ -3,7 +3,8 @@
  * Fonctions pures, utilisables côté serveur et côté client. Aucun calcul en virgule flottante
  * n'est stocké : on arrondit au centime dès qu'un pourcentage intervient.
  */
-const LOCALE = "fr-FR";
+// fr-CA : même format que fr-FR, mais une espace insécable normale. Outfit dessine l'espace fine de fr-FR (U+202F) presque sans largeur, et 2340 € se lit collé.
+const LOCALE = "fr-CA";
 const EMPTY = "—";
 
 const WHOLE = new Intl.NumberFormat(LOCALE, {
@@ -33,7 +34,7 @@ export function formatCents(
   if (cents === null || cents === undefined || !Number.isFinite(cents)) return EMPTY;
   const mode = options.cents ?? "auto";
   const showCents = mode === "always" || (mode === "auto" && cents % 100 !== 0);
-  return (showCents ? WITH_CENTS : WHOLE).format(cents / 100);
+  return (showCents ? WITH_CENTS : WHOLE).format(cents / 100).replace("-", "−");
 }
 
 /** « 7 800 € HT ». */

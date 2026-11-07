@@ -38,6 +38,7 @@ export function Gauge({
   height = 5,
   label,
   valueText,
+  showValue = false,
   index = 0,
   className,
 }: {
@@ -48,11 +49,13 @@ export function Gauge({
   label: string;
   /** Valeur annoncée (`78 %`, `14 sur 18 journées`). */
   valueText?: string;
+  /** Affiche `valueText` à droite de la barre (sinon il n'est que annoncé). */
+  showValue?: boolean;
   /** Rang dans une cascade de jauges. */
   index?: number;
   className?: string;
 }) {
-  return (
+  const bar = (
     <div
       role="progressbar"
       aria-label={label}
@@ -63,7 +66,7 @@ export function Gauge({
       className={cn(
         "w-full overflow-hidden rounded-gauge bg-surface-raised",
         height === 5 ? "h-[5px]" : "h-2",
-        className,
+        showValue && valueText ? "min-w-0 flex-1" : className,
       )}
     >
       <GrowBar
@@ -71,6 +74,15 @@ export function Gauge({
         index={index}
         className={cn("h-full", FILL[tone])}
       />
+    </div>
+  );
+  if (!showValue || !valueText) return bar;
+  return (
+    <div className={cn("flex w-full items-center gap-3", className)}>
+      {bar}
+      <span aria-hidden="true" className="shrink-0 text-xs text-text tabular-nums">
+        {valueText}
+      </span>
     </div>
   );
 }

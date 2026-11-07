@@ -34,9 +34,9 @@ const QUIET_CONTROL = "h-9 border-transparent bg-transparent pl-0 text-sm hover:
 
 function FieldRow({ label, children }: { label: string; children: ReactNode }) {
   return (
-    <div className="grid min-h-8 grid-cols-[104px_minmax(0,1fr)] items-center gap-2 sm:grid-cols-[152px_minmax(0,1fr)]">
-      <dt className="text-sm text-muted">{label}</dt>
-      <dd className="min-w-0 text-base text-text">{children}</dd>
+    <div className="grid min-h-8 grid-cols-[104px_minmax(0,1fr)] items-start gap-2 sm:grid-cols-[152px_minmax(0,1fr)]">
+      <dt className="flex min-h-8 items-center text-sm text-muted">{label}</dt>
+      <dd className="flex min-h-8 min-w-0 items-center text-base text-text">{children}</dd>
     </div>
   );
 }
@@ -47,7 +47,7 @@ function Dependencies({ task }: { task: TaskDetail }) {
   const linked = new Set(task.dependsOn.map((dependency) => dependency.id));
   const options = task.options.tasks.filter((option) => !linked.has(option.id));
   return (
-    <div className="flex flex-col gap-1">
+    <div className="flex min-w-0 flex-1 flex-col gap-1">
       {task.dependsOn.length === 0 && !editable ? <span>—</span> : null}
       {task.dependsOn.map((dependency) => (
         <span key={dependency.id} className="flex items-center gap-2">
@@ -61,7 +61,7 @@ function Dependencies({ task }: { task: TaskDetail }) {
               disabled={pending}
               aria-label={`Retirer la dépendance ${dependency.title}`}
               onClick={() => run(() => removeTaskDependencyAction(task.id, dependency.id))}
-              className="hit-44 shrink-0 rounded-sm text-muted hover:text-danger"
+              className="hit-44 grid size-7 shrink-0 place-items-center rounded-sm border border-border text-muted hover:border-danger hover:text-danger"
             >
               <Icon name="minus" size={14} />
             </button>
@@ -346,7 +346,7 @@ export function TaskWindow({
           {team.length > 0 ? (
             <>
               Équipe
-              <AvatarStack people={team} size={28} max={4} />
+              <AvatarStack people={team} size={28} max={4} className="-space-x-1" />
             </>
           ) : null}
         </div>

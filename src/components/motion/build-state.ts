@@ -22,6 +22,19 @@ function write(memory: BuildMemory): void {
   }
 }
 
+export const PAGE_ID_PATTERN = "[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}";
+export const MESSAGES_THREAD_PATTERN = "^/messages/:id$";
+
+/**
+ * Clé de la cascade : toutes les fiches d'un type comptent pour une seule page, et une conversation
+ * est le même écran que la boîte. Même calcul dans `build-script.tsx`, avant le premier rendu.
+ */
+export function pageBuildKey(pathname: string): string {
+  return pathname
+    .replace(new RegExp(PAGE_ID_PATTERN, "gi"), ":id")
+    .replace(new RegExp(MESSAGES_THREAD_PATTERN), "/messages");
+}
+
 export function isPageSeen(key: string): boolean {
   return read().pages?.[key] === true;
 }

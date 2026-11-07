@@ -135,6 +135,29 @@ export async function upsertPreferences(
     .onConflictDoUpdate({ target: portalPreferences.userId, set: values });
 }
 
+/**
+ * Ligne de préférences du client, créée au besoin et verrouillée : deux conseils fermés coup sur coup
+ * ne s'écrasent pas. À appeler dans une transaction.
+ */
+export async function lockPreferences(tx: Database, userId: string): Promise<PortalPreferences> {
+  await tx.insert(portalPreferences).values({ userId }).onConflictDoNothing();
+  const [row] = await tx
+    .select()
+    .from(portalPreferences)
+    .where(eq(portalPreferences.userId, userId))
+    .for("update");
+  if (!row) throw new Error("Préférences du portail introuvables après création.");
+  return row;
+}
+
+export async function updateGuideState(
+  tx: Database,
+  userId: string,
+  values: Partial<Pick<PortalPreferences, "guideCompletedAt" | "dismissedTips">>,
+): Promise<void> {
+  await tx.update(portalPreferences).set(values).where(eq(portalPreferences.userId, userId));
+}
+
 /** Clients à prévenir pour une entreprise, avec leurs préférences. Révoqués et bannis exclus. */
 export async function listRecipients(db: Database, companyId: string) {
   return db

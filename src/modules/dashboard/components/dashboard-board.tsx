@@ -460,9 +460,9 @@ function GalleryItem({
 
 /**
  * Tableau de bord (écrans 01 et 06). La poignée n'existe qu'en édition, où rien n'est enregistré
- * avant « Terminé » : le serveur valide, « Annuler » abandonne. Le panneau de la galerie se réduit
- * le temps de l'édition, et le tableau reprend alors la largeur libérée. Pendant un geste, la grille
- * montre ses emplacements libres et celui où la tuile va se poser, comme l'écran d'accueil d'iOS.
+ * avant « Terminé » : le serveur valide, « Annuler » abandonne. Le panneau de la galerie flotte
+ * au-dessus du tableau sans le déplacer, se réduit, et s'efface pendant un geste. La grille montre
+ * alors ses emplacements libres et celui où la tuile va se poser, comme l'écran d'accueil d'iOS.
  */
 export function DashboardBoard({ data, editing }: { data: DashboardData; editing: boolean }) {
   const router = useRouter();
@@ -622,9 +622,7 @@ export function DashboardBoard({ data, editing }: { data: DashboardData; editing
       session.lastReflow = performance.now();
       const metrics = measureGrid(board);
       const { x, y } = session.pointer;
-      const outside =
-        !isInside(metrics.rect, x, y, metrics.gap) ||
-        isInside(panel.current?.getBoundingClientRect(), x, y);
+      const outside = !isInside(metrics.rect, x, y, metrics.gap);
       let at: number | null = null;
       if (!outside) {
         const target = cellAt(metrics, x - session.grab.x, y - session.grab.y);
@@ -808,10 +806,12 @@ export function DashboardBoard({ data, editing }: { data: DashboardData; editing
           ref={panel}
           aria-label="Galerie de tuiles"
           className={cn(
-            "z-30 mb-6 flex rounded-xl bg-surface shadow-float lg:fixed lg:top-3 lg:right-3 lg:mb-0",
+            "fixed right-3 z-30 flex rounded-xl bg-surface shadow-float transition-opacity duration-(--dur-fast) max-lg:left-3 lg:top-3",
             galleryOpen
-              ? "flex-col gap-4 p-6 lg:bottom-3 lg:w-[360px]"
-              : "flex-wrap items-center justify-between gap-3 p-3",
+              ? "bottom-3 flex-col gap-4 p-6 lg:w-[360px]"
+              : "flex-wrap items-center justify-between gap-3 p-3 max-lg:bottom-3",
+            // Pendant un geste, le panneau s'efface : les emplacements dessous restent atteignables.
+            gesture && "pointer-events-none opacity-0",
           )}
         >
           <div className="flex items-center justify-between gap-3">
@@ -864,13 +864,8 @@ export function DashboardBoard({ data, editing }: { data: DashboardData; editing
         </aside>
       ) : null}
 
-      <div
-        className={cn(
-          "@container",
-          // Le panneau flotte à droite : le tableau lui laisse sa place, et la reprend quand il se réduit.
-          editing && galleryOpen && "lg:pr-[364px]",
-        )}
-      >
+      {/* Le panneau flotte au-dessus du tableau : ouvert ou réduit, aucune tuile ne bouge. */}
+      <div className={cn("@container", editing && "max-lg:pb-24")}>
         <div ref={grid} className={cn(TILE_GRID, "relative grid-flow-row-dense auto-rows-[168px]")}>
           {slots.map((cell) => (
             <TileSlot key={`${cell.column}:${cell.row}`} style={placementStyle(cell)} />

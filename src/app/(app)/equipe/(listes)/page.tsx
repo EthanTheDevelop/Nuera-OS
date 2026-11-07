@@ -74,11 +74,21 @@ export default async function TeamPage({
     .filter(Boolean)
     .join(", ");
 
+  // Les fiches affichées incluent les membres inactifs, que les compteurs ne comptent pas.
+  const inactive = Math.max(
+    0,
+    overview.members.total - overview.counts.partner - overview.counts.employee,
+  );
+  const inactiveNote =
+    inactive > 0
+      ? ` (+ ${inactive} fiche${inactive > 1 ? "s" : ""} inactive${inactive > 1 ? "s" : ""} non comptée${inactive > 1 ? "s" : ""})`
+      : "";
+
   return (
     <>
       <PageHeader
         title="Équipe"
-        subtitle={`${summary || "Aucun membre actif"} · qui fait quoi, et qui est disponible`}
+        subtitle={`${summary || "Aucun membre actif"}${inactiveNote} · qui fait quoi, et qui est disponible`}
         actions={
           access.canManage && options ? (
             <>

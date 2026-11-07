@@ -64,7 +64,9 @@ const columns: DataTableColumn<CompanyListRow>[] = [
     width: 170,
     hideWhenCollapsed: true,
     cell: ({ leadOpportunity }) => (
-      <span className="block truncate">{leadOpportunity?.name ?? "—"}</span>
+      <span className="block truncate" title={leadOpportunity?.name ?? undefined}>
+        {leadOpportunity?.name ?? "—"}
+      </span>
     ),
   },
   {

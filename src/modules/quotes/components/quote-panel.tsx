@@ -261,19 +261,21 @@ export function QuotePanel({
         <Subsection title="Suivi">
           <div className="flex flex-wrap items-center gap-2">
             <StatusBadge kind="quote" status={quote.status} />
-            <StatusBadge kind="signature" status={quote.signatureStatus}>
-              {quote.signatureStatus === "unavailable"
-                ? "Signature hors DocuSeal"
-                : `Signature · ${
-                    {
-                      none: "non demandée",
-                      pending: "en attente",
-                      signed: "signée",
-                      declined: "refusée",
-                      unavailable: "",
-                    }[quote.signatureStatus]
-                  }`}
-            </StatusBadge>
+            {quote.status === "accepted" && quote.signatureStatus === "signed" ? null : (
+              <StatusBadge kind="signature" status={quote.signatureStatus}>
+                {quote.signatureStatus === "unavailable"
+                  ? "Signature hors DocuSeal"
+                  : `Signature · ${
+                      {
+                        none: "non demandée",
+                        pending: "en attente",
+                        signed: "signée",
+                        declined: "refusée",
+                        unavailable: "",
+                      }[quote.signatureStatus]
+                    }`}
+              </StatusBadge>
+            )}
           </div>
           <InfoRows
             rows={[

@@ -113,7 +113,7 @@ export function ProjectSection({ section }: { section: CompanyRelated["projects"
       id: phase.id,
       title: phase.name,
       state,
-      detail: state === "done" ? "fait" : state === "current" ? "en cours" : "à venir",
+      detail: state === "done" ? "fait" : state === "current" ? "en cours" : undefined,
     };
   });
   const facts = [

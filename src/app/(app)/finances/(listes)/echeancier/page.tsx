@@ -90,10 +90,15 @@ export default async function SchedulePage({
             header: "Client · objet",
             cell: (row) => (
               <span className="block truncate">
-                {row.companyName}
-                {row.projectName || row.contractName
-                  ? ` · ${row.projectName ?? row.contractName}`
-                  : ""}
+                {[
+                  row.companyName,
+                  (row.projectName ?? row.contractName ?? "")
+                    .replace(row.companyName, "")
+                    .replace(/^\s*[·\-–—:]\s*/, "")
+                    .trim() || null,
+                ]
+                  .filter(Boolean)
+                  .join(" · ")}
               </span>
             ),
           },
@@ -116,7 +121,9 @@ export default async function SchedulePage({
             cell: (row) => (
               <span className="tabular">
                 {formatCents(row.invoicedCents)}
-                {row.documentCount > 0 ? ` · ${row.documentCount}` : ""}
+                {row.documentCount > 0
+                  ? ` · ${row.documentCount} facture${row.documentCount > 1 ? "s" : ""}`
+                  : ""}
               </span>
             ),
           },

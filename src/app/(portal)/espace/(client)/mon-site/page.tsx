@@ -1,12 +1,20 @@
 import type { Metadata } from "next";
 import Link from "next/link";
-import { PortalCard, PortalPageHeader } from "@/components/portal/portal-card";
+import {
+  PORTAL_FILL,
+  PORTAL_PAGE,
+  PORTAL_ROW,
+  PORTAL_SCROLL,
+  PortalCard,
+  PortalPageHeader,
+} from "@/components/portal/portal-card";
 import { EmptyState } from "@/components/states/states";
 import { Badge } from "@/components/ui/badge";
 import { CompactLink } from "@/components/ui/compact-button";
 import { formatDateShort, formatMinutes } from "@/lib/format";
 import { formatCents } from "@/lib/money";
 import { paramValue } from "@/lib/url-state";
+import { PortalPageTip } from "@/modules/portal/components/page-tip";
 import { SiteChangeRequest } from "@/modules/portal/components/site-change";
 import { NewTicketButton } from "@/modules/portal/components/ticket-forms";
 import {
@@ -58,7 +66,8 @@ export default async function PortalSitePage({
   const plannedOn = home.projects.find((project) => project.id === site?.projectId)?.dueOn;
 
   return (
-    <div className="flex flex-col gap-6">
+    <div className={PORTAL_PAGE}>
+      <PortalPageTip tip="mon-site" />
       <PortalPageHeader
         title="Mon site"
         subtitle={site ? siteSubtitle(site, plannedOn) : undefined}
@@ -84,7 +93,9 @@ export default async function PortalSitePage({
           ))}
         </nav>
       ) : null}
-      <div className="grid gap-6 lg:grid-cols-[minmax(0,856fr)_minmax(0,480fr)]">
+      <div
+        className={`${PORTAL_ROW} lg:grid-cols-2 xl:grid-cols-[minmax(0,1.3fr)_minmax(0,1fr)_minmax(0,1fr)]`}
+      >
         {site ? (
           <PortalCard
             title="Modifier mon site"
@@ -100,22 +111,23 @@ export default async function PortalSitePage({
             description="Il apparaîtra dès sa mise en préproduction. En attendant, vous pouvez nous écrire ou ouvrir une demande."
           />
         )}
-        <div className="flex min-w-0 flex-col gap-6">
-          <PortalCard title="Mes demandes" className="gap-4">
+        <div className="flex min-w-0 flex-col gap-6 xl:contents">
+          <PortalCard title="Mes demandes" className={`gap-4 ${PORTAL_FILL}`}>
             {tickets.length > 0 ? (
-              <ul className="flex flex-col gap-4">
+              <ul className={`flex flex-col gap-4 ${PORTAL_SCROLL}`}>
                 {tickets.slice(0, 5).map((ticket) => {
                   const status = clientTicketStatus(ticket.status);
                   return (
                     <li
                       key={ticket.id}
-                      className={`relative flex items-center gap-3 ${
+                      className={`relative flex items-center gap-3 lg:flex-[1_0_auto] lg:border-t lg:border-border lg:first:border-t-0 ${
                         isJustSent(ticket.createdAt) ? "anim-enter-8" : ""
                       }`}
                     >
                       <div className="min-w-0 flex-1">
                         <Link
                           href={`/espace/demandes/${ticket.id}`}
+                          title={ticket.subject}
                           className="block truncate text-base font-semibold text-ink after:absolute after:inset-0"
                         >
                           {ticket.subject}
@@ -128,7 +140,10 @@ export default async function PortalSitePage({
                 })}
               </ul>
             ) : (
-              <p className="text-sm text-muted">Aucune demande pour l&apos;instant.</p>
+              <p className={`text-sm text-muted ${PORTAL_FILL}`}>
+                Aucune demande pour l&apos;instant. Un souci, une question : ouvrez-en une, vous
+                suivez ici son avancement.
+              </p>
             )}
             <div className="flex flex-wrap items-center gap-3">
               <NewTicketButton
@@ -142,39 +157,44 @@ export default async function PortalSitePage({
               ) : null}
             </div>
           </PortalCard>
-          <PortalCard title="Hébergement et maintenance" className="gap-3">
+          <PortalCard title="Hébergement et maintenance" className={`gap-3 ${PORTAL_FILL}`}>
             {contracts.length > 0 ? (
-              contracts.map((contract) => (
-                <div key={contract.id} className="flex flex-col gap-1.5">
-                  <p className="text-base font-semibold text-ink">{contract.name}</p>
-                  <p className="text-sm text-muted">
-                    {formatCents(contract.priceCents)} HT {PERIOD[contract.period]}
-                    {contract.nextDueOn
-                      ? ` · échéance le ${formatDateShort(contract.nextDueOn)}`
-                      : ""}
-                  </p>
-                  {contract.scope ? <p className="text-sm text-muted">{contract.scope}</p> : null}
-                  {contract.exclusions ? (
-                    <p className="text-sm text-muted">Non inclus : {contract.exclusions}</p>
-                  ) : null}
-                  {contract.responseHours ? (
+              <div className={`flex flex-col gap-3 ${PORTAL_SCROLL}`}>
+                {contracts.map((contract) => (
+                  <div key={contract.id} className="flex flex-col gap-1.5">
+                    <p className="text-base font-semibold text-ink">{contract.name}</p>
                     <p className="text-sm text-muted">
-                      Réponse sous {contract.responseHours} h
-                      {contract.resolutionHours
-                        ? `, résolution sous ${contract.resolutionHours} h`
+                      {formatCents(contract.priceCents)} HT {PERIOD[contract.period]}
+                      {contract.nextDueOn
+                        ? ` · échéance le ${formatDateShort(contract.nextDueOn)}`
                         : ""}
                     </p>
-                  ) : null}
-                  {contract.consumption.includedMinutes ? (
-                    <p className="text-sm text-muted">
-                      {formatMinutes(contract.consumption.consumedMinutes)} utilisées sur{" "}
-                      {formatMinutes(contract.consumption.includedMinutes)} sur la période
-                    </p>
-                  ) : null}
-                </div>
-              ))
+                    {contract.scope ? <p className="text-sm text-muted">{contract.scope}</p> : null}
+                    {contract.exclusions ? (
+                      <p className="text-sm text-muted">Non inclus : {contract.exclusions}</p>
+                    ) : null}
+                    {contract.responseHours ? (
+                      <p className="text-sm text-muted">
+                        Réponse sous {contract.responseHours} h
+                        {contract.resolutionHours
+                          ? `, résolution sous ${contract.resolutionHours} h`
+                          : ""}
+                      </p>
+                    ) : null}
+                    {contract.consumption.includedMinutes ? (
+                      <p className="text-sm text-muted">
+                        {formatMinutes(contract.consumption.consumedMinutes)} utilisées sur{" "}
+                        {formatMinutes(contract.consumption.includedMinutes)} sur la période
+                      </p>
+                    ) : null}
+                  </div>
+                ))}
+              </div>
             ) : (
-              <p className="text-sm text-muted">Aucun contrat actif pour l&apos;instant.</p>
+              <p className={`text-sm text-muted ${PORTAL_FILL}`}>
+                Aucun contrat actif pour l&apos;instant. Votre formule s&apos;affichera ici dès
+                qu&apos;elle sera en place.
+              </p>
             )}
             <p className="text-sm text-muted">
               Votre domaine reste à votre nom, votre site et son code vous appartiennent.

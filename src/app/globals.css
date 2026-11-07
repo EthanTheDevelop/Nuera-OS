@@ -596,6 +596,17 @@
     min-width: var(--table-min, 0);
   }
 
+  /* Très large : la première colonne prend 28 %, les autres se partagent le reste à parts égales. */
+  @container data-table (min-width: 1500px) {
+    .nu-table col:first-child {
+      width: 28% !important;
+    }
+
+    .nu-table col:not(:first-child) {
+      width: auto !important;
+    }
+  }
+
   /* Tableau replié en fiches sous 640 px de large (requête de conteneur). */
   @container data-table (max-width: 640px) {
     .nu-table {
@@ -933,6 +944,14 @@
   align-content: flex-start;
   height: 1.75rem;
   overflow: clip;
+  container: tile-header / inline-size;
+}
+
+/* Un badge qui ne tient pas à côté du titre s'efface, plutôt que de passer sous l'en-tête. */
+@container tile-header (max-width: 11rem) {
+  .tile-aside {
+    display: none;
+  }
 }
 
 .tile-header-main {
@@ -989,6 +1008,38 @@
 .tile-rows > li {
   flex: none;
   width: 100%;
+}
+
+/* Une note en segments reste sur deux lignes au plus, et ne coupe jamais un nom en deux. */
+.tile-note-items {
+  max-height: 2.5em;
+  overflow: clip;
+}
+
+/* Une tuile haute avec peu de lignes : elles se répartissent, sans dépasser une hauteur raisonnable. */
+@container tile-body (min-height: 12rem) {
+  .tile-rows > li {
+    display: flex;
+    flex: 1 0 auto;
+    flex-direction: column;
+    justify-content: center;
+    max-height: 3.25rem;
+  }
+}
+
+/* Tuile de trois rangées ou plus : les lignes peu nombreuses prennent un peu plus d'air. */
+@container tile-body (min-height: 17rem) {
+  .tile-rows > li {
+    max-height: 4rem;
+  }
+}
+
+/* Très grande tuile : le texte des lignes grandit un peu avec elle. */
+@container tile-body (min-height: 30rem) and (min-width: 18rem) {
+  .tile-rows > li {
+    max-height: 4rem;
+    zoom: 1.125;
+  }
 }
 
 .tile-rows > [data-clipped] {
@@ -1060,7 +1111,7 @@
 
   .tile-stack--split > .tile-primary {
     flex: 0 0 38%;
-    justify-content: center;
+    justify-content: flex-end;
   }
 
   .tile-stack--split > .tile-primary:only-child {
@@ -1101,4 +1152,25 @@
     overflow: hidden;
     text-overflow: ellipsis;
   }
+}
+
+/* Sidebar : fondu en bas de la navigation tant qu'elle peut défiler. */
+@property --nav-fade {
+  syntax: "<length>";
+  inherits: false;
+  initial-value: 0px;
+}
+@keyframes nav-fade-out {
+  from {
+    --nav-fade: 28px;
+  }
+  to {
+    --nav-fade: 0px;
+  }
+}
+nav[aria-label="Navigation principale"] {
+  mask-image: linear-gradient(to bottom, #000 calc(100% - var(--nav-fade)), transparent);
+  animation: nav-fade-out linear both;
+  animation-timeline: scroll(self block);
+  animation-range: 0 calc(100% - 0px);
 }

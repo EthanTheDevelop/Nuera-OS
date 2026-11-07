@@ -46,7 +46,7 @@ export function contentDisposition(
   return `${disposition}; filename="${fallback}"; filename*=UTF-8''${encoded}`;
 }
 
-const SIZE_FORMAT = new Intl.NumberFormat("fr-FR", { maximumFractionDigits: 1 });
+const SIZE_FORMAT = new Intl.NumberFormat("fr-CA", { maximumFractionDigits: 1 });
 
 export function formatFileSize(bytes: number | null | undefined): string {
   if (bytes === null || bytes === undefined) return "—";

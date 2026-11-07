@@ -131,7 +131,7 @@ export function ErrorState({
 /** Permission refusée : dit à qui s'adresser, ne révèle rien du contenu. */
 export function ForbiddenState({
   title = "Accès réservé",
-  description = "Votre rôle ne donne pas accès à cette page. Un associé peut modifier vos droits dans Administration.",
+  description = "Votre rôle ne donne pas accès à cette page. Demandez à un associé de modifier vos droits.",
   action,
   className,
 }: {
@@ -141,7 +141,13 @@ export function ForbiddenState({
   className?: string;
 }) {
   return (
-    <StateLayout icon="shield" tone="neutral" title={title} action={action} className={className}>
+    <StateLayout
+      icon="shield"
+      tone="neutral"
+      title={title}
+      action={action ?? <ButtonLink href="/">Retour au tableau de bord</ButtonLink>}
+      className={className}
+    >
       {description}
     </StateLayout>
   );

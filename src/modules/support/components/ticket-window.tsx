@@ -233,8 +233,12 @@ function TicketWindowBody({
             )}
           </FieldRow>
           <FieldRow label="Échéance">
-            {data.dueText ?? <span className="text-muted">Aucune</span>}
-            {data.overdueText ? <Badge tone="danger">{data.overdueText}</Badge> : null}
+            {closed ? (
+              <span className="text-muted">Sans objet (clôturée)</span>
+            ) : (
+              (data.dueText ?? <span className="text-muted">Aucune</span>)
+            )}
+            {data.overdueText && !closed ? <Badge tone="danger">{data.overdueText}</Badge> : null}
             {data.slaText ? (
               <span className="w-full text-xs text-muted">{data.slaText}</span>
             ) : null}

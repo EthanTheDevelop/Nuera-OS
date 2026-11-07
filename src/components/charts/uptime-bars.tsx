@@ -58,7 +58,7 @@ export function UptimeBars({
               {
                 label: "Disponibilité",
                 value: day.ratio,
-                text: `${new Intl.NumberFormat("fr-FR", { maximumFractionDigits: 2 }).format(day.ratio)} %`,
+                text: `${new Intl.NumberFormat("fr-CA", { maximumFractionDigits: 2 }).format(day.ratio)} %`,
               },
             ]),
       ])}

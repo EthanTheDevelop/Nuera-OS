@@ -60,7 +60,11 @@ const COLUMNS: DataTableColumn<CatalogItem>[] = [
     width: 90,
     align: "right",
     hideWhenCollapsed: true,
-    cell: (item) => <span className="tabular">{formatDays(item.estimatedMinutes)}</span>,
+    cell: (item) => (
+      <span className="tabular">
+        {item.estimatedMinutes >= 21 ? formatDays(item.estimatedMinutes) : "—"}
+      </span>
+    ),
   },
   {
     key: "marge",

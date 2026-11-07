@@ -46,7 +46,7 @@ function Measure({
     <ModalRow className="flex flex-col gap-2 px-4 py-3">
       <div className="flex items-baseline justify-between gap-3">
         <h3 className="text-base font-medium text-ink">{title}</h3>
-        <span className="font-mono text-sm text-ink">{value}</span>
+        <span className="font-mono text-sm text-ink">{value === UNAVAILABLE ? "—" : value}</span>
       </div>
       <SegmentedGauge
         value={gauge}

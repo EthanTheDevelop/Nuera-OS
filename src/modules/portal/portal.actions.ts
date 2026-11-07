@@ -2,6 +2,7 @@
 
 import { revalidatePath } from "next/cache";
 import { cookies } from "next/headers";
+import { redirect } from "next/navigation";
 import type { ActionState } from "@/lib/action-state";
 import {
   listPortalConversation,
@@ -12,8 +13,9 @@ import { addPortalTicketMessage } from "@/modules/support/ticket.service";
 import { formDataToObject, toActionErrorState } from "@/server/actions";
 import { getEnv } from "@/server/config/env";
 import { parseInput } from "@/server/validation";
+import { completePortalGuide, dismissPortalTip, restartPortalGuide } from "./portal-guide.service";
 import { requirePortalPage, SELECTED_PROJECT_COOKIE } from "./portal.page";
-import { olderMessagesSchema } from "./portal.schema";
+import { olderMessagesSchema, type PortalTipKey } from "./portal.schema";
 import {
   assertPortalProject,
   openPortalTicket,
@@ -32,6 +34,37 @@ import {
 function done(message: string): ActionState {
   revalidatePath("/espace", "layout");
   return { status: "success", message };
+}
+
+/** Guide terminé ou écarté. Un échec n'arrête pas le client : le guide se reproposera. */
+export async function completeGuideAction(): Promise<ActionState> {
+  try {
+    await completePortalGuide(await requirePortalPage());
+    return done("Guide terminé.");
+  } catch (error) {
+    return toActionErrorState(error, { action: "portal.guide_complete" });
+  }
+}
+
+/** Conseil fermé. L'interface l'a déjà retiré ; un échec le fera seulement revenir au prochain chargement. */
+export async function dismissTipAction(tip: PortalTipKey): Promise<ActionState> {
+  try {
+    await dismissPortalTip(await requirePortalPage(), { tip });
+    return done("Conseil fermé.");
+  } catch (error) {
+    return toActionErrorState(error, { action: "portal.tip_dismiss" });
+  }
+}
+
+/** « Revoir le guide » : tout repart, depuis l'accueil. */
+export async function restartGuideAction(): Promise<ActionState> {
+  try {
+    await restartPortalGuide(await requirePortalPage());
+  } catch (error) {
+    return toActionErrorState(error, { action: "portal.guide_restart" });
+  }
+  revalidatePath("/espace", "layout");
+  redirect("/espace");
 }
 
 export async function reviewDeliverableAction(

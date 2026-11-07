@@ -17,9 +17,9 @@ import { simulateProjectAction } from "../time.actions";
 const FIELD_ID = "simulateur-projet";
 
 const INPUT = cn(
-  "h-8 w-[170px] max-w-full rounded-sm border border-transparent bg-transparent px-1.5 text-right text-sm text-text outline-none",
+  "h-8 w-[170px] max-w-full rounded-sm border border-muted/50 bg-surface-raised px-1.5 text-right text-sm text-text outline-none",
   "transition-[border-color] duration-(--dur-fast) placeholder:text-muted",
-  "hover:border-border focus:border-text focus:bg-surface aria-invalid:border-danger pointer-coarse:h-11",
+  "hover:border-muted focus:border-text aria-invalid:border-danger pointer-coarse:h-11",
 );
 
 /** La date change par fondu croisé, jamais d'un coup (note Mouvement de l'écran 18). */

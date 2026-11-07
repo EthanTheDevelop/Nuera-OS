@@ -28,7 +28,7 @@ function linesOf(consumption: ContractConsumption, minutesLabel: string, tickets
     lines.push({
       key: "tickets",
       label: ticketsLabel,
-      value: `${consumedTickets} / ${includedTickets} demandes`,
+      value: `${consumedTickets} / ${includedTickets} ${includedTickets > 1 ? "demandes" : "demande"}`,
       percent: ticketsPercent,
     });
   }

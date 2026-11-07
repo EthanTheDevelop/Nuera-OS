@@ -41,6 +41,18 @@ import { parsePagination } from "@/server/pagination";
 
 export const metadata: Metadata = { title: "Fiche d'équipe" };
 
+const plain = (text: string) =>
+  text
+    .normalize("NFD")
+    .replace(/\p{Diacritic}/gu, "")
+    .toLocaleLowerCase("fr-FR");
+
+/** Un seul rôle : la fonction suffit quand elle commence déjà par le type (« Associée · … »). */
+function roleLine(kind: string, title: string | null): string {
+  if (!title) return kind;
+  return plain(title).startsWith(plain(kind)) ? title : `${kind} · ${title}`;
+}
+
 export default async function MemberPage({
   params,
   searchParams,
@@ -112,7 +124,7 @@ export default async function MemberPage({
             {member.fullName}
           </span>
         }
-        subtitle={[MEMBER_KIND_LABELS[member.kind], member.title].filter(Boolean).join(" · ")}
+        subtitle={roleLine(MEMBER_KIND_LABELS[member.kind], member.title)}
         breadcrumbs={[{ label: "Équipe", href: "/equipe" }, { label: member.fullName }]}
         badges={
           <>
@@ -247,6 +259,10 @@ export default async function MemberPage({
                 <p className="tabular text-xs text-muted">
                   Ce mois : {formatNumber(capacity.plannedMinutes / MINUTES_PER_DAY, 1)} /{" "}
                   {formatNumber(capacity.capacityMinutes / MINUTES_PER_DAY, 1)} j vendues
+                  {capacity.capacityMinutes > 0 &&
+                  capacity.plannedMinutes > capacity.capacityMinutes
+                    ? ` · surcharge de ${formatNumber((capacity.plannedMinutes - capacity.capacityMinutes) / MINUTES_PER_DAY, 1)} j`
+                    : ""}
                 </p>
               </>
             ) : null}

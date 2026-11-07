@@ -11,7 +11,7 @@ export function SharedFilesDrop({ projectId }: { projectId: string | null }) {
       label={<span className="sr-only">Déposer des photos</span>}
       dropLabel="Déposer des photos"
       target={projectId ? { projectId } : {}}
-      className="lg:[&_label.border-dashed]:min-h-[560px]"
+      className="lg:[&_label.border-dashed]:min-h-24"
       onUploaded={() => router.refresh()}
     />
   );

@@ -22,6 +22,8 @@ const nextConfig: NextConfig = {
   reactStrictMode: true,
   // `next dev` ne génère pas de fichier AGENTS.md : les instructions sont dans CLAUDE.md.
   agentRules: false,
+  // Deuxième adresse locale (voir `getAuth`) : `next dev` seulement.
+  allowedDevOrigins: ["espace.localhost"],
   async headers() {
     return [{ source: "/:path*", headers: securityHeaders }];
   },

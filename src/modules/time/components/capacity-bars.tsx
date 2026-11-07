@@ -87,7 +87,7 @@ function Bar({
           } as CSSProperties
         }
         className={cn(
-          "anim-grow-y w-[42%] max-w-12 rounded-md transition-[background-color,opacity] duration-(--dur-fast)",
+          "anim-grow-y w-[42%] max-w-[72px] rounded-md transition-[background-color,opacity] duration-(--dur-fast)",
           holding ? "bg-accent" : FILL[tone],
           dimmed && "opacity-40",
         )}

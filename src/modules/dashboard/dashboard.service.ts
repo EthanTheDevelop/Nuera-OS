@@ -404,11 +404,18 @@ const LOADERS: Record<TileKey, (sources: Sources) => Promise<TileView>> = {
               `${firstNameOf(member.fullName)} ${days(member.plannedMinutes)} / ${days(member.capacityMinutes)}`,
           )
           .join(" · ") || undefined,
+      noteItems: members.length
+        ? members.map((member) => ({
+            text: `${firstNameOf(member.fullName)} ${days(member.plannedMinutes)} / ${days(member.capacityMinutes)}`,
+            tone: member.plannedMinutes > member.capacityMinutes ? ("danger" as const) : undefined,
+          }))
+        : undefined,
       rows: [
         ...members.map((member) => ({
           id: member.memberId,
           label: firstNameOf(member.fullName),
           value: `${days(member.plannedMinutes)} / ${days(member.capacityMinutes)}`,
+          tone: member.plannedMinutes > member.capacityMinutes ? ("danger" as const) : undefined,
         })),
         { id: "free", label: "Libres", value: `${days(free)} j` },
       ],

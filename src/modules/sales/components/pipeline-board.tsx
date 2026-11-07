@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useRef, useState } from "react";
+import { useCallback, useEffect, useRef, useState, type RefObject } from "react";
 import {
   KanbanBoard,
   type KanbanColumnDef,
@@ -19,6 +19,26 @@ function isStage(value: string): value is OpportunityStage {
 /** Refus silencieux : la carte reprend sa place, sans message d'erreur. */
 const REVERT: ActionState = { status: "error", message: "" };
 
+/** Voile sur le bord droit tant qu'une colonne reste hors de vue : la ligne défile. */
+function useMoreToTheRight(wrapper: RefObject<HTMLDivElement | null>): boolean {
+  const [more, setMore] = useState(false);
+  useEffect(() => {
+    const scroller = wrapper.current?.querySelector<HTMLElement>('[role="group"]');
+    if (!scroller) return;
+    const measure = () =>
+      setMore(scroller.scrollWidth - scroller.clientWidth - scroller.scrollLeft > 4);
+    measure();
+    scroller.addEventListener("scroll", measure, { passive: true });
+    const observer = new ResizeObserver(measure);
+    observer.observe(scroller);
+    return () => {
+      scroller.removeEventListener("scroll", measure);
+      observer.disconnect();
+    };
+  }, [wrapper]);
+  return more;
+}
+
 /**
  * Kanban de l'écran 03. La pose appelle la Server Action `moveOpportunityAction`, qui passe par la
  * machine à états et par Twenty : un refus ou un CRM coupé remet la carte en place avec le message.
@@ -35,6 +55,8 @@ export function PipelineBoard({
 }) {
   const [losing, setLosing] = useState<{ id: string; name: string } | null>(null);
   const settle = useRef<((result: ActionState) => void) | null>(null);
+  const wrapper = useRef<HTMLDivElement>(null);
+  const more = useMoreToTheRight(wrapper);
 
   const onMove = useCallback(
     async ({ itemId, toColumnId }: KanbanMove): Promise<ActionState> => {
@@ -54,13 +76,19 @@ export function PipelineBoard({
 
   return (
     <>
-      <KanbanBoard
-        columns={columns}
-        items={items}
-        onMove={onMove}
-        label="Affaires par étape"
-        className="items-stretch lg:min-h-[640px]"
-      />
+      <div ref={wrapper} className="relative">
+        <KanbanBoard
+          columns={columns}
+          items={items}
+          onMove={onMove}
+          label="Affaires par étape"
+          className="items-stretch lg:min-h-[max(640px,calc(100dvh-340px))]"
+        />
+        <div
+          aria-hidden="true"
+          className={`pointer-events-none absolute top-0 right-0 bottom-4 w-14 bg-linear-to-l from-bg to-transparent transition-opacity duration-(--dur-fast) ${more ? "opacity-100" : "opacity-0"}`}
+        />
+      </div>
       <LostReasonDialog
         opportunity={losing}
         onDone={(result) => {

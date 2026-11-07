@@ -7,11 +7,13 @@ import {
   isShellSeen,
   markPageSeen,
   markShellSeen,
+  pageBuildKey,
   startPageBuild,
 } from "./build-state";
 
 /** Dernière page décidée : les effets rejoués (React strict) ne doivent pas changer l'avis. */
 let decidedPage: string | null = null;
+let decidedPath: string | null = null;
 let shellDecided = false;
 
 /**
@@ -27,13 +29,23 @@ export function PageBuild({ children }: { children: ReactNode }) {
 
   // Avant la peinture : le nouveau contenu ne doit pas démarrer son animation pour rien.
   useLayoutEffect(() => {
-    if (decidedPage === pathname) return;
+    const key = pageBuildKey(pathname);
+    if (decidedPage === key) {
+      // Autre fiche du même écran : tout arrive en place, sans rejouer la cascade.
+      if (decidedPath !== pathname) {
+        decidedPath = pathname;
+        document.documentElement.setAttribute("data-page-seen", "");
+        startPageBuild(true, false);
+      }
+      return;
+    }
+    decidedPath = pathname;
     const hardLoad = decidedPage === null;
-    decidedPage = pathname;
-    const seen = isPageSeen(pathname);
+    decidedPage = key;
+    const seen = isPageSeen(key);
     document.documentElement.toggleAttribute("data-page-seen", seen);
     startPageBuild(seen, hardLoad);
-    markPageSeen(pathname);
+    markPageSeen(key);
   }, [pathname]);
 
   return (

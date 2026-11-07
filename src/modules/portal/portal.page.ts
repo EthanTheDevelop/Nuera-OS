@@ -6,6 +6,7 @@ import { getTicketForPortal } from "@/modules/support/ticket.service";
 import { getCurrentActor, getPortalContext } from "@/server/auth/session";
 import type { PortalContext } from "@/server/context";
 import { ForbiddenError, NotFoundError } from "@/server/errors";
+import { getPortalGuide, type PortalGuide } from "./portal-guide.service";
 import { getPortalHome, type PortalHome } from "./portal.service";
 
 export const SELECTED_PROJECT_COOKIE = "nuera-portal-project";
@@ -31,6 +32,12 @@ export const loadPortalHome = cache(async (): Promise<PortalHome> => {
   const ctx = await requirePortalPage();
   const store = await cookies();
   return getPortalHome(ctx, { selectedProjectId: store.get(SELECTED_PROJECT_COOKIE)?.value });
+});
+
+/** État du guide et des conseils, lu une fois par requête : le serveur décide de ce qui s'affiche. */
+export const loadPortalGuide = cache(async (): Promise<PortalGuide> => {
+  const ctx = await requirePortalPage();
+  return getPortalGuide(ctx);
 });
 
 /** La demande de ce client, une fois par requête. Toute autre : 404. */

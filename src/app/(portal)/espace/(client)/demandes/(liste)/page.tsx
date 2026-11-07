@@ -1,9 +1,16 @@
 import type { Metadata } from "next";
 import Link from "next/link";
-import { PortalCard, PortalPageHeader } from "@/components/portal/portal-card";
+import {
+  PORTAL_FILL,
+  PORTAL_PAGE,
+  PORTAL_SCROLL,
+  PortalCard,
+  PortalPageHeader,
+} from "@/components/portal/portal-card";
 import { EmptyState } from "@/components/states/states";
 import { Badge } from "@/components/ui/badge";
 import { TICKET_CATEGORY_LABELS } from "@/lib/domain-enums";
+import { PortalPageTip } from "@/modules/portal/components/page-tip";
 import { NewTicketButton } from "@/modules/portal/components/ticket-forms";
 import { clientTicketStatus, ticketDateLabel } from "@/modules/portal/portal.format";
 import { requirePortalPage } from "@/modules/portal/portal.page";
@@ -19,7 +26,8 @@ export default async function PortalTicketsPage() {
   const siteOptions = sites.map(({ id, name }) => ({ id, name }));
 
   return (
-    <div className="flex flex-col gap-6">
+    <div className={PORTAL_PAGE}>
+      <PortalPageTip tip="demandes" />
       <PortalPageHeader
         title="Mes demandes"
         subtitle="Ce que vous nous avez demandé, où cela en est, et nos réponses"
@@ -32,14 +40,16 @@ export default async function PortalTicketsPage() {
           description="Une question, un souci, une modification : ouvrez une demande, vous suivez ici son avancement."
         />
       ) : (
-        <PortalCard>
-          <ul className="flex flex-col">
+        <PortalCard className={PORTAL_FILL}>
+          <ul
+            className={`flex flex-col min-[1800px]:grid-cols-2 min-[1800px]:gap-x-10 lg:grid lg:auto-rows-[minmax(max-content,14dvh)] lg:content-start ${PORTAL_SCROLL}`}
+          >
             {tickets.map((ticket) => {
               const status = clientTicketStatus(ticket.status);
               return (
                 <li
                   key={ticket.id}
-                  className="relative flex flex-wrap items-center gap-x-4 gap-y-1 border-t border-border py-4 first:border-t-0 first:pt-0 last:pb-0"
+                  className="relative flex flex-wrap items-center gap-x-4 gap-y-1 border-t border-border py-4 first:border-t-0 first:pt-0 last:pb-0 min-[1800px]:nth-2:border-t-0 min-[1800px]:nth-2:pt-0"
                 >
                   <div className="min-w-0 flex-1 basis-60">
                     <Link

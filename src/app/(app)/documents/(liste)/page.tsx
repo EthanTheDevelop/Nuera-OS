@@ -1,3 +1,4 @@
+import type { Metadata } from "next";
 import Link from "next/link";
 import { PageHeader } from "@/components/layout/page-header";
 import { staggerIndex } from "@/components/motion/stagger";
@@ -197,6 +198,8 @@ function historyRows(versions: readonly DocumentVersionRow[], current: DocumentR
     value: `${formatDateShort(version.createdAt)} · ${firstName(version.authorName)}`,
   }));
 }
+
+export const metadata: Metadata = { title: "Documents" };
 
 export default async function DocumentsPage({
   searchParams,

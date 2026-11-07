@@ -1,7 +1,13 @@
 "use client";
 
 import { useActionState, useEffect } from "react";
-import { PortalCard, PortalPageHeader } from "@/components/portal/portal-card";
+import {
+  PORTAL_PAGE,
+  PORTAL_ROW,
+  PORTAL_SCROLL,
+  PortalCard,
+  PortalPageHeader,
+} from "@/components/portal/portal-card";
 import { useSignOut } from "@/components/layout/profile-menu";
 import { Avatar } from "@/components/ui/avatar";
 import { CompactButton } from "@/components/ui/compact-button";
@@ -49,7 +55,7 @@ export function ProfileForm({
   }, [state, toast]);
 
   return (
-    <form action={formAction} className="flex flex-col gap-6">
+    <form action={formAction} className={PORTAL_PAGE}>
       <PortalPageHeader
         title="Mon profil"
         subtitle="Vos informations et la façon dont nous vous prévenons"
@@ -60,8 +66,8 @@ export function ProfileForm({
         }
       />
       <FormAlert state={state.status === "error" ? state : IDLE_ACTION_STATE} />
-      <div className="grid gap-6 lg:grid-cols-[minmax(0,856fr)_minmax(0,480fr)]">
-        <PortalCard className="gap-4">
+      <div className={`${PORTAL_ROW} lg:grid-cols-2 xl:grid-cols-3`}>
+        <PortalCard className="gap-4 lg:justify-between">
           <Avatar name={name} size={64} />
           <TextField name="name" label="Nom" defaultValue={name} state={state} required />
           <Field id="profile-company" label="Entreprise">
@@ -78,17 +84,24 @@ export function ProfileForm({
             <Input id="profile-phone" value={phone ?? "Non renseigné"} disabled readOnly />
           </Field>
         </PortalCard>
-        <div className="flex min-w-0 flex-col gap-6">
-          <PortalCard title="M'écrire quand…" className="gap-4">
-            {NOTIFICATIONS.map(([key, label]) => (
-              <Switch key={key} name={key} label={label} defaultChecked={preferences[key]} />
-            ))}
+        <div className="flex min-w-0 flex-col gap-6 xl:contents">
+          <PortalCard title="M'écrire quand…" className="gap-4 lg:flex-1">
+            <div className="flex flex-col gap-4 lg:flex-1 lg:gap-0">
+              {NOTIFICATIONS.map(([key, label]) => (
+                <div
+                  key={key}
+                  className="lg:flex lg:flex-[1_0_auto] lg:items-center lg:border-t lg:border-border lg:py-2 lg:*:w-full"
+                >
+                  <Switch name={key} label={label} defaultChecked={preferences[key]} />
+                </div>
+              ))}
+            </div>
           </PortalCard>
-          <PortalCard title="Connexion">
+          <PortalCard title="Connexion" className="lg:flex-1">
             <p className="text-sm text-muted">
               Sans mot de passe : un lien par e-mail, valable 24 h.
             </p>
-            <ul className="flex flex-col gap-2">
+            <ul className={`flex flex-col gap-2 ${PORTAL_SCROLL}`}>
               {devices.map((device) => (
                 <li key={device.id} className="flex items-center justify-between gap-3 text-sm">
                   <span className="min-w-0 truncate text-ink">

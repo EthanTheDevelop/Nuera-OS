@@ -127,6 +127,8 @@ export interface AuthOptions {
    * production, où les comptes clients du seed ont un mot de passe pour les parcours de test.
    */
   allowClientPassword?: boolean;
+  /** Origines acceptées en plus de `baseURL`. Développement seulement : voir `getAuth`. */
+  extraTrustedOrigins?: readonly string[];
 }
 
 /** Journal d'une opération de sécurité : une erreur est tracée, jamais propagée à la connexion. */
@@ -145,6 +147,7 @@ export function buildAuth({
   sendMagicLink,
   onMailQueued,
   allowClientPassword = false,
+  extraTrustedOrigins = [],
 }: AuthOptions) {
   const outboxSender = createOutboxMagicLinkSender(db);
   const magicLinkSender: MagicLinkSender =
@@ -158,7 +161,7 @@ export function buildAuth({
     appName: "Nuera OS",
     baseURL,
     secret,
-    trustedOrigins: [baseURL],
+    trustedOrigins: [baseURL, ...extraTrustedOrigins],
     disabledPaths: CLOSED_AUTH_PATHS,
     hooks: {
       before: createAuthMiddleware(async (ctx) => {
@@ -337,6 +340,8 @@ export function getAuth(): Auth {
       baseURL: env.BETTER_AUTH_URL,
       onMailQueued: () => kickEmailOutbox(getDb()),
       allowClientPassword: env.NODE_ENV !== "production",
+      // Deuxième adresse locale : une session de plus, pour voir l'agence et le client côte à côte.
+      extraTrustedOrigins: env.NODE_ENV === "development" ? ["http://espace.localhost:3000"] : [],
     });
   }
   return globalForAuth.__nueraAuth;

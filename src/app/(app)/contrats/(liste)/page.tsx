@@ -384,9 +384,9 @@ export default async function ContractsPage({
                   className="flex items-center justify-between gap-3 text-sm text-text"
                 >
                   <span className="min-w-0 break-words">Domaine {row.name}</span>
-                  <span className="tabular shrink-0 pr-2 text-muted">
+                  <Badge tone="neutral" className="tabular shrink-0">
                     {formatDateNumeric(row.expiresOn)}
-                  </span>
+                  </Badge>
                 </li>
               ))}
               {priceReviews.map((row) => (
@@ -406,9 +406,9 @@ export default async function ContractsPage({
                       à revoir
                     </Badge>
                   ) : (
-                    <span className="tabular shrink-0 pr-2 text-muted">
+                    <Badge tone="neutral" className="tabular shrink-0">
                       à revoir en {row.reviewOn.slice(0, 4)}
-                    </span>
+                    </Badge>
                   )}
                 </li>
               ))}

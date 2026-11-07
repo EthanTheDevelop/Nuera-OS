@@ -1,0 +1,2 @@
+ALTER TABLE "portal_preferences" ADD COLUMN "guide_completed_at" timestamp with time zone;--> statement-breakpoint
+ALTER TABLE "portal_preferences" ADD COLUMN "dismissed_tips" jsonb DEFAULT '[]'::jsonb NOT NULL;

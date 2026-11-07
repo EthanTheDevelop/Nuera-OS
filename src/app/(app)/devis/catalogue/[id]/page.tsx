@@ -94,7 +94,11 @@ export default async function CatalogueItemPage({ params }: { params: Promise<{ 
                   { key: "margin", label: "Marge estimée", value: formatPercent(margin) },
                 ]
               : []),
-            { key: "time", label: "Temps estimé", value: formatDays(item.estimatedMinutes) },
+            {
+              key: "time",
+              label: "Temps estimé",
+              value: item.estimatedMinutes >= 21 ? formatDays(item.estimatedMinutes) : "—",
+            },
             {
               key: "validity",
               label: "Validité",

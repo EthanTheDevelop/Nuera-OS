@@ -62,7 +62,7 @@ export function formatDays(
   minutesPerDay: number = MINUTES_PER_DAY,
 ): string {
   if (minutes === null || minutes === undefined || !Number.isFinite(minutes)) return EMPTY;
-  const days = new Intl.NumberFormat(LOCALE, { maximumFractionDigits: 1 }).format(
+  const days = new Intl.NumberFormat("fr-CA", { maximumFractionDigits: 1 }).format(
     minutes / minutesPerDay,
   );
   return `${days}${NBSP}j`;
@@ -75,9 +75,9 @@ export function formatDate(value: DateInput): string {
   return format(value, { day: "numeric", month: "long", year: "numeric" });
 }
 
-/** « 18 nov. » */
+/** « 18 nov. », « 1er nov. » */
 export function formatDateShort(value: DateInput): string {
-  return format(value, { day: "numeric", month: "short" });
+  return format(value, { day: "numeric", month: "short" }).replace(/^1(?=\s)/, "1er");
 }
 
 /** « 18/11/2026 ». */
@@ -158,7 +158,7 @@ export function formatRelativeTime(value: DateInput, now: Date = new Date()): st
 
 export function formatNumber(value: number | null | undefined, maximumFractionDigits = 0): string {
   if (value === null || value === undefined || !Number.isFinite(value)) return EMPTY;
-  return new Intl.NumberFormat(LOCALE, { maximumFractionDigits }).format(value);
+  return new Intl.NumberFormat("fr-CA", { maximumFractionDigits }).format(value);
 }
 
 /** `78` donne « 78 % » : la valeur est déjà en pourcentage. Valeur absente : « — ». */

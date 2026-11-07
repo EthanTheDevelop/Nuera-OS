@@ -69,6 +69,8 @@ export interface TileView {
   unit?: string;
   note?: string;
   noteTone?: TileNoteTone;
+  /** Note en segments : chacun reste entier, la ligne passe à la suivante plutôt que de couper un nom. */
+  noteItems?: { text: string; tone?: TileNoteTone }[];
   badge?: TileBadge;
   /** Titre remplacé par la donnée : « Frais 50/50 » à deux associés. */
   title?: string;

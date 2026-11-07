@@ -1,5 +1,6 @@
 import type { Metadata } from "next";
 import { ClientMotionPreset } from "@/components/motion/motion-provider";
+import "@/components/portal/portal-fit.css";
 import { ForbiddenState } from "@/components/states/states";
 import { CompactLink } from "@/components/ui/compact-button";
 import { Alert } from "@/components/ui/feedback";
@@ -31,7 +32,7 @@ export default async function AgencyPortalPreviewPage({
 
   return (
     <ClientMotionPreset>
-      <main className="anim-content mx-auto flex min-h-dvh w-full max-w-[1440px] flex-col gap-6 bg-bg px-4 pt-6 pb-16 sm:px-10">
+      <main className="portal-fit anim-content mx-auto flex min-h-dvh w-full max-w-[1440px] flex-col gap-6 bg-bg px-4 pt-6 pb-16 sm:px-[40px] lg:max-w-none lg:pt-4 lg:pb-5">
         <div className="flex flex-wrap items-center justify-between gap-3">
           <Alert tone="info" className="min-w-0 flex-1 basis-80">
             <strong>Vue de l&apos;agence.</strong> Voici ce que voit le client sur ce projet. Aperçu

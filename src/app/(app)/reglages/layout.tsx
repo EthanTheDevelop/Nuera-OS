@@ -21,10 +21,7 @@ export default async function SettingsLayout({ children }: { children: ReactNode
   const tabs = TABS.filter((tab) => canAny(actor, tab.any));
   return (
     <>
-      <PageHeader
-        title="Réglages"
-        subtitle="Les outils branchés à Nuera OS. Tout tourne sur notre serveur, sauf ce que la loi impose (facturation, paiement) et ChatGPT."
-      >
+      <PageHeader title="Réglages">
         <SettingsTabs tabs={tabs.map(({ href, label }) => ({ href, label }))} />
       </PageHeader>
       {children}

@@ -1,7 +1,7 @@
 "use client";
 
 import { useLayoutEffect, useSyncExternalStore } from "react";
-import { BUILD_STORAGE_KEY } from "./build-state";
+import { BUILD_STORAGE_KEY, MESSAGES_THREAD_PATTERN, PAGE_ID_PATTERN } from "./build-state";
 
 /**
  * Script bloquant de `<head>`, autorisé par le nonce de la requête.
@@ -11,7 +11,7 @@ import { BUILD_STORAGE_KEY } from "./build-state";
  */
 const SCRIPT = `(function(){var d=document.documentElement;try{var s=JSON.parse(sessionStorage.getItem(${JSON.stringify(
   BUILD_STORAGE_KEY,
-)})||"{}");if(s.shell)d.setAttribute("data-shell-seen","");if(s.pages&&s.pages[location.pathname])d.setAttribute("data-page-seen","")}catch(e){}if(d.getAttribute("data-theme")==="auto")d.setAttribute("data-theme",matchMedia("(prefers-color-scheme: dark)").matches?"dark":"light")})();`;
+)})||"{}");if(s.shell)d.setAttribute("data-shell-seen","");if(s.pages&&s.pages[location.pathname.replace(new RegExp(${JSON.stringify(PAGE_ID_PATTERN)},"gi"),":id").replace(new RegExp(${JSON.stringify(MESSAGES_THREAD_PATTERN)}),"/messages")])d.setAttribute("data-page-seen","")}catch(e){}if(d.getAttribute("data-theme")==="auto")d.setAttribute("data-theme",matchMedia("(prefers-color-scheme: dark)").matches?"dark":"light")})();`;
 
 const subscribe = () => () => {};
 const onClient = () => false;

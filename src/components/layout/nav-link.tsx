@@ -43,7 +43,7 @@ export function NavLink({
       aria-current={active ? "page" : undefined}
       style={{ "--i": index } as CSSProperties}
       className={cn(
-        "anim-frame flex min-h-[34px] items-center gap-3 rounded-sm px-3 py-2 text-nav outline-none",
+        "anim-frame flex min-h-[34px] items-center gap-3 rounded-sm px-3 py-2 text-nav outline-none [@media(max-height:940px)_and_(pointer:fine)_and_(min-width:1024px)]:min-h-7 [@media(max-height:940px)_and_(pointer:fine)_and_(min-width:1024px)]:py-1",
         "transition-colors duration-(--dur-fast) ease-out max-lg:min-h-11 pointer-coarse:min-h-11",
         "focus-visible:outline-2 focus-visible:-outline-offset-2 focus-visible:outline-accent-on-dark",
         active

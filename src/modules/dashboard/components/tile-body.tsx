@@ -376,6 +376,7 @@ export function TileBody({
         value={<Figure figure={view.figure} />}
         note={view.note ? <span className="line-clamp-2">{view.note}</span> : undefined}
         noteTone={view.noteTone}
+        reserveNote
       />
     );
   }
@@ -395,7 +396,18 @@ export function TileBody({
     Boolean(view.note) &&
     (view.gauge || (short && !noticed && (chart || rows.length === 0)));
   const noteInFigure = !short && !view.gauge && !rowsOnly;
-  const note = (
+  const note = view.noteItems?.length ? (
+    <span className="tile-note-items flex flex-wrap gap-x-2">
+      {view.noteItems.map((item) => (
+        <span
+          key={item.text}
+          className={cn("whitespace-nowrap", item.tone === "danger" && "font-medium text-danger")}
+        >
+          {item.text}
+        </span>
+      ))}
+    </span>
+  ) : (
     <span className={cn("tile-note line-clamp-2", VALUE_TONE[view.noteTone ?? "muted"])}>
       {view.note}
     </span>

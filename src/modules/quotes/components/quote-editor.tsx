@@ -283,6 +283,7 @@ export function QuoteEditor(props: QuoteEditorProps) {
             <Input
               id="issuedByNote"
               name="issuedByNote"
+              placeholder="Mention affichée sous l'offre, par exemple « Émis par Nuera Studio »"
               defaultValue={submittedValue(state, "issuedByNote") ?? props.issuedByNote}
             />
           </Field>

@@ -145,6 +145,10 @@ export default async function ConnectionsPage() {
 
   return (
     <div className="flex flex-col gap-8">
+      <p className="text-sm text-muted">
+        Les outils branchés à Nuera OS. Tout tourne sur notre serveur, sauf ce que la loi impose
+        (facturation, paiement) et ChatGPT.
+      </p>
       <section
         aria-label="ChatGPT"
         className="anim-content flex flex-col gap-5 rounded-lg border border-chatgpt bg-surface p-6 shadow-soft"

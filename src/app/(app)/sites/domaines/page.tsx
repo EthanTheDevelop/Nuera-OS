@@ -167,7 +167,7 @@ export default async function DomainsPage({
   const subtitle =
     all.total === 0
       ? "Aucun domaine enregistré"
-      : `${all.total} domaine${all.total > 1 ? "s" : ""} · ${expiring.total} à renouveler ou à contrôler sous ${EXPIRY_WARNING_DAYS} jours`;
+      : `${all.total} domaine${all.total > 1 ? "s" : ""} · ${expiring.total} échéance${expiring.total > 1 ? "s" : ""} de domaine ou de certificat sous ${EXPIRY_WARNING_DAYS} jours`;
 
   return (
     <div className="flex flex-col gap-(--grid-gap)">
@@ -185,7 +185,7 @@ export default async function DomainsPage({
         <FilterBar searchParam="q" searchPlaceholder="Rechercher…" label="Filtrer les domaines">
           <FilterChip param="filtre">Tous</FilterChip>
           <FilterChip param="filtre" value="a-renouveler">
-            À renouveler
+            Échéance proche
           </FilterChip>
           <FilterChip param="filtre" value="https">
             Problème HTTPS

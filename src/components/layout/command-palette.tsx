@@ -59,7 +59,7 @@ export function CommandPalette({
   useEffect(() => {
     const onKeyDown = (event: KeyboardEvent) => {
       if (event.key.toLowerCase() !== "k" || !(event.metaKey || event.ctrlKey)) return;
-      if (!open && document.querySelector("dialog[open]")) return;
+      if (!open && document.querySelector("dialog[open]:not([data-command-palette])")) return;
       event.preventDefault();
       onOpenChange(!open);
     };
@@ -103,8 +103,12 @@ function PaletteDialog({
   useLayoutEffect(() => {
     const element = dialog.current;
     if (!element) return;
+    const previous = document.activeElement instanceof HTMLElement ? document.activeElement : null;
     element.showModal();
-    return () => element.close();
+    return () => {
+      element.close();
+      if (previous?.isConnected) previous.focus({ preventScroll: true });
+    };
   }, []);
 
   useEffect(() => {
@@ -165,6 +169,7 @@ function PaletteDialog({
     <dialog
       ref={dialog}
       aria-label="Recherche globale"
+      data-command-palette=""
       onCancel={(event) => {
         event.preventDefault();
         onClose();

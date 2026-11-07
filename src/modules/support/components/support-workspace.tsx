@@ -306,8 +306,7 @@ export function CloseTicketButton({ id, label }: { id: string; label: string }) 
   const { requestClose } = useWorkspace();
   return (
     <Button
-      variant="accent"
-      className="relative z-10 self-start"
+      className="relative z-10 self-start text-row-secondary [&_.nu-btn-face]:px-3 [&_.nu-btn-face]:py-1.5"
       onClick={() => requestClose({ id, label })}
     >
       Clôturer

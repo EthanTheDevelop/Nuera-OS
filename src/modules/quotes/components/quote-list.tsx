@@ -40,7 +40,11 @@ function columns(now: Date): DataTableColumn<QuoteRow>[] {
         <CellIdentity
           name={row.companyName}
           title={row.number}
-          subtitle={`${row.companyName} · ${row.title}`}
+          subtitle={
+            <span title={`${row.companyName} · ${row.title}`}>
+              {`${row.companyName} · ${row.title}`}
+            </span>
+          }
         />
       ),
     },
@@ -48,7 +52,11 @@ function columns(now: Date): DataTableColumn<QuoteRow>[] {
       key: "montant",
       header: "Montant",
       width: 106,
-      cell: (row) => <span className="tabular">{formatCents(row.totalCents)}</span>,
+      cell: (row) => (
+        <span className="tabular">
+          {row.status === "draft" && !row.totalCents ? "—" : formatCents(row.totalCents)}
+        </span>
+      ),
     },
     {
       key: "statut",

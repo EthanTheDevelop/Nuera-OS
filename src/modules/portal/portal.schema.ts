@@ -20,6 +20,13 @@ export const updateProfileSchema = z.object({
 });
 export type UpdateProfileInput = z.input<typeof updateProfileSchema>;
 
+/** Conseils d'une ligne du portail : une clé par page. Toute autre clé est refusée. */
+export const PORTAL_TIP_KEYS = ["messages", "documents", "mon-site", "demandes"] as const;
+export type PortalTipKey = (typeof PORTAL_TIP_KEYS)[number];
+
+export const dismissTipSchema = z.object({ tip: z.enum(PORTAL_TIP_KEYS, "Conseil inconnu.") });
+export type DismissTipInput = z.input<typeof dismissTipSchema>;
+
 export const requirementTextSchema = z.object({
   requirementId: uuid,
   text: z

@@ -32,14 +32,14 @@ describe("formatCents", () => {
   });
 
   it("gère les valeurs négatives et absentes", () => {
-    expect(visible(formatCents(-5000))).toBe("-50 €");
+    expect(visible(formatCents(-5000))).toBe("−50 €");
     expect(formatCents(null)).toBe("—");
     expect(formatCents(undefined)).toBe("—");
     expect(formatCents(Number.NaN)).toBe("—");
   });
 
-  it("utilise les espaces insécables du français", () => {
-    expect(formatCents(780000)).toBe("7 800 €");
+  it("utilise une espace insécable que la police dessine, jamais l'espace fine", () => {
+    expect(formatCents(780000)).toBe("7 800 €");
   });
 
   it("ajoute la mention HT", () => {

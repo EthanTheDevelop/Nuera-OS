@@ -68,6 +68,9 @@ export function MemberCard({ card, index }: { card: MemberCardData; index: numbe
         <p className="tabular text-xs text-muted">
           Ce mois : {formatNumber(planned / MINUTES_PER_DAY, 1)} /{" "}
           {formatNumber(available / MINUTES_PER_DAY, 1)} j vendues
+          {available > 0 && planned > available
+            ? ` · surcharge de ${formatNumber((planned - available) / MINUTES_PER_DAY, 1)} j`
+            : ""}
           {absences[0]
             ? ` · absence du ${formatDateShort(absences[0].startOn)} au ${formatDateShort(absences[0].endOn)}`
             : ""}

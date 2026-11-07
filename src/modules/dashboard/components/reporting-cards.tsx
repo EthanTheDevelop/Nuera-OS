@@ -57,6 +57,7 @@ export function SalesCard({ section }: { section: ReportingData["sales"] }) {
                       max={Math.max(...sales.lostReasons.map((row) => row.total))}
                       tone="danger"
                       label={reason}
+                      showValue
                       valueText={`${total} ${plural(total, "affaire")}`}
                       index={index}
                     />

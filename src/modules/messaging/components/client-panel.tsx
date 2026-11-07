@@ -98,8 +98,10 @@ export function ClientPanel({
                 >
                   <Icon name={item.received ? "check" : "clock"} size={12} />
                 </span>
-                <span className="min-w-0">{item.label}</span>
-                <span className="sr-only">{item.received ? "reçu" : "attendu"}</span>
+                <span className="min-w-0 flex-1">{item.label}</span>
+                <span className="shrink-0 text-row-secondary text-muted">
+                  {item.received ? "reçu" : "attendu"}
+                </span>
               </li>
             ))}
           </ul>

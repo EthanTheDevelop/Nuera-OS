@@ -409,7 +409,14 @@ export default async function FinancesPage({
                         href={`/finances/rentabilite/client/${client.id}`}
                         className="flex flex-col gap-1.5 text-sm text-text hover:underline hover:underline-offset-4"
                       >
-                        {client.title}
+                        <span className="flex items-baseline justify-between gap-3">
+                          <span className="min-w-0 truncate">{client.title}</span>
+                          <span className="shrink-0 text-muted tabular-nums">
+                            {client.margin.actual.marginPercent === null
+                              ? "n.d."
+                              : formatPercent(percent)}
+                          </span>
+                        </span>
                         <Gauge
                           value={Math.max(0, percent)}
                           tone={marginTone(percent)}

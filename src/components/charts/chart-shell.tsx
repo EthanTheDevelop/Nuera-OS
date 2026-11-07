@@ -60,7 +60,8 @@ export const NOTE_TONES: Record<NoteTone, string> = {
   danger: "text-danger",
 };
 
-const FORMATTER_LOCALE = "fr-FR";
+// fr-CA pour les chiffres : voir src/lib/money.ts.
+const FORMATTER_LOCALE = "fr-CA";
 
 export function formatChartValue(value: number, { format, suffix }: ChartValueFormat): string {
   const text = new Intl.NumberFormat(FORMATTER_LOCALE, format).format(value);

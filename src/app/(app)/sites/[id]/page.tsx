@@ -237,7 +237,7 @@ export default async function SitePage({
 
   // KPI
   const uptimeValue =
-    health.uptimeRatio === null ? "indisponible" : formatPercent(health.uptimeRatio * 100, 2);
+    health.uptimeRatio === null ? "—" : formatPercent(health.uptimeRatio * 100, 2);
   const incidentsNote =
     health.incidents === 0
       ? "0 incident"

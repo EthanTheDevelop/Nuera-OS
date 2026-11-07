@@ -2,8 +2,11 @@ import type { Metadata } from "next";
 import type { ReactNode } from "react";
 import { ClientMotionPreset } from "@/components/motion/motion-provider";
 import { ClientCapsule } from "@/components/portal/ClientCapsule";
+import { PORTAL_FILL } from "@/components/portal/portal-card";
+import "@/components/portal/portal-fit.css";
 import { Badge } from "@/components/ui/badge";
 import type { MenuEntry } from "@/components/ui/popover";
+import { restartGuideAction } from "@/modules/portal/portal.actions";
 import { formatDayMonth } from "@/modules/portal/portal.format";
 import { loadPortalHome, requirePortalPage } from "@/modules/portal/portal.page";
 import type { PortalHome } from "@/modules/portal/portal.service";
@@ -55,7 +58,8 @@ function menuItems(data: PortalHome): MenuEntry[] {
 }
 
 /**
- * Espace client : capsule + contenu centré sur 1360. L'adhésion est relue à chaque requête : un accès
+ * Espace client : capsule + contenu. À partir de 1024 px, l'ensemble tient dans la hauteur de l'écran
+ * (`portal-fit.css`, `PORTAL_FILL`) ; en dessous, la page défile normalement. L'adhésion est relue à chaque requête : un accès
  * révoqué s'arrête ici, sans attendre. Chaque page refait ce contrôle.
  */
 export default async function PortalLayout({ children }: { children: ReactNode }) {
@@ -64,15 +68,18 @@ export default async function PortalLayout({ children }: { children: ReactNode }
 
   return (
     <ClientMotionPreset>
-      <div className="min-h-dvh bg-bg">
+      <div className="flex min-h-dvh flex-col bg-bg">
         <ClientCapsule
           progress={capsuleProgress(data)}
           nextAction={data.nextAction ?? undefined}
           messagesCount={data.unread}
           user={{ name: ctx.actor.name, email: ctx.actor.email }}
           menuItems={menuItems(data)}
+          onReplayGuide={restartGuideAction}
         />
-        <main className="anim-content mx-auto w-full max-w-[1440px] px-4 pt-6 pb-16 sm:px-10">
+        <main
+          className={`portal-fit anim-content mx-auto w-full max-w-[1440px] px-4 pt-6 pb-16 sm:px-[40px] lg:flex lg:max-w-none lg:flex-col lg:pt-2 lg:pb-4 ${PORTAL_FILL}`}
+        >
           {children}
         </main>
       </div>

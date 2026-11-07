@@ -262,7 +262,7 @@ test.describe("en associé", () => {
     await context.close();
   });
 
-  test("la galerie se réduit, le tableau reprend la largeur, et elle se rouvre au clavier", async ({
+  test("la galerie flotte sans déplacer le tableau, se réduit et se rouvre au clavier", async ({
     browser,
   }) => {
     const { context, page } = await open(browser, { viewport: { width: 1440, height: 1120 } });
@@ -283,9 +283,7 @@ test.describe("en associé", () => {
     await expect(reopen).toHaveAttribute("aria-expanded", "false");
     await expect(gallery.getByRole("button", { name: "Terminé" })).toBeVisible();
     await expect(gallery.getByRole("link", { name: "Annuler" })).toBeVisible();
-    await expect
-      .poll(async () => (await grid.boundingBox())?.width ?? 0)
-      .toBeGreaterThan(widthOpen);
+    expect((await grid.boundingBox())?.width ?? 0).toBe(widthOpen);
 
     await page.keyboard.press("Enter");
     await expect(page.locator("[data-gallery-item]").first()).toBeVisible();

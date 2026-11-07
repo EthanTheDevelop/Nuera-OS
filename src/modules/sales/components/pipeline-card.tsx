@@ -9,11 +9,15 @@ import { amountLabel, cardSignal } from "./opportunity-view";
 /** Carte d'affaire (écran 03) : client, offre, montant mono, responsable, origine, repère de suivi. */
 export function PipelineCard({ opportunity }: { opportunity: OpportunityView }) {
   const signal = cardSignal(opportunity);
+  const headline = opportunity.companyName ?? opportunity.name;
+  const subline = opportunity.companyName
+    ? opportunity.name
+    : (opportunity.contactName ?? undefined);
   return (
     <KanbanCard
       href={`/pipeline/${opportunity.id}`}
-      title={opportunity.companyName ?? opportunity.name}
-      subtitle={opportunity.companyName ? opportunity.name : (opportunity.contactName ?? undefined)}
+      title={<span title={headline}>{headline}</span>}
+      subtitle={subline ? <span title={subline}>{subline}</span> : undefined}
     >
       <div className="flex min-h-[26px] items-center justify-between gap-2">
         <span
@@ -30,7 +34,9 @@ export function PipelineCard({ opportunity }: { opportunity: OpportunityView }) 
       </div>
       <div className="flex min-w-0 flex-wrap items-center gap-x-2 gap-y-1">
         {opportunity.source ? (
-          <Badge className="max-w-full truncate">{opportunity.source}</Badge>
+          <span className="flex max-w-full min-w-0" title={opportunity.source}>
+            <Badge className="max-w-full truncate">{opportunity.source}</Badge>
+          </span>
         ) : null}
         <span
           className={cn(
@@ -41,7 +47,9 @@ export function PipelineCard({ opportunity }: { opportunity: OpportunityView }) 
           )}
         >
           <Icon name="clock" size={14} className="shrink-0" />
-          <span className="truncate">{signal.label}</span>
+          <span className="truncate" title={signal.label}>
+            {signal.label}
+          </span>
         </span>
       </div>
     </KanbanCard>

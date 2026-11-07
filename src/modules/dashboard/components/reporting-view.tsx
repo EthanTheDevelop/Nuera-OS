@@ -301,7 +301,7 @@ export function ReportingView({ data, aside }: { data: ReportingData; aside?: Re
       )}
 
       {aside ? (
-        <aside className="order-last grid min-w-0 items-start gap-6 min-[1340px]:order-none min-[1340px]:row-span-2 min-[1340px]:flex min-[1340px]:flex-col md:grid-cols-2">
+        <aside className="order-last grid min-w-0 items-start gap-6 min-[1340px]:order-none min-[1340px]:row-span-2 min-[1340px]:flex min-[1340px]:flex-col min-[1340px]:items-stretch md:grid-cols-2 min-[1340px]:[&>*]:flex-1">
           {aside}
         </aside>
       ) : null}

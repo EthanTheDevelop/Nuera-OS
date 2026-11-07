@@ -124,7 +124,7 @@ Colonnes **(T)** : maîtres dans Twenty, écrites via `CrmGateway`, jamais modif
 ### Portail (`schema/portal.ts`)
 
 - `portal_memberships` : `user_id` unique, `company_id`, `contact_id`, `status` (invited, active, revoked), `invited_by`, `invited_at`, `last_seen_at`. **Source unique du cloisonnement client.**
-- `portal_preferences` : `user_id`, `notify_message`, `notify_validation`, `notify_invoice`, `notify_requirement`, `notify_report`.
+- `portal_preferences` : `user_id`, `notify_message`, `notify_validation`, `notify_invoice`, `notify_requirement`, `notify_report`, `guide_completed_at` (guide de première visite terminé ou écarté ; vide : il se propose), `dismissed_tips` (jsonb, clés des conseils fermés, liste autorisée dans `portal.schema.ts`).
 
 ### Automatisations et administration (`schema/platform.ts`)
 

@@ -42,7 +42,7 @@ export function Sidebar({
       </div>
       <nav
         aria-label="Navigation principale"
-        className="-mx-1 flex min-h-0 flex-1 [scrollbar-width:none] flex-col gap-4 overflow-y-auto px-1"
+        className="-mx-1 flex min-h-0 flex-1 [scrollbar-width:none] flex-col gap-4 overflow-y-auto px-1 [@media(max-height:940px)_and_(pointer:fine)_and_(min-width:1024px)]:gap-2"
       >
         {sections.map((section) => (
           <div key={section.key}>
@@ -70,7 +70,7 @@ export function Sidebar({
                         target="_blank"
                         rel="noopener noreferrer"
                         style={staggerIndex(itemIndex++)}
-                        className="anim-frame flex min-h-[34px] items-center gap-3 rounded-sm px-3 py-2 text-nav font-medium text-accent-on-dark transition-colors duration-(--dur-fast) ease-out outline-none hover:bg-surface-raised-dark hover:text-paper focus-visible:outline-2 focus-visible:-outline-offset-2 focus-visible:outline-accent-on-dark max-lg:min-h-11 pointer-coarse:min-h-11"
+                        className="anim-frame flex min-h-[34px] items-center gap-3 rounded-sm px-3 py-2 text-nav font-medium text-accent-on-dark transition-colors duration-(--dur-fast) ease-out outline-none hover:bg-surface-raised-dark hover:text-paper focus-visible:outline-2 focus-visible:-outline-offset-2 focus-visible:outline-accent-on-dark max-lg:min-h-11 pointer-coarse:min-h-11 [@media(max-height:940px)_and_(pointer:fine)_and_(min-width:1024px)]:min-h-7 [@media(max-height:940px)_and_(pointer:fine)_and_(min-width:1024px)]:py-1"
                       >
                         <Icon name={link.icon} size={18} />
                         <span className="min-w-0 flex-1 truncate">{link.label}</span>

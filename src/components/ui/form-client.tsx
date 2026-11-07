@@ -18,7 +18,7 @@ import { Button } from "./button";
 import { Field, fieldDescription, Input, type FormFieldProps } from "./form";
 import { parseDurationToMinutes } from "./form-parsers";
 
-const EURO_INPUT_FORMAT = new Intl.NumberFormat("fr-FR", {
+const EURO_INPUT_FORMAT = new Intl.NumberFormat("fr-CA", {
   minimumFractionDigits: 2,
   maximumFractionDigits: 2,
 });
@@ -127,7 +127,7 @@ function ParsedField({
           onBlur={() => {
             if (parsed !== null) setText(format(parsed));
           }}
-          className={cn("tabular pr-11 text-right", className)}
+          className={cn("tabular", unit && "pr-11 text-right", className)}
           {...fieldDescription(controlId, { hint, error })}
           {...props}
         />

@@ -2,6 +2,7 @@ import { sql } from "drizzle-orm";
 import {
   boolean,
   index,
+  jsonb,
   pgTable,
   text,
   uniqueIndex,
@@ -61,6 +62,9 @@ export const portalPreferences = pgTable("portal_preferences", {
   notifyInvoice: boolean("notify_invoice").notNull().default(true),
   notifyRequirement: boolean("notify_requirement").notNull().default(true),
   notifyReport: boolean("notify_report").notNull().default(true),
+  // Guide de première visite : vide, il se propose à la prochaine ouverture de l'accueil.
+  guideCompletedAt: instant("guide_completed_at"),
+  dismissedTips: jsonb("dismissed_tips").$type<string[]>().notNull().default([]),
   ...timestamps(),
 });
 

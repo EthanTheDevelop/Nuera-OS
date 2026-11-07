@@ -23,11 +23,18 @@ function ActualCost({ row }: { row: ProfitabilityRow }) {
   const ratio =
     forecast.totalCostCents > 0 ? Math.min(1, Math.abs(gap) / forecast.totalCostCents) : 0;
   return (
-    <span className="relative inline-block pb-1">
+    <span
+      className="relative inline-block pb-1"
+      title={
+        forecast.totalCostCents > 0
+          ? `Écart sur le coût estimé : ${formatCentsSigned(gap)}`
+          : undefined
+      }
+    >
       {formatCents(actual.totalCostCents)}
       {forecast.totalCostCents > 0 ? (
         <>
-          <span className="sr-only"> · écart {formatCentsSigned(gap)} sur le coût estimé</span>
+          <span className="sr-only">, écart {formatCentsSigned(gap)} sur le coût estimé</span>
           <span
             aria-hidden="true"
             title={`Écart sur l'estimé : ${formatCentsSigned(gap)}`}
@@ -46,27 +53,21 @@ function ActualCost({ row }: { row: ProfitabilityRow }) {
 
 function ActualMargin({ row }: { row: ProfitabilityRow }) {
   const percent = row.margin.actual.marginPercent;
-  const inProgress = row.margin.scope === "project" && !isFinishedProjectStatus(row.status);
   if (percent === null) {
-    return (
-      <span className="flex items-center gap-2 sm:gap-4">
-        {inProgress ? (
-          <span aria-hidden="true" className="size-1.5 rounded-full bg-accent" />
-        ) : null}
-        <span>—</span>
-      </span>
-    );
+    return <span>—</span>;
   }
   return (
     <span className="flex items-center gap-3">
-      <Gauge
-        value={Math.max(0, percent)}
-        tone={marginTone(percent)}
-        height={5}
-        label={`Marge réelle de ${row.title}`}
-        valueText={formatPercent(percent)}
-        className="w-[70px] shrink-0"
-      />
+      {percent > 0 ? (
+        <Gauge
+          value={percent}
+          tone={marginTone(percent)}
+          height={5}
+          label={`Marge réelle de ${row.title}`}
+          valueText={formatPercent(percent)}
+          className="w-[70px] shrink-0"
+        />
+      ) : null}
       <span className="tabular">{formatPercent(percent)}</span>
     </span>
   );

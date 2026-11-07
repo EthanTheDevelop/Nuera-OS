@@ -123,7 +123,11 @@ export function TimesheetTable() {
       key: "project",
       header: "PROJET",
       primary: true,
-      cell: (row) => <CellIdentity title={row.label} subtitle={row.detail} />,
+      cell: (row) => (
+        <div title={[row.label, row.detail].filter(Boolean).join(" · ")} className="min-w-0">
+          <CellIdentity title={row.label} subtitle={row.detail} />
+        </div>
+      ),
     },
     ...sheet.days.map((day): DataTableColumn<TimesheetRow> => ({
       key: day,
@@ -136,23 +140,25 @@ export function TimesheetTable() {
   ];
 
   return (
-    <DataTable
-      columns={columns}
-      rows={sheet.rows}
-      rowKey={(row) => row.key}
-      caption={`Feuille de temps, ${sheet.week.label.toLocaleLowerCase("fr-FR")}`}
-      empty={
-        <EmptyState
-          compact
-          icon="clock"
-          title="Aucun temps sur cette semaine"
-          description={
-            sheet.editable
-              ? "Aucun travail ouvert ne vous est attribué : « Saisir du temps » reste possible."
-              : "Rien n'a été saisi pour ce membre."
-          }
-        />
-      }
-    />
+    <div>
+      <DataTable
+        columns={columns}
+        rows={sheet.rows}
+        rowKey={(row) => row.key}
+        caption={`Feuille de temps, ${sheet.week.label.toLocaleLowerCase("fr-FR")}`}
+        empty={
+          <EmptyState
+            compact
+            icon="clock"
+            title="Aucun temps sur cette semaine"
+            description={
+              sheet.editable
+                ? "Aucun travail ouvert ne vous est attribué : « Saisir du temps » reste possible."
+                : "Rien n'a été saisi pour ce membre."
+            }
+          />
+        }
+      />
+    </div>
   );
 }

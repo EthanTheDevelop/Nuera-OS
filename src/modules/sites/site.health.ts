@@ -184,6 +184,6 @@ export function formatBytes(bytes: number | null | undefined): string {
     value /= 1024;
     unit += 1;
   }
-  const formatted = new Intl.NumberFormat("fr-FR", { maximumFractionDigits: 1 }).format(value);
+  const formatted = new Intl.NumberFormat("fr-CA", { maximumFractionDigits: 1 }).format(value);
   return `${formatted} ${units[unit]}`;
 }

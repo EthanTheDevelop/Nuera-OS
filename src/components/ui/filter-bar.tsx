@@ -42,8 +42,8 @@ export function FilterChip({
         "hit-44 inline-flex shrink-0 items-center rounded-full px-2 py-1 text-badge whitespace-nowrap transition-colors duration-(--dur-fast) ease-out",
         active
           ? tone === "chatgpt"
-            ? "bg-chatgpt-pale text-chatgpt"
-            : "bg-accent-pale text-accent"
+            ? "bg-chatgpt-pale text-chatgpt ring-1 ring-chatgpt/50 ring-inset"
+            : "bg-accent-pale text-accent ring-1 ring-accent/50 ring-inset"
           : "bg-surface-raised text-muted hover:text-text",
       )}
     >

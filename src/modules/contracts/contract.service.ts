@@ -1197,7 +1197,9 @@ function describeQuota(contract: Contract, consumption: ContractConsumption): st
     );
   }
   if (consumption.includedTickets !== null) {
-    parts.push(`${consumption.consumedTickets} demande(s) sur ${consumption.includedTickets}`);
+    parts.push(
+      `${consumption.consumedTickets} ${consumption.consumedTickets > 1 ? "demandes" : "demande"} sur ${consumption.includedTickets}`,
+    );
   }
   return parts.join(", ");
 }
